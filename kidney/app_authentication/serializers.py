@@ -9,6 +9,7 @@ from django.contrib.auth import authenticate, login
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError, AccessToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
+
 class RefreshTokenSerializer(TokenRefreshSerializer):
 
     token_class = RefreshToken
@@ -54,6 +55,7 @@ class RegisterSerializer(serializers.Serializer):
     suffix_name = serializers.CharField(required=False)
     birthdate = serializers.DateField(required=False)
     gender = serializers.CharField(required=False)
+    contact = serializers.CharField(required=False)
 
     # Profile field (optional)
     picture = serializers.ImageField(required=False)
@@ -99,7 +101,8 @@ class RegisterSerializer(serializers.Serializer):
             user_info_data = {
                 'suffix_name': validated_data.get('suffix_name'),
                 'birthdate': validated_data.get('birthdate'),
-                'gender': validated_data.get('gender')
+                'gender': validated_data.get('gender'),
+                'contact': validated_data.get('contact')
             }
             # create the user information
             UserInformation.objects.create(user=user,**user_info_data)
@@ -112,7 +115,6 @@ class RegisterSerializer(serializers.Serializer):
 
         return profile
     
-
 
 class LoginObtainPairSerializer(TokenObtainPairSerializer):
 

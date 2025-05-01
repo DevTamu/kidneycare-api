@@ -2,7 +2,8 @@ from rest_framework.response import Response
 from typing import Optional, Dict, Any
 from rest_framework.views import exception_handler
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from django.core.mail import EmailMessage
+from django.conf import settings
 def ResponseMessageUtils(
     message:str=None,
     data: Optional[Dict[str, Any]]=None,
@@ -65,3 +66,18 @@ def get_tokens_for_user(user):
         'refresh': str(refresh),
         'access': str(refresh.access_token),
     }
+
+
+def send_email_utils(
+    subject=None,
+    message=None,
+    from_email=None,
+    recipient_list=None,
+):
+    email = EmailMessage(
+        subject=subject,
+        body=message,
+        from_email=from_email,
+        to=recipient_list,
+    )
+    email.send(fail_silently=False)

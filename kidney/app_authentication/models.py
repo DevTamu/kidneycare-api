@@ -1,4 +1,4 @@
-from django.db import models, transaction
+from django.db import models
 from django.contrib.auth.models import User
 from kidney.models import TimestampModel
 from django.contrib.auth.models import AbstractUser
@@ -31,6 +31,7 @@ class UserInformation(TimestampModel):
     suffix_name = models.CharField(max_length=10, blank=True, null=True)
     birthdate = models.DateField(blank=True, null=True)
     gender = models.CharField(max_length=10, blank=True, null=True)
+    contact = models.CharField(max_length=11, blank=True, null=True)
 
     def __str__(self):
         return f"Information of {self.user.username}"

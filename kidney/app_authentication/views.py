@@ -5,11 +5,9 @@ from .serializers import (
     ChangePasswordSerializer,
     CustomLogoutTokenBlacklistSerializer
 )
-from rest_framework.exceptions import ValidationError
-from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import generics
-from kidney.utils import ResponseMessageUtils, get_tokens_for_user
+from kidney.utils import ResponseMessageUtils, get_tokens_for_user, send_email_utils
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
@@ -18,8 +16,6 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 import json
 from django.contrib.auth import logout
 import logging
-from rest_framework.permissions import BasePermission
-from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +58,13 @@ class RegisterView(generics.CreateAPIView):
                 user = user_profile.user
 
                 token = get_tokens_for_user(user)
+
+                # send_email_utils(
+                #     subject='subject',
+                #     message='message',
+                #     from_email='19201.bautista.martin.s0010@gmail.com',
+                #     recipient_list=['19201.bautista.martin.s@gmail.com'],
+                # )
 
                 return ResponseMessageUtils(
                     message="Account Registered Successfully",
@@ -131,6 +134,7 @@ class LogoutView(generics.CreateAPIView):
         try:
             if serializer.is_valid():
                 serializer.save()
+                logout(request)
                 return ResponseMessageUtils(message="Successfully logged out", status_code=status.HTTP_200_OK) 
             return ResponseMessageUtils(message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST) 
         except Exception as e:
