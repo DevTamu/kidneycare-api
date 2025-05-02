@@ -2,8 +2,11 @@ from rest_framework.response import Response
 from typing import Optional, Dict, Any
 from rest_framework.views import exception_handler
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.core.mail import EmailMessage
-from django.conf import settings
+from django.template import Template, Context
+from django.core.mail import EmailMultiAlternatives
+import random
+import re
+
 def ResponseMessageUtils(
     message:str=None,
     data: Optional[Dict[str, Any]]=None,
@@ -41,7 +44,6 @@ def allowed_file(filename) -> str:
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
     """Check if the file has a valid extension."""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-    # return filename.endswith(('jpg', 'jpeg', 'png'))
 
 
 def custom_exception_handler(exc, context):
@@ -55,6 +57,7 @@ def custom_exception_handler(exc, context):
                 response.data = {
                     "message": value[0]
                 }
+         
 
 
     return response
@@ -71,13 +74,50 @@ def get_tokens_for_user(user):
 def send_email_utils(
     subject=None,
     message=None,
-    from_email=None,
     recipient_list=None,
+    otp=None
 ):
-    email = EmailMessage(
+    email = EmailMultiAlternatives(
         subject=subject,
         body=message,
-        from_email=from_email,
         to=recipient_list,
     )
+
+    html_template = Template("""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Your OTP</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+            <div style="max-width: 600px; margin: auto; background-color: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <h2 style="color: #333;">(OTP) Code</h2>
+                <p>Hello, {{ recipient_list }}</p>
+                <p>Use the following OTP to verify your email:</p>
+                <p style="font-size: 24px; font-weight: bold; color: #4CAF50;">{{ otp }}</p>
+                <p>This code will expire in 3 minutes.</p>
+                <hr>
+                <p style="font-size: 12px; color: #888;">If you did not request this, please ignore this email.</p>
+                <p style="font-size: 12px; color: #888;">Thank you,<br>KidneyCare Team</p>
+            </div>
+        </body>
+        </html>
+    """)
+
+    context = Context({'otp': otp, 'recipient_list': recipient_list[0]})
+    html_content = html_template.render(context)
+
+    email.attach_alternative(html_content, "text/html")
+
     email.send(fail_silently=False)
+
+
+def generate_otp():
+    return f"{random.randint(100000, 999999)}"
+
+def validate_email(email):
+    #check if the not email matches the regex pattern
+    if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+        return False
+    return True
