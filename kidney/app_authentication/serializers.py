@@ -13,6 +13,7 @@ import uuid
 from django.contrib.auth.hashers import make_password
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 class RefreshTokenSerializer(TokenRefreshSerializer):
 
@@ -135,6 +136,38 @@ class VerifyOTPSerializer(serializers.Serializer):
         #return the updated instance
         return instance
 
+class ResendOTPSerializer(serializers.Serializer):
+
+    otp_token = serializers.UUIDField()
+
+    def validate(self, attrs):
+
+        try:
+            otp_entry = OTP.objects.get(otp_token=attrs["otp_token"])
+        except OTP.DoesNotExist:
+            raise serializers.ValidationError({"message": "OTP Token does not exist"})
+        
+        #set the instance to "otp_entry" object for use in "update"
+        self.instance = otp_entry
+
+        return attrs
+
+
+    def update(self, instance, validated_data):
+        #generate new otp
+        otp = generate_otp()
+        #set the new generated otp
+        instance.otp_code = otp
+        #set new otp token
+        instance.otp_token = uuid.uuid4()
+        #update the timestamp
+        instance.created_at = timezone.now()
+        #save the updated otp
+        instance.save()
+        #return the updated instance
+        return instance
+
+
 
 class RegisterSerializer(serializers.Serializer):
     
@@ -144,9 +177,9 @@ class RegisterSerializer(serializers.Serializer):
     middlename = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     #user fields (required)
-    first_name = serializers.CharField()
-    last_name = serializers.CharField()
-    role = serializers.ChoiceField(write_only=True,choices=["Patient", "Admin", "Nurse"], default="Patient")
+    first_name = serializers.CharField(allow_blank=True)
+    last_name = serializers.CharField(allow_blank=True)
+    role = serializers.ChoiceField(allow_blank=True,choices=["Patient", "Admin", "Nurse"], default="Patient")
 
     # UserInformation fields (optional)
     suffix_name = serializers.BooleanField(required=False)
@@ -166,21 +199,31 @@ class RegisterSerializer(serializers.Serializer):
         if role != "Patient":
 
             #check if username(email) empty
-            if not attrs["username"]:
+            if not attrs["username"].strip():
                 raise serializers.ValidationError({"message": "Email is required"})
             
+            #check if password empty
+            if not attrs["password"].strip():
+                raise serializers.ValidationError({"message": "Password is required"})
+
             #check the length of the password
             if len(attrs["password"]) < 8:
                 raise serializers.ValidationError({"message": "Password must be atleast 8 characters long"})
-
-            #check if password empty
-            if not attrs["password"]:
-                raise serializers.ValidationError({"message": "Password is required"})
             
             #check if the email is not a valid email
             if not validate_email(attrs["username"]):
                 raise serializers.ValidationError({"message": "Invalid email"})
+            
+            if not attrs["role"].strip():
+                raise serializers.ValidationError({"message": "Role is required"})
 
+        if not attrs["first_name"].strip():
+            raise serializers.ValidationError({"message": "Firstname is required"})
+        if not attrs["last_name"].strip():
+            raise serializers.ValidationError({"message": "Lastname is required"})
+
+        if not attrs["role"].strip():
+            raise serializers.ValidationError({"message": "Role is required"})
 
         #patient required fields
         patient_required_fields = ['middlename', 'birthdate', 'gender', 'contact']
@@ -189,18 +232,13 @@ class RegisterSerializer(serializers.Serializer):
             #check if patient required fields is empty
             for field in patient_required_fields:
                 if not attrs.get(field):
-                    raise serializers.ValidationError({"message": "This field is required for patients"})
+                    raise serializers.ValidationError({"message": "This fields is required for patients"})
         elif role in ['Admin', 'Nurse']:
             #remove patient specific fields
             for field in patient_required_fields:
                 if field in attrs:
                     attrs.pop(field)
         
-        #check required fields(empty)
-        for field in ["first_name", "last_name", "role"]:
-            if not attrs.get(field):
-                raise serializers.ValidationError({"message": f"{field} is required"})
-
         #check the username (username as email) only if the role is ["Admin", "Nurse"]
         if User.objects.filter(username=attrs["username"]).exists() and role in ['Admin', 'Nurse']:
             raise serializers.ValidationError({"message": "Email already used"})
@@ -313,8 +351,8 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
         data = {
             "message": "Successfully Logged in",
             "data": {
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
+                "access_token": str(refresh.access_token),
+                "refresh_token": str(refresh),
                 "user_id": user.id,
                 "user_email": user.username,
                 "user_image": picture,

@@ -6,12 +6,14 @@ from .views import (
     LogoutView,
     ChangePasswordView,
     SendOTPView,
-    VerifyOTPView
+    VerifyOTPView,
+    ResendOTPView
 )
 
 urlpatterns = [
     path('register/send-otp/', SendOTPView.as_view(), name='send-otp'),
     path('register/verify-otp/', VerifyOTPView.as_view(), name='send-otp'),
+    path('register/resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', LoginView.as_view(), name='login'),
     path('refresh-token/', RefreshTokenView.as_view(), name='refresh-token'),

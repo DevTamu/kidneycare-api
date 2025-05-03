@@ -5,7 +5,8 @@ from .serializers import (
     ChangePasswordSerializer,
     CustomLogoutTokenBlacklistSerializer,
     VerifyOTPSerializer,
-    SendOTPSerializer
+    SendOTPSerializer,
+    ResendOTPSerializer
 )
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import generics
@@ -48,8 +49,21 @@ class VerifyOTPView(generics.UpdateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return ResponseMessageUtils(message="OTP verified successfully.")
+        return ResponseMessageUtils(message="OTP verified successfully.", status_code=status.HTTP_200_OK)
 
+
+class ResendOTPView(generics.UpdateAPIView):
+    queryset = OTP.objects.all()
+    serializer_class = ResendOTPSerializer
+
+    def update(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            #access validated data
+            result = serializer.save()
+            return ResponseMessageUtils(message="Successfully Resend the OTP", data={"otp_token": result.otp_token}, status_code=status.HTTP_200_OK)
+        return ResponseMessageUtils(message=serializer.errors["message"][0], status_code=status.HTTP_400_BAD_REQUEST)
+    
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
