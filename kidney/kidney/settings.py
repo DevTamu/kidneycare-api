@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'app_authentication',
+    'app_news_event'
 ]
 
 MIDDLEWARE = [
