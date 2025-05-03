@@ -26,8 +26,6 @@ class Profile(TimestampModel):
     def __str__(self):
         return f"{self.user.username}'s Profile"
 
-
-
 class UserInformation(TimestampModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
     suffix_name = models.BooleanField(default=False)

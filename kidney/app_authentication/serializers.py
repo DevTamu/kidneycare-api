@@ -89,12 +89,12 @@ class SendOTPSerializer(serializers.Serializer):
                 otp_token=uuid.uuid4()
             )
 
-            send_email_utils(
-                subject='Your OTP Code',
-                message=f'Your OTP is {otp}',
-                recipient_list=[f'{validated_data['username']}'],
-                otp=otp
-            )
+            # send_email_utils(
+            #     subject='Your OTP Code',
+            #     message=f'Your OTP is {otp}',
+            #     recipient_list=[f'{validated_data['username']}'],
+            #     otp=otp
+            # )
 
             return {
                 "otp_token": str(otp_obj.otp_token),
@@ -267,28 +267,33 @@ class RegisterSerializer(serializers.Serializer):
         return profile
 
         
-
-        
-
-       
- 
-    
-
 class LoginObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
 
         request = self.context.get("request")
 
-        email = attrs.get(self.username_field)
+        username = attrs.get("username")
         password = attrs.get("password")
 
-        user_role = User.objects.get(username=email)
-
-        if not email or not password:
-            raise serializers.ValidationError({"message": "Both email and password are required"})
+        try:
+            user_role = User.objects.filter(username=username).first()
+        except Exception as e:
+            raise serializers.ValidationError({"message": "Username does not found"})
         
-        user = authenticate(request, username=email, password=password)
+        if(user_role.role == "Patient"):
+            try:
+                user_otp = OTP.objects.filter(user__username=username).first()
+            except User.DoesNotExist:
+                raise serializers.ValidationError({"message": "User does not found"})
+        
+            if user_otp.user.role == "Patient" and user_otp.is_verified == False:
+                raise serializers.ValidationError({"message": "Account verification is required for patients before proceeding."})
+
+        if not username or not password:
+            raise serializers.ValidationError({"message": "Both username and password are required"})
+        
+        user = authenticate(request, username=username, password=password)
 
         if user is None:
             raise serializers.ValidationError({"message": "Invalid credentials"})
@@ -296,26 +301,33 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
         login(request, user)
 
         try:
-            user_profile = Profile.objects.get(user_id=user)
+            user_profile = Profile.objects.get(user=user)
             picture = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
-        except Profile.DoesNotExist:
-            raise serializers.ValidationError({"message": "User Profile does not exists"})
+        except:
+            picture = None
+
         
         # get the current token of the user logged in
         refresh = self.get_token(user)
 
-        return {
+        data = {
             "message": "Successfully Logged in",
             "data": {
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
-                "user_id": user_profile.user.id,
-                "user_email": user_profile.user.username,
+                "user_id": user.id,
+                "user_email": user.username,
                 "user_image": picture,
-                "user_role": user_profile.user.role
+                "user_role": user.role,
             },
             "status": status.HTTP_200_OK
         }
+
+        if user_role.role == "Patient" and user_otp.user.role == "Patient":
+            data["data"]["is_verified"] = user_otp.is_verified
+        
+        return data
+    
 
 
     @classmethod
@@ -327,9 +339,6 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
 
         return token
     
-
-
-
 
 class ChangePasswordSerializer(serializers.Serializer):
     
