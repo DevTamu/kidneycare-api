@@ -1,5 +1,5 @@
 from datetime import datetime
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer, TokenBlacklistSerializer
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 from app_authentication.models import User, OTP
 from django.db.models import Q
 from .models import Profile, UserInformation
@@ -10,9 +10,7 @@ from rest_framework_simplejwt.tokens import RefreshToken, TokenError, AccessToke
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from kidney.utils import generate_otp, send_email_utils, validate_email
 import uuid
-from django.contrib.auth.hashers import make_password
 from django.db import transaction
-from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 class RefreshTokenSerializer(TokenRefreshSerializer):
@@ -90,12 +88,12 @@ class SendOTPSerializer(serializers.Serializer):
                 otp_token=uuid.uuid4()
             )
 
-            # send_email_utils(
-            #     subject='Your OTP Code',
-            #     message=f'Your OTP is {otp}',
-            #     recipient_list=[f'{validated_data['username']}'],
-            #     otp=otp
-            # )
+            send_email_utils(
+                subject='Your OTP Code',
+                message=f'Your OTP is {otp}',
+                recipient_list=[f'{validated_data['username']}'],
+                otp=otp
+            )
 
             return {
                 "otp_token": str(otp_obj.otp_token),
@@ -407,7 +405,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         return instance
     
 
-class CustomLogoutTokenBlacklistSerializer(serializers.Serializer):
+class LogoutSerializer(serializers.Serializer):
     refresh = serializers.CharField()
 
     def validate(self, attrs):

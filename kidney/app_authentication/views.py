@@ -3,7 +3,7 @@ from .serializers import (
     LoginObtainPairSerializer,
     RefreshTokenSerializer,
     ChangePasswordSerializer,
-    CustomLogoutTokenBlacklistSerializer,
+    LogoutSerializer,
     VerifyOTPSerializer,
     SendOTPSerializer,
     ResendOTPSerializer
@@ -155,7 +155,7 @@ class ChangePasswordView(generics.UpdateAPIView):
 class LogoutView(generics.CreateAPIView):
     authentication_classes = [JWTAuthentication] #only JWT Auth
     permission_classes = [IsAuthenticated]  #must be authenticated to logout
-    serializer_class = CustomLogoutTokenBlacklistSerializer
+    serializer_class = LogoutSerializer
 
     def post(self, request, *args, **kwargs):
 
