@@ -50,16 +50,12 @@ def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
 
     if response and isinstance(response.data, dict):
+        
         for key, value in response.data.items():
             if isinstance(value, list) and len(value) == 1:
-                response.data[key] = value[0]  # flatten list
-            elif 'non_field_errors' in response.data:
-                response.data = {
+                response[key] = {
                     "message": value[0]
                 }
-         
-
-
     return response
 
 #creating tokens manually when user register an account
