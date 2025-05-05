@@ -8,14 +8,12 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate, login
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError, AccessToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
-from kidney.utils import generate_otp, send_email_utils, validate_email
+from kidney.utils import generate_otp, send_otp_to_email, send_password_to_email, validate_email, is_field_empty, generate_password
 import uuid
 from django.db import transaction
 from django.utils import timezone
 
 class RefreshTokenSerializer(TokenRefreshSerializer):
-
-    token_class = RefreshToken
 
     def validate(self, attrs):
         #get the refresh token
@@ -26,11 +24,7 @@ class RefreshTokenSerializer(TokenRefreshSerializer):
             raise serializers.ValidationError({"message": "Refresh token is required"})
 
         try:
-            token = RefreshToken(refresh_token)
-
-            #check if the token has expired
-            token.check_exp()
-
+            
             data = super().validate(attrs)
 
             return {
@@ -40,6 +34,8 @@ class RefreshTokenSerializer(TokenRefreshSerializer):
 
         except TokenError as e:
             raise serializers.ValidationError({"message": "Token has expired or invalid"})
+        
+
 
 class SendOTPSerializer(serializers.Serializer):
 
@@ -48,11 +44,11 @@ class SendOTPSerializer(serializers.Serializer):
 
     def validate_username(self, value):
 
-        if not value:
+        if is_field_empty(value):
             raise serializers.ValidationError({"message": "Email is required"})
         
         if not validate_email(value):
-            raise serializers.ValidationError({"message": "Invalid email"})
+            raise serializers.ValidationError({"message": "Must be a valid email address"})
         
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("Email already used")
@@ -88,7 +84,7 @@ class SendOTPSerializer(serializers.Serializer):
                 otp_token=uuid.uuid4()
             )
 
-            send_email_utils(
+            send_otp_to_email(
                 subject='Your OTP Code',
                 message=f'Your OTP is {otp}',
                 recipient_list=[f'{validated_data['username']}'],
@@ -101,7 +97,7 @@ class SendOTPSerializer(serializers.Serializer):
             }
         except Exception as e:
             return serializers.ValidationError({"message": str(e)})
-    
+        
 
 class VerifyOTPSerializer(serializers.Serializer):
 
@@ -166,6 +162,77 @@ class ResendOTPSerializer(serializers.Serializer):
         return instance
 
 
+class AddAccountHealthCareProviderSerializer(serializers.Serializer):
+    
+    #required fields
+    username = serializers.CharField(allow_blank=True, allow_null=True)
+    firstname = serializers.CharField(allow_blank=True, allow_null=True)
+    lastname = serializers.CharField(allow_blank=True, allow_null=True)
+    role = serializers.CharField(allow_blank=True, allow_null=True)
+    contact_number = serializers.CharField(allow_blank=True, allow_null=True)
+    address = serializers.CharField(allow_blank=True, allow_null=True)  
+    
+    #optional field
+    picture = serializers.ImageField(required=False)
+
+    def validate(self, attrs):
+
+        required_fields = ['username', 'contact_number', 'firstname', 'lastname', 'address', 'role']
+
+        #check for all the required fields if (empty)
+        for field in required_fields:
+            if is_field_empty(attrs.get(field)):
+                raise serializers.ValidationError({"message": f"{field} is required"})
+        
+        #check if its a valid email address
+        if not validate_email(attrs["username"]):
+            raise serializers.ValidationError({"message": "Must be a valid email address"})
+        
+        if User.objects.filter(username=attrs["username"]).exists():
+            raise serializers.ValidationError({"message": "Email already used"})
+            
+        return attrs
+    
+    @transaction.atomic
+    def create(self, validated_data):
+        
+        #generate password
+        generated_password = generate_password()
+
+        #create user
+        user = User.objects.create_user(
+            username=validated_data["username"],
+            password=generated_password,
+            first_name=validated_data["firstname"],
+            last_name=validated_data["lastname"],
+            role=validated_data["role"]
+        )
+
+        #create related user information
+        UserInformation.objects.create(
+            user=user,
+            contact=validated_data["contact_number"],
+            address=validated_data["address"]
+        )
+
+        #create profile
+        picture = validated_data.get('picture', None)
+        user_profile = Profile.objects.create(
+            user=user,
+            picture=picture
+        )
+
+        #send the password to the gmail
+        send_password_to_email(
+            subject='Generated Password',
+            message=f'Your Password is {generated_password}',
+            recipient_list=[f'{validated_data['username']}'],
+            password=generated_password
+        )
+        
+        return user_profile
+        
+
 
 class RegisterSerializer(serializers.Serializer):
     
@@ -197,11 +264,11 @@ class RegisterSerializer(serializers.Serializer):
         if role != "Patient":
 
             #check if username(email) empty
-            if not attrs["username"].strip():
+            if is_field_empty(attrs["username"]):
                 raise serializers.ValidationError({"message": "Email is required"})
             
             #check if password empty
-            if not attrs["password"].strip():
+            if is_field_empty(attrs["password"]):
                 raise serializers.ValidationError({"message": "Password is required"})
 
             #check the length of the password
@@ -210,17 +277,17 @@ class RegisterSerializer(serializers.Serializer):
             
             #check if the email is not a valid email
             if not validate_email(attrs["username"]):
-                raise serializers.ValidationError({"message": "Invalid email"})
+                raise serializers.ValidationError({"message": "Must be a valid email address"})
             
-            if not attrs["role"].strip():
+            if is_field_empty(attrs["role"]):
                 raise serializers.ValidationError({"message": "Role is required"})
 
-        if not attrs["first_name"].strip():
+        if is_field_empty(attrs["first_name"]):
             raise serializers.ValidationError({"message": "Firstname is required"})
-        if not attrs["last_name"].strip():
+        if is_field_empty(attrs["last_name"]):
             raise serializers.ValidationError({"message": "Lastname is required"})
 
-        if not attrs["role"].strip():
+        if is_field_empty(attrs["role"]):
             raise serializers.ValidationError({"message": "Role is required"})
 
         #patient required fields
@@ -229,7 +296,7 @@ class RegisterSerializer(serializers.Serializer):
         if role == "Patient":
             #check if patient required fields is empty
             for field in patient_required_fields:
-                if not attrs.get(field):
+                if is_field_empty(attrs.get(field)):
                     raise serializers.ValidationError({"message": "This fields is required for patients"})
         elif role in ['Admin', 'Nurse']:
             #remove patient specific fields
@@ -256,7 +323,7 @@ class RegisterSerializer(serializers.Serializer):
             #retrieve the id param from the request
             id_param = request.query_params.get('id') 
             #check if the id param is empty
-            if not id_param:
+            if is_field_empty(id_param):
                 raise serializers.ValidationError({"message": "id query parameter is required for Patients"})
             
             #filter user by id (which is set to id_param) and get the first result
@@ -306,28 +373,29 @@ class RegisterSerializer(serializers.Serializer):
 class LoginObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
-
+        self.is_verified = None
         request = self.context.get("request")
-
         username = attrs.get("username")
         password = attrs.get("password")
 
-        try:
-            user_role = User.objects.filter(username=username).first()
-        except Exception as e:
-            raise serializers.ValidationError({"message": "Username does not found"})
-        
-        if(user_role.role == "Patient"):
-            try:
-                user_otp = OTP.objects.filter(user__username=username).first()
-            except User.DoesNotExist:
-                raise serializers.ValidationError({"message": "User does not found"})
-        
-            if user_otp.user.role == "Patient" and user_otp.is_verified == False:
-                raise serializers.ValidationError({"message": "Account verification is required for patients before proceeding."})
-
-        if not username or not password:
+        if is_field_empty(username) or is_field_empty(password):
             raise serializers.ValidationError({"message": "Both username and password are required"})
+
+        user = User.objects.filter(username=username).first()
+        
+        if not user:
+            raise serializers.ValidationError({"message": "Username does not exist"})
+
+        #OTP Verification (for applicable roles)
+        if user.role == 'Patient':
+            user_otp = OTP.objects.filter(user__username=username).first()
+            if not user_otp:
+                raise serializers.ValidationError({"message": "User OTP not found"})
+            if not user_otp.is_verified:
+                raise serializers.ValidationError({"message": f"{user_otp.user.role} account verification is required before proceeding."})
+            else:
+                self.is_verified = user_otp.is_verified
+            
         
         user = authenticate(request, username=username, password=password)
 
@@ -336,17 +404,17 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
         
         login(request, user)
 
+        #generate token
+        refresh = self.get_token(user)
+
         try:
             user_profile = Profile.objects.get(user=user)
             picture = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
-        except:
+        except Profile.DoesNotExist:
             picture = None
 
-        
-        # get the current token of the user logged in
-        refresh = self.get_token(user)
-
-        data = {
+       
+        data =  {
             "message": "Successfully Logged in",
             "data": {
                 "access_token": str(refresh.access_token),
@@ -359,9 +427,11 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
             "status": status.HTTP_200_OK
         }
 
-        if user_role.role == "Patient" and user_otp.user.role == "Patient":
-            data["data"]["is_verified"] = user_otp.is_verified
-        
+        if user.role == 'Patient':
+            data["data"]["is_verified"] = self.is_verified
+        else:
+            pass
+
         return data
     
 
@@ -385,7 +455,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 
         request = self.context.get('request')
 
-        if not attrs["old_password"] or not attrs["new_password"]:
+        if is_field_empty(attrs["old_password"]) or is_field_empty(attrs["new_password"]):
             raise serializers.ValidationError({"message": "Password required"})
         
         if len(attrs["old_password"]) < 8 or len(attrs["new_password"]) < 8:
@@ -410,14 +480,16 @@ class LogoutSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         self.refresh_token = attrs['refresh']
-
+        #get the request from the context
         request = self.context.get('request')
+        #get the authorization header
         auth_header = request.headers.get('Authorization')
-
+        
         if not auth_header or not auth_header.startswith('Bearer '):
             raise serializers.ValidationError({"message": 'No valid Authorization header found.'})   
         
-        self.access_token_str = auth_header.split(' ')[1]  # Get the token part
+        #get the token part
+        self.access_token_str = auth_header.split(' ')[1] 
 
         return attrs
 
@@ -431,7 +503,7 @@ class LogoutSerializer(serializers.Serializer):
             raise serializers.ValidationError({"message": "Invalid refresh token."})
 
         try:
-            #blacklist access token
+
             access_token = AccessToken(self.access_token_str)
 
             # Ensure datetime fields are correctly formatted as strings
@@ -457,9 +529,34 @@ class LogoutSerializer(serializers.Serializer):
             raise serializers.ValidationError({"message": "Error occured during logout"})
 
             
+class ChangePasswordHealthCareProviderSeriallizer(serializers.Serializer):
 
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
 
+    def validate(self, attrs):
 
+        #get the request from the context
+        request = self.context.get('request')
+
+        if is_field_empty(attrs["old_password"]) or is_field_empty(attrs["new_password"]):
+            raise serializers.ValidationError({"message": "Password must not be empty"})
+        
+        if len(attrs["old_password"]) < 8 or len(attrs["new_password"]) < 8:
+            raise serializers.ValidationError({"message": "Password must be atleast 8 characters long"})
+        
+        if not request.user.check_password(attrs["old_password"]):
+            raise serializers.ValidationError({"message": "Old password don't match"})
+
+        return attrs
+
+    def update(self, instance, validated_data):
+        #set and hash new password
+        instance.set_password(validated_data["new_password"])
+        #save the updated user instance
+        instance.save()
+        #return the updated user instance
+        return instance
 
             
 

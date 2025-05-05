@@ -6,7 +6,9 @@ from .serializers import (
     LogoutSerializer,
     VerifyOTPSerializer,
     SendOTPSerializer,
-    ResendOTPSerializer
+    ResendOTPSerializer,
+    AddAccountHealthCareProviderSerializer,
+    ChangePasswordHealthCareProviderSeriallizer
 )
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import generics
@@ -119,6 +121,26 @@ class RegisterView(generics.CreateAPIView):
             )
             
 
+class AddAccountHealthCareProviderView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = AddAccountHealthCareProviderSerializer
+
+    def post(self, request, *args, **kwargs):
+        
+        try:
+            serializer = self.get_serializer(data=request.data)
+
+            if serializer.is_valid():
+                serializer.save()
+                return ResponseMessageUtils(message="Added Account Successfully", status_code=status.HTTP_201_CREATED)
+            return ResponseMessageUtils(message=serializer.errors["message"][0], status_code=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            logger.error(f"Error: {e}")
+            return ResponseMessageUtils(message="Error occured during adding account", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
 class LoginView(TokenObtainPairView):
     serializer_class = LoginObtainPairSerializer
 
@@ -169,3 +191,28 @@ class LogoutView(generics.CreateAPIView):
             return ResponseMessageUtils(message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST) 
         except Exception as e:
             return ResponseMessageUtils(message="Error Occured during logout", status_code=status.HTTP_400_BAD_REQUEST) 
+
+class ChangePasswordHealthCareProviderView(generics.UpdateAPIView):
+
+    permission_classes = [IsAuthenticated] #must be authenticated to change password
+
+    serializer_class = ChangePasswordHealthCareProviderSeriallizer
+
+    def get_object(self):
+        return self.request.user
+    
+    def patch(self, request, *args, **kwargs):
+
+        try:
+            serializer = self.get_serializer(instance=self.get_object(), data=request.data, partial=True)
+
+            if serializer.is_valid():
+                serializer.save()
+                return ResponseMessageUtils(message="Password updated Successfully", status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(message=serializer.errors["message"][0], status_code=status.HTTP_400_BAD_REQUEST)
+        except AuthenticationFailed as e:
+            logger.error(f"Authentication failed: {str(e)}")
+            return ResponseMessageUtils(message="Token has expired or is invalid. Please log in again.", status_code=status.HTTP_401_UNAUTHORIZED)
+        except Exception as e:
+            logger.error(f"Error occurred during password change: {str(e)}")
+            return ResponseMessageUtils(message="An error occured during change password", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -7,13 +7,16 @@ from django.contrib.auth.models import AbstractUser
 import uuid
 
 class User(AbstractUser):
-
     ROLE_CHOICES = (
-        ('PATIENT', 'Patient'),
-        ('ADMIN', 'Admin'),
-        ('NURSE', 'Nurse')
+        ('Patient', 'Patient'),
+        ('Admin', 'Admin'),
+        ('Nurse', 'Nurse'),
+        ('Head Nurse', 'Head Nurse'),
+        ('Provider', 'Provider'),
+        ('Caregiver', 'Caregiver'),
     )
-    middlename = models.CharField(max_length=50, default="", null=True)
+
+    middlename = models.CharField(max_length=50, null=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
 
     def __str__(self):
@@ -32,6 +35,9 @@ class UserInformation(TimestampModel):
     birthdate = models.DateField(blank=True, null=True)
     gender = models.CharField(max_length=10, blank=True, null=True)
     contact = models.CharField(max_length=11, blank=True, null=True)
+    address = models.CharField(max_length=100, null=True)
+    age = models.CharField(max_length=10, null=True)
+
 
     def __str__(self):
         return f"Information of {self.user.username}"
