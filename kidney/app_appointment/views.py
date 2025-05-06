@@ -38,6 +38,7 @@ class GetAppointmentInProviderView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
     serializer_class = GetAppointmentsInProviderSerializer
+
     def get(self, request, *args, **kwargs):
 
         try:
