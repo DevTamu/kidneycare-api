@@ -2,7 +2,7 @@ from datetime import datetime
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 from app_authentication.models import User, OTP
 from django.db.models import Q
-from .models import Profile, UserInformation
+from .models import Profile, UserInformation, User
 from rest_framework import status
 from rest_framework import serializers
 from django.contrib.auth import authenticate, login
@@ -12,6 +12,7 @@ from kidney.utils import generate_otp, send_otp_to_email, send_password_to_email
 import uuid
 from django.db import transaction
 from django.utils import timezone
+
 
 class RefreshTokenSerializer(TokenRefreshSerializer):
 
@@ -159,6 +160,12 @@ class ResendOTPSerializer(serializers.Serializer):
         #save the updated otp
         instance.save()
         #return the updated instance
+        send_otp_to_email(
+            subject='Your OTP Code',
+            message=f'Your OTP is {otp}',
+            recipient_list=[f'{instance.user.username}'],
+            otp=otp
+        )
         return instance
 
 
@@ -251,12 +258,14 @@ class RegisterSerializer(serializers.Serializer):
     birthdate = serializers.DateField(required=False)
     gender = serializers.CharField(required=False)
     contact = serializers.CharField(required=False)
+    age = serializers.CharField(required=False)
 
     # Profile field (optional)
     picture = serializers.ImageField(required=False)
 
     def validate(self, attrs):
-        #retrieve the request from the context
+
+        #get the request from the context
         request = self.context.get('request')
         #retrieve the role field in the attrs
         role = attrs["role"]
@@ -291,7 +300,7 @@ class RegisterSerializer(serializers.Serializer):
             raise serializers.ValidationError({"message": "Role is required"})
 
         #patient required fields
-        patient_required_fields = ['middlename', 'birthdate', 'gender', 'contact']
+        patient_required_fields = ['middlename', 'birthdate', 'gender', 'contact', 'age']
 
         if role == "Patient":
             #check if patient required fields is empty
@@ -344,7 +353,8 @@ class RegisterSerializer(serializers.Serializer):
                     "suffix_name": validated_data.get("suffix_name", False),
                     "birthdate": validated_data.get("birthdate"),
                     "gender": validated_data.get("gender"),
-                    "contact": validated_data.get("contact")
+                    "contact": validated_data.get("contact"),
+                    "age": validated_data.get('age')
                 }
             )
 
@@ -441,7 +451,6 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         #custom claims
         token["username"] = user.username
-        token["user_id"] = user.id
 
         return token
     
@@ -560,3 +569,59 @@ class ChangePasswordHealthCareProviderSeriallizer(serializers.Serializer):
 
             
 
+class GetUsersInformationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = UserInformation
+        fields = '__all__'
+
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        data.pop('created_at')
+        data.pop('updated_at')
+        data.pop('user')
+        data.pop('suffix_name')
+        data.pop('address')
+
+        return data
+
+class GetUsersSeriaizer(serializers.ModelSerializer):
+
+    picture = serializers.SerializerMethodField()
+    user_information = GetUsersInformationSerializer()
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'id', 'picture', 'user_information']
+
+
+    def get_picture(self, obj):
+
+        #get the request from the context
+        request = self.context.get('request')
+
+        if obj.user_profile and obj.user_profile.picture:
+            return request.build_absolute_uri(obj.user_profile.picture.url) if obj.user_profile.picture else None
+        return None
+
+
+class GetUserSeriaizer(serializers.ModelSerializer):
+
+    picture = serializers.SerializerMethodField()
+    user_information = GetUsersInformationSerializer()
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'id', 'picture', 'user_information']
+
+
+    def get_picture(self, obj):
+
+        #get the request from the context
+        request = self.context.get('request')
+
+        if obj.user_profile and obj.user_profile.picture:
+            return request.build_absolute_uri(obj.user_profile.picture.url) if obj.user_profile.picture else None
+        return None
