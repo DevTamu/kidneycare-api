@@ -7,6 +7,7 @@ import logging
 from app_authentication.models import User
 from django.db.models import Q
 from django.db.models.expressions import RawSQL
+from django.shortcuts import get_object_or_404
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +70,7 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
 
         occupied_machines_flat = [machine for sublist in all_occupied_machines for machine in (sublist or [])]
 
-        #check if any machine in `machines_used` is already occupied
+        #check if any machine in machines_used is already occupied
         conflicting_machines = [machine for machine in machines_used if machine in occupied_machines_flat]
 
 
@@ -80,7 +81,7 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        
+
         # Extract nested appointment assignment data
         assigned_data = validated_data.pop('assigned_appointment', {})
 
@@ -110,3 +111,63 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
         appointment_assigned.save()
 
         return create_appointment
+    
+class GetAssignedMachineInProviderSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = AssignedMachine
+        fields = ['assigned_machine', 'status']
+
+
+class GetAssignedAppointmentInProviderSerializer(serializers.ModelSerializer):
+    assigned_provider = serializers.SerializerMethodField()
+    assigned_machine = serializers.SerializerMethodField()
+    # get_assigned_machine = GetAssignedMachineInProviderSerializer(many=True)
+
+    class Meta:
+        model = AssignedAppointment
+        fields = ['appointment', 'assigned_machine', 'assigned_provider']
+
+    #transforming data into array of object
+    def get_assigned_provider(self, obj):
+        providers = obj.assigned_provider or []
+        return [{"provider": p} for p in providers]
+    
+    #transforming data into array of object
+    def get_assigned_machine(self, obj):
+        #access the related AssignedMachine and return its real value
+        machine_value = getattr(obj.assigned_machine, 'assigned_machine', None) #actual value of the machine
+        return [{"machine": m} for m in machine_value]
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        #remove the appointment_id
+        data.pop('appointment')
+        #return the updated data
+        return data 
+
+class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
+
+    appointments = GetAssignedAppointmentInProviderSerializer()
+    formatted_date_time = serializers.SerializerMethodField()
+    patient_name = serializers.SerializerMethodField()
+    class Meta:
+        model = Appointment
+        fields = ['patient_name', 'formatted_date_time', 'status', 'appointments']
+
+    def get_formatted_date_time(self, obj):
+
+        date_time = obj.date_time
+        if date_time:
+            return date_time.strftime("%b %d, %Y - %I:%M %p")
+        return None
+    
+    def get_patient_name(self, obj):
+        firstname_value = getattr(obj.user, 'first_name', None)
+        lastname_value = getattr(obj.user, 'last_name', None)
+
+        if firstname_value and lastname_value:
+            return f"{firstname_value} {lastname_value}"
+        return None
+
+
