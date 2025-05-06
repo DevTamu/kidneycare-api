@@ -19,9 +19,8 @@ class AssignedMachine(models.Model):
 
 class AssignedAppointment(models.Model):
     appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE, related_name='appointments')
-    assigned_machine = models.ForeignKey(AssignedMachine, on_delete=models.CASCADE, related_name='assigned_appointments')
+    assigned_machine = models.ForeignKey(AssignedMachine, on_delete=models.CASCADE, related_name='assigned_machine_appointments')
     assigned_provider = models.JSONField(blank=True, null=True)  #list of assigned providers
-
 
     def __str__(self):
         return f"{self.appointment.user.username} Assigned"

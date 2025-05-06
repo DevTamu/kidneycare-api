@@ -6,8 +6,7 @@ from django.db import transaction
 import logging
 from app_authentication.models import User
 from django.db.models import Q
-from django.db.models.expressions import RawSQL
-from django.shortcuts import get_object_or_404
+from kidney.utils import ucfirst
 
 logger = logging.getLogger(__name__)
 
@@ -121,17 +120,16 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
 
         return create_appointment
     
-class GetAssignedMachineInProviderSerializer(serializers.ModelSerializer):
+# class GetAssignedMachineInProviderSerializer(serializers.ModelSerializer):
 
-    class Meta:
-        model = AssignedMachine
-        fields = ['assigned_machine', 'status']
+#     class Meta:
+#         model = AssignedMachine
+#         fields = ['assigned_machine', 'status']
 
 
 class GetAssignedAppointmentInProviderSerializer(serializers.ModelSerializer):
     assigned_provider = serializers.SerializerMethodField()
     assigned_machine = serializers.SerializerMethodField()
-    # get_assigned_machine = GetAssignedMachineInProviderSerializer(many=True)
 
     class Meta:
         model = AssignedAppointment
@@ -146,7 +144,7 @@ class GetAssignedAppointmentInProviderSerializer(serializers.ModelSerializer):
     def get_assigned_machine(self, obj):
         #access the related AssignedMachine and return its real value
         machine_value = getattr(obj.assigned_machine, 'assigned_machine', None) #actual value of the machine
-        return [{"machine": m} for m in machine_value]
+        return [{"machine": m} for  m in machine_value]
     
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -158,13 +156,43 @@ class GetAssignedAppointmentInProviderSerializer(serializers.ModelSerializer):
 class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
 
     appointments = GetAssignedAppointmentInProviderSerializer()
-    formatted_date_time = serializers.SerializerMethodField()
+    date_time = serializers.SerializerMethodField()
     patient_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Appointment
-        fields = ['patient_name', 'formatted_date_time', 'status', 'appointments']
+        fields = ['patient_name', 'date_time', 'status', 'appointments']
 
-    def get_formatted_date_time(self, obj):
+    def to_representation(self, instance):
+
+        #get the request from the context
+        request = self.context.get('request')
+
+        data = super(GetAppointmentsInProviderSerializer, self).to_representation(instance)
+
+        # get the fullname of the current user logged in assuming its (Provider)
+        full_name = f"{request.user.first_name} {request.user.last_name}"
+
+        #get all the assigned appointments data
+        matching_assigned_appointments = AssignedAppointment.objects.all()
+
+        #store all the appointment id here
+        matched_appointments_ids = []
+
+        #loop through of all the matching assigned appointments
+        for assigned in matching_assigned_appointments:
+            provider_list = assigned.assigned_provider or []
+            if full_name in provider_list and assigned.appointment.status == 'Approved':
+                matched_appointments_ids.append(assigned.appointment.id)
+
+        #if there is matched id return all the data
+        if instance.id in matched_appointments_ids:
+            return data
+        else:
+            return {}
+
+
+    def get_date_time(self, obj):
 
         date_time = obj.date_time
         if date_time:
@@ -176,7 +204,7 @@ class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
         lastname_value = getattr(obj.user, 'last_name', None)
 
         if firstname_value and lastname_value:
-            return f"{firstname_value} {lastname_value}"
+            return f"{ucfirst(firstname_value)} {ucfirst(lastname_value)}"
         return None
 
 
