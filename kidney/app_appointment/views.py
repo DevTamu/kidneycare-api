@@ -34,7 +34,7 @@ class CreateAppointmentView(generics.CreateAPIView):
             return ResponseMessageUtils(message=f"Something went wrong: {e}", status_code=status.HTTP_400_BAD_REQUEST)
 
 
-class GetAppointmentInProviderView(generics.RetrieveAPIView):
+class GetAppointmentInProviderView(generics.ListAPIView):
 
     permission_classes = [IsAuthenticated]
 
@@ -51,7 +51,7 @@ class GetAppointmentInProviderView(generics.RetrieveAPIView):
             return ResponseMessageUtils(message=f"Something went wrong: {str(e)}", status_code=status.HTTP_400_BAD_REQUEST)
         
 
-class GetAppointmentInAdminView(generics.RetrieveAPIView):
+class GetAppointmentInAdminView(generics.ListAPIView):
 
     permission_classes = [IsAuthenticated]
 
