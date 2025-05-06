@@ -127,7 +127,7 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
 #         fields = ['assigned_machine', 'status']
 
 
-class GetAssignedAppointmentInProviderSerializer(serializers.ModelSerializer):
+class GetAssignedAppointmentSerializer(serializers.ModelSerializer):
     assigned_provider = serializers.SerializerMethodField()
     assigned_machine = serializers.SerializerMethodField()
 
@@ -155,7 +155,7 @@ class GetAssignedAppointmentInProviderSerializer(serializers.ModelSerializer):
 
 class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
 
-    appointments = GetAssignedAppointmentInProviderSerializer()
+    appointments = GetAssignedAppointmentSerializer()
     date_time = serializers.SerializerMethodField()
     patient_name = serializers.SerializerMethodField()
 
@@ -190,6 +190,62 @@ class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
             return data
         else:
             return {}
+
+
+    def get_date_time(self, obj):
+
+        date_time = obj.date_time
+        if date_time:
+            return date_time.strftime("%b %d, %Y - %I:%M %p")
+        return None
+    
+    def get_patient_name(self, obj):
+        firstname_value = getattr(obj.user, 'first_name', None)
+        lastname_value = getattr(obj.user, 'last_name', None)
+
+        if firstname_value and lastname_value:
+            return f"{ucfirst(firstname_value)} {ucfirst(lastname_value)}"
+        return None
+    
+
+
+class GetAppointmentsInAdminSerializer(serializers.ModelSerializer):
+
+    appointments = GetAssignedAppointmentSerializer()
+    date_time = serializers.SerializerMethodField()
+    patient_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Appointment
+        fields = ['patient_name', 'date_time', 'status', 'appointments']
+
+    # def to_representation(self, instance):
+
+    #     #get the request from the context
+    #     request = self.context.get('request')
+
+    #     data = super(GetAppointmentsInProviderSerializer, self).to_representation(instance)
+
+    #     # get the fullname of the current user logged in assuming its (Provider)
+    #     full_name = f"{request.user.first_name} {request.user.last_name}"
+
+    #     #get all the assigned appointments data
+    #     matching_assigned_appointments = AssignedAppointment.objects.all()
+
+    #     #store all the appointment id here
+    #     matched_appointments_ids = []
+
+    #     #loop through of all the matching assigned appointments
+    #     for assigned in matching_assigned_appointments:
+    #         provider_list = assigned.assigned_provider or []
+    #         if full_name in provider_list and assigned.appointment.status == 'Pending':
+    #             matched_appointments_ids.append(assigned.appointment.id)
+
+    #     #if there is matched id return all the data
+    #     if instance.id in matched_appointments_ids:
+    #         return data
+    #     else:
+    #         return {}
 
 
     def get_date_time(self, obj):

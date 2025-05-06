@@ -1,7 +1,8 @@
 from django.shortcuts import render
 from .serializers import (
     CreateAppointmentSerializer,
-    GetAppointmentsInProviderSerializer
+    GetAppointmentsInProviderSerializer,
+    GetAppointmentsInAdminSerializer
 )
 from .models import Appointment
 from rest_framework import generics, status
@@ -38,6 +39,23 @@ class GetAppointmentInProviderView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
     serializer_class = GetAppointmentsInProviderSerializer
+
+    def get(self, request, *args, **kwargs):
+
+        try:
+            appointment = Appointment.objects.all()
+            serializer = self.get_serializer(appointment, many=True)
+            return ResponseMessageUtils(message="List of Appointments", data=serializer.data, status_code=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error: {e}")
+            return ResponseMessageUtils(message=f"Something went wrong: {str(e)}", status_code=status.HTTP_400_BAD_REQUEST)
+        
+
+class GetAppointmentInAdminView(generics.RetrieveAPIView):
+
+    permission_classes = [IsAuthenticated]
+
+    serializer_class = GetAppointmentsInAdminSerializer
 
     def get(self, request, *args, **kwargs):
 

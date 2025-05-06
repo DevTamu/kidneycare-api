@@ -1,10 +1,12 @@
 from django.urls import path
 from .views import (
     CreateAppointmentView,
-    GetAppointmentInProviderView
+    GetAppointmentInProviderView,
+    GetAppointmentInAdminView
 )
 
 urlpatterns = [
-    path('patient/', CreateAppointmentView.as_view(), name='create-appointment'),
-    path('get/', GetAppointmentInProviderView.as_view(), name='get'),
+    path('patient/appointment', CreateAppointmentView.as_view(), name='create-appointment'),
+    path('get-provider-appointment/', GetAppointmentInProviderView.as_view(), name='get-provider-appointment'),
+    path('get-admin-appointment/', GetAppointmentInAdminView.as_view(), name='get-admin-appointment'),
 ]
