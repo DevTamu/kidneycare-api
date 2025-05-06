@@ -159,6 +159,12 @@ class ResendOTPSerializer(serializers.Serializer):
         #save the updated otp
         instance.save()
         #return the updated instance
+        send_otp_to_email(
+            subject='Your OTP Code',
+            message=f'Your OTP is {otp}',
+            recipient_list=[f'{instance.user.username}'],
+            otp=otp
+        )
         return instance
 
 
