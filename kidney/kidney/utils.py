@@ -162,7 +162,7 @@ def generate_password(password_length=24):
     #define the possible characters for the password
     alphabet = string.ascii_letters + string.digits + string.punctuation.replace('/', '').replace('\\', '')
 
-    #generate a random password  
+    #generate a random password by joining randomly chosen characters
     password = ''.join(secrets.choice(alphabet) for _ in range(password_length))
 
     return password
@@ -184,4 +184,8 @@ def is_field_empty(field_name):
     if isinstance(field_name, (list, dict)) and not field_name:
         return True
     return False
+
+#a helper method that helps us convert the first letter to uppercae then the rest lowercase
+def ucfirst(field_name):
+    return field_name[:1].upper() + field_name[1:]
     
