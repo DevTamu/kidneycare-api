@@ -34,7 +34,16 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
 
         MAX_MACHINE_AVAILABLE = 10
 
+        #get the request from the conttext
+        request = self.context.get('request')
+
         appointment_fields = attrs.get('assigned_appointment', {})
+
+        current_user_logged_in = User.objects.get(id=request.user.id)
+
+        #raise an error only if not "Patient" role
+        if current_user_logged_in.role != 'Patient':
+            raise serializers.ValidationError({"message": "Only patients are allowed to book an appointment."})
 
         #checking if the fields are empty
         if is_field_empty(attrs.get('status')):
