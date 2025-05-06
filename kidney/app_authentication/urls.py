@@ -9,7 +9,9 @@ from .views import (
     VerifyOTPView,
     ResendOTPView,
     AddAccountHealthCareProviderView,
-    ChangePasswordHealthCareProviderView
+    ChangePasswordHealthCareProviderView,
+    GetUsersView,
+    GetUserView
 )
 
 urlpatterns = [
@@ -22,5 +24,7 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
     path('provider/add-account/', AddAccountHealthCareProviderView.as_view(), name='provider-add-account'),
-    path('provider/change-password/', ChangePasswordHealthCareProviderView.as_view(), name='provider-change-password')
+    path('provider/change-password/', ChangePasswordHealthCareProviderView.as_view(), name='provider-change-password'),
+    path('get/patients/', GetUsersView.as_view(), name='get-users'),
+    path('get/patient/<int:id>/', GetUserView.as_view(), name='get-user'),
 ]
