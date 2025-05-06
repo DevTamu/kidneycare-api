@@ -26,5 +26,5 @@ urlpatterns = [
     path('provider/add-account/', AddAccountHealthCareProviderView.as_view(), name='provider-add-account'),
     path('provider/change-password/', ChangePasswordHealthCareProviderView.as_view(), name='provider-change-password'),
     path('get/patients/', GetUsersView.as_view(), name='get-users'),
-    path('get/patient/<int:id>/', GetUserView.as_view(), name='get-user'),
+    path('get/patient/<str:id>/', GetUserView.as_view(), name='get-user'),
 ]

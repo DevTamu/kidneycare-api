@@ -26,6 +26,8 @@ import logging
 from .models import OTP
 from rest_framework import serializers
 from .models import User
+import uuid
+from rest_framework.exceptions import NotFound
 
 logger = logging.getLogger(__name__)
 
@@ -229,7 +231,20 @@ class GetUsersView(generics.ListAPIView):
 class GetUserView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GetUserSeriaizer
-    
-    
+    lookup_field = 'id'
 
+    def get_queryset(self):
+        return User.objects.all()
+    
+    def get_object(self):
+        
+        raw_id = self.kwargs.get('id')
 
+        try:
+            #convert 32-char hex string into UUID object
+            user_id = uuid.UUID(hex=raw_id)
+        except ValueError:
+            raise NotFound("Invalid user ID format")
+        
+        return self.get_queryset().get(id=user_id)
+    
