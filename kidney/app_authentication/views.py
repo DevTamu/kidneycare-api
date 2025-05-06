@@ -8,7 +8,9 @@ from .serializers import (
     SendOTPSerializer,
     ResendOTPSerializer,
     AddAccountHealthCareProviderSerializer,
-    ChangePasswordHealthCareProviderSeriallizer
+    ChangePasswordHealthCareProviderSeriallizer,
+    GetUsersSeriaizer,
+    GetUserSeriaizer
 )
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import generics
@@ -23,6 +25,7 @@ from django.contrib.auth import logout
 import logging
 from .models import OTP
 from rest_framework import serializers
+from .models import User
 
 logger = logging.getLogger(__name__)
 
@@ -216,3 +219,17 @@ class ChangePasswordHealthCareProviderView(generics.UpdateAPIView):
         except Exception as e:
             logger.error(f"Error occurred during password change: {str(e)}")
             return ResponseMessageUtils(message="An error occured during change password", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class GetUsersView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetUsersSeriaizer
+    queryset = User.objects.filter(role='Patient')
+
+class GetUserView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetUserSeriaizer
+    
+    
+
+
