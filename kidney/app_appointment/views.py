@@ -2,14 +2,16 @@ from django.shortcuts import render
 from .serializers import (
     CreateAppointmentSerializer,
     GetAppointmentsInProviderSerializer,
+    GetAppointmentDetailsInProviderSerializer,
     GetAppointmentsInAdminSerializer
 )
 from .models import Appointment
 from rest_framework import generics, status
 from kidney.utils import ResponseMessageUtils
 from rest_framework.permissions import IsAuthenticated
-# Create your views here.
+from rest_framework.exceptions import NotFound
 import logging
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +51,33 @@ class GetAppointmentInProviderView(generics.ListAPIView):
         except Exception as e:
             logger.error(f"Error: {e}")
             return ResponseMessageUtils(message=f"Something went wrong: {str(e)}", status_code=status.HTTP_400_BAD_REQUEST)
+        
+
+class GetAppointmentDetailsInProviderView(generics.RetrieveAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetAppointmentDetailsInProviderSerializer
+    lookup_field = 'id'
+    def get_queryset(self):
+        return Appointment.objects.all()
+    
+    def get_object(self):   
+        
+        raw_id = self.kwargs.get('id')
+
+       
+
+        try:
+            #convert 32-char hex string into UUID object
+            user_id = uuid.UUID(hex=raw_id)
+
+        except (ValueError):
+            raise NotFound("Invalid user ID format")
+        
+     
+        
+        return self.get_queryset().get(user__id=user_id)
+    
         
 
 class GetAppointmentInAdminView(generics.ListAPIView):
