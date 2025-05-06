@@ -177,5 +177,11 @@ def validate_email(email):
     return True
 
 def is_field_empty(field_name):
-    return not field_name.strip()
+    if field_name is None:
+        return True
+    if isinstance(field_name, str) and field_name.strip() == "":
+        return True
+    if isinstance(field_name, (list, dict)) and not field_name:
+        return True
+    return False
     
