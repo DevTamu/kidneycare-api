@@ -50,4 +50,4 @@ class OTP(TimestampModel):
     otp_token = models.UUIDField(default=uuid.uuid4(), unique=True)
 
     def is_otp_expired(self):
-        return timezone.now() > self.created_at + timedelta(seconds=20)
+        return timezone.now() > self.created_at + timedelta(minutes=3)
