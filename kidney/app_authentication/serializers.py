@@ -97,7 +97,7 @@ class SendOTPSerializer(serializers.Serializer):
                 "user_id": str(user.id)
             }
         except Exception as e:
-            return serializers.ValidationError({"message": str(e)})
+            raise serializers.ValidationError({"message": str(e)})
         
 
 class VerifyOTPSerializer(serializers.Serializer):
