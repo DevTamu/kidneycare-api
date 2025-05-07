@@ -92,8 +92,8 @@ class SendOTPSerializer(serializers.Serializer):
             )
 
             return {
-                "otp_token": str(otp_obj.otp_token),
-                "user_id": str(user.id)
+                "otp_token": str(otp_obj.otp_token).replace("-", ""),
+                "user_id": str(user.id).replace("-", "")
             }
         except Exception as e:
             raise serializers.ValidationError({"message": str(e)})
