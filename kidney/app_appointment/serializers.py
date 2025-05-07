@@ -223,16 +223,18 @@ class GetAppointmentDetailsInProviderSerializer(serializers.ModelSerializer):
         model = Appointment
         fields = ['patient_name', 'user', 'date_time', 'status', 'appointments']
 
-    # def to_representation(self, instance):
+    def to_representation(self, instance):
 
     #     #get the request from the context
     #     request = self.context.get('request')
 
-    #     data = super().to_representation(instance)
+        data = super().to_representation(instance)
 
-    #     user_id = data.pop('user')
 
-    #     data["patient_id"] = user_id
+
+        user_id = data.pop('user')
+
+        data["user_id"] = user_id
 
     #     # get the fullname of the current user logged in assuming its (Provider)
     #     full_name = f"{request.user.first_name} {request.user.last_name}"
@@ -254,6 +256,8 @@ class GetAppointmentDetailsInProviderSerializer(serializers.ModelSerializer):
     #         return data
     #     else:
     #         return {}
+
+        return data
 
 
     def get_date_time(self, obj):
