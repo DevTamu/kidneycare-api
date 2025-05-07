@@ -144,6 +144,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
+DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+
 STATIC_URL = 'static/'
 
 # STATICFILES_DIRS = [BASE_DIR / 'static']
@@ -151,9 +153,13 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'kidney', 'staticfiles')
 
 
+
 STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    },
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
     }
 }
 
