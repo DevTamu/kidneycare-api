@@ -1,1 +1,1 @@
-web: gunicorn kidney.wsgi:application --bind 0.0.0.0:$PORT --workers 2
+web: uvicorn kidney.asgi:application --host 0.0.0.0 --port $PORT --workers 2
