@@ -38,14 +38,16 @@ class SendOTPView(generics.CreateAPIView):
 
         try:
             serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            result = serializer.save()
-            return ResponseMessageUtils(
-                message="OTP Sent to your email",
-                data=result,
-                status_code=status.HTTP_200_OK
-            )
+            if serializer.is_valid():
+                result = serializer.save()
+                return ResponseMessageUtils(
+                    message="OTP Sent to your email",
+                    data=result,
+                    status_code=status.HTTP_200_OK
+                )
+            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            logger.error(f"Error: {e}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
