@@ -1,1 +1,1 @@
-web: gunicorn kidney.wsgi
+web: gunicorn kidney.wsgi:application --bind 0.0.0.0:$PORT --workers 2
