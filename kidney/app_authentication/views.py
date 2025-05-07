@@ -14,7 +14,7 @@ from .serializers import (
 )
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import generics
-from kidney.utils import ResponseMessageUtils, get_tokens_for_user
+from kidney.utils import ResponseMessageUtils, get_tokens_for_user, extract_first_error_message
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
@@ -26,6 +26,8 @@ import logging
 from .models import OTP
 from rest_framework import serializers
 from .models import User
+import uuid
+from rest_framework.exceptions import NotFound
 
 logger = logging.getLogger(__name__)
 
@@ -36,14 +38,20 @@ class SendOTPView(generics.CreateAPIView):
 
         try:
             serializer = self.get_serializer(data=request.data)
-
             if serializer.is_valid():
                 result = serializer.save()
-                return ResponseMessageUtils(message="OTP Sent to your email", data=result, status_code=status.HTTP_200_OK)
-            return ResponseMessageUtils(message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+                return ResponseMessageUtils(
+                    message="OTP Sent to your email",
+                    data=result,
+                    status_code=status.HTTP_200_OK
+                )
+            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            logger.error("Error", str(e))
-            return ResponseMessageUtils(message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error(f"Error: {e}")
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
 
 class VerifyOTPView(generics.UpdateAPIView):
@@ -51,24 +59,35 @@ class VerifyOTPView(generics.UpdateAPIView):
     serializer_class = VerifyOTPSerializer
 
     def update(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return ResponseMessageUtils(message="OTP verified successfully.", status_code=status.HTTP_200_OK)
-
+        try:
+            serializer = self.get_serializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return ResponseMessageUtils(message="OTP verified successfully.", status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class ResendOTPView(generics.UpdateAPIView):
     queryset = OTP.objects.all()
     serializer_class = ResendOTPSerializer
 
     def update(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            #access validated data
-            result = serializer.save()
-            return ResponseMessageUtils(message="Successfully Resend the OTP", data={"otp_token": result.otp_token}, status_code=status.HTTP_200_OK)
-        return ResponseMessageUtils(message=serializer.errors["message"][0], status_code=status.HTTP_400_BAD_REQUEST)
-    
+        try:
+            serializer = self.get_serializer(data=request.data)
+            if serializer.is_valid():
+                #access validated data
+                result = serializer.save()
+                return ResponseMessageUtils(message="Successfully Resend the OTP", data={"otp_token": result.otp_token}, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
@@ -95,11 +114,7 @@ class RegisterView(generics.CreateAPIView):
                     },
                     status_code=status.HTTP_201_CREATED
                 )
-            logger.error(serializer.errors)
-            return ResponseMessageUtils(
-                message=serializer.errors["message"][0],
-                status_code=status.HTTP_400_BAD_REQUEST
-            )
+            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except serializers.ValidationError as e:
             logger.error(f"Validation error: {e.detail}")
             # Extract the first error message
@@ -229,7 +244,20 @@ class GetUsersView(generics.ListAPIView):
 class GetUserView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GetUserSeriaizer
-    
-    
+    lookup_field = 'id'
 
+    def get_queryset(self):
+        return User.objects.all()
+    
+    def get_object(self):
+        
+        raw_id = self.kwargs.get('id')
 
+        try:
+            #convert 32-char hex string into UUID object
+            user_id = uuid.UUID(hex=raw_id)
+        except ValueError:
+            raise NotFound("Invalid user ID format")
+        
+        return self.get_queryset().get(id=user_id)
+    

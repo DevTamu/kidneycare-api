@@ -43,28 +43,27 @@ class SendOTPSerializer(serializers.Serializer):
     username = serializers.CharField(write_only=True)
     password = serializers.CharField(write_only=True)
 
-    def validate_username(self, value):
+    def validate(self, attrs):
 
-        if is_field_empty(value):
+        username = attrs["username"]
+        password = attrs["password"]
+
+        if is_field_empty(username):
             raise serializers.ValidationError({"message": "Email is required"})
         
-        if not validate_email(value):
+        if not validate_email(username):
             raise serializers.ValidationError({"message": "Must be a valid email address"})
         
-        if User.objects.filter(username=value).exists():
+        if User.objects.filter(username=username).exists():
             raise serializers.ValidationError("Email already used")
-        
-        return value
 
-    def validate_password(self, value):
-
-        if not value:
+        if not password:
             raise serializers.ValidationError({"message": "Password is required"})
         
-        if len(value) < 8:
+        if len(password) < 8:
             raise serializers.ValidationError({"message": "Password must be atleast 8 characters long."})
         
-        return value
+        return attrs
         
     def create(self, validated_data):
         
@@ -93,11 +92,11 @@ class SendOTPSerializer(serializers.Serializer):
             )
 
             return {
-                "otp_token": str(otp_obj.otp_token),
-                "user_id": str(user.id)
+                "otp_token": str(otp_obj.otp_token).replace("-", ""),
+                "user_id": str(user.id).replace("-", "")
             }
         except Exception as e:
-            return serializers.ValidationError({"message": str(e)})
+            raise serializers.ValidationError({"message": str(e)})
         
 
 class VerifyOTPSerializer(serializers.Serializer):
