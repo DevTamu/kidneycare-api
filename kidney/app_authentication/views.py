@@ -46,6 +46,7 @@ class SendOTPView(generics.CreateAPIView):
                 status_code=status.HTTP_200_OK
             )
         except Exception as e:
+            print(f"[ERROR] SendOTPView Exception: {str(e)}")  # Or use logging
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
