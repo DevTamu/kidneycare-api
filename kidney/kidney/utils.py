@@ -193,3 +193,12 @@ def is_field_empty(field_name):
 def ucfirst(field_name):
     return field_name[:1].upper() + field_name[1:]
     
+
+def extract_first_error_message(errors):
+    if isinstance(errors, dict):
+        for key, value in errors.items():
+            if isinstance(value, list) and value:
+                return str(value[0])
+            elif isinstance(value, dict):
+                return extract_first_error_message(value)
+    return "Invalid data"
