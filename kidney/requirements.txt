@@ -4,6 +4,7 @@ autobahn==24.4.2
 Automat==25.4.16
 cffi==1.17.1
 channels==4.2.2
+channels_redis==4.2.1
 click==8.1.8
 colorama==0.4.6
 constantly==23.10.4
@@ -20,6 +21,7 @@ h11==0.16.0
 hyperlink==21.0.0
 idna==3.10
 incremental==24.7.2
+msgpack==1.1.0
 packaging==25.0
 pillow==11.2.1
 psycopg2-binary==2.9.10
@@ -29,6 +31,7 @@ pycparser==2.22
 PyJWT==2.9.0
 pyOpenSSL==25.0.0
 python-dotenv==1.1.0
+redis==6.0.0
 service-identity==24.2.0
 setuptools==80.0.1
 sqlparse==0.5.3
