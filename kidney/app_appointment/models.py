@@ -24,4 +24,8 @@ class AssignedAppointment(models.Model):
 
     def __str__(self):
         return f"{self.appointment.user.username} Assigned"
+    
+
+class QWEWQe():
+    pass
 
