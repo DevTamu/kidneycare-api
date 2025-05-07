@@ -49,7 +49,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'app_authentication',
     'app_news_event',
-    'app_appointment'
+    'app_appointment',
+    'app_chat'
 ]
 
 MIDDLEWARE = [
@@ -156,6 +157,8 @@ SIMPLE_JWT = {
 }
 
 ASGI_APPLICATION = 'kidney.asgi.application'
+
+
 
 CHANNEL_LAYERS = {
     "default": {
