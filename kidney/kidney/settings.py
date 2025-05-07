@@ -32,6 +32,9 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ["anxious-misti-devtamu-3916140d.koyeb.app"]
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://anxious-misti-devtamu-3916140d.koyeb.app',  # or your custom domain
+]
 
 # Application definition
 
