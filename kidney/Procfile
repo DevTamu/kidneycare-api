@@ -1,1 +1,1 @@
-daphne kidney.asgi:application
+web: daphne kidney.asgi:application
