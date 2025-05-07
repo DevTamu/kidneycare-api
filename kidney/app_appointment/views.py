@@ -65,16 +65,12 @@ class GetAppointmentDetailsInProviderView(generics.RetrieveAPIView):
         
         raw_id = self.kwargs.get('id')
 
-       
-
         try:
             #convert 32-char hex string into UUID object
             user_id = uuid.UUID(hex=raw_id)
 
         except (ValueError):
             raise NotFound("Invalid user ID format")
-        
-     
         
         return self.get_queryset().get(user__id=user_id)
     
