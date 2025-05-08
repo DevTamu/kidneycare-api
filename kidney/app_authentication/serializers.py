@@ -28,9 +28,12 @@ class RefreshTokenSerializer(TokenRefreshSerializer):
             
             data = super().validate(attrs)
 
+
+            print(f"DATA TOKEN: {data}")
+
             return {
                 "access": data["access"],
-                "refresh": data["refresh"]
+                "refresh": refresh_token
             }
 
         except TokenError as e:
@@ -57,7 +60,7 @@ class SendOTPSerializer(serializers.Serializer):
         if User.objects.filter(username=username).exists():
             raise serializers.ValidationError("Email already used")
 
-        if not password:
+        if is_field_empty(password):
             raise serializers.ValidationError({"message": "Password is required"})
         
         if len(password) < 8:
@@ -92,8 +95,8 @@ class SendOTPSerializer(serializers.Serializer):
             )
 
             return {
-                "otp_token": str(otp_obj.otp_token),
-                "user_id": str(user.id)
+                "otp_token": str(otp_obj.otp_token).replace("-", ""),
+                "user_id": str(user.id).replace("-", "")
             }
         except Exception as e:
             raise serializers.ValidationError({"message": str(e)})
@@ -101,18 +104,24 @@ class SendOTPSerializer(serializers.Serializer):
 
 class VerifyOTPSerializer(serializers.Serializer):
 
-    otp_code = serializers.CharField()
+    otp_code = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
         #retrieve the request from the context
         request = self.context.get('request')
-        try:
-            otp_entry = OTP.objects.get(otp_token=request.query_params.get('otp_token'))
-        except OTP.DoesNotExist:
+
+        if is_field_empty(attrs["otp_code"]):
+            raise serializers.ValidationError({"message": "OTP is required"})
+
+        otp_entry = OTP.objects.get(otp_token=request.query_params.get('otp_token'))
+
+        if not otp_entry:
             raise serializers.ValidationError({"message": "Invalid or expired token."})
+           
         #check if the otp valid
         if otp_entry.otp_code != attrs["otp_code"]:
             raise serializers.ValidationError({"message": "Invalid OTP."})
+        
         #check if the otp has expired
         if otp_entry.is_otp_expired():
             raise serializers.ValidationError({"message": "OTP has expired"})
@@ -135,6 +144,9 @@ class ResendOTPSerializer(serializers.Serializer):
     otp_token = serializers.UUIDField()
 
     def validate(self, attrs):
+
+        if is_field_empty(str(attrs["otp_token"])):
+            raise serializers.ValidationError({"message": "OTP TOKEN is required"})
 
         try:
             otp_entry = OTP.objects.get(otp_token=attrs["otp_token"])
@@ -183,10 +195,17 @@ class AddAccountHealthCareProviderSerializer(serializers.Serializer):
 
     def validate(self, attrs):
 
-        required_fields = ['username', 'contact_number', 'firstname', 'lastname', 'address', 'role']
+        required_fields = ['firstname', 'lastname', 'address', 'role']
+
+        if is_field_empty(attrs["username"]):
+            raise serializers.ValidationError({"message": "Email is required"})
+        
+        if is_field_empty(attrs["contact_number"]):
+            raise serializers.ValidationError({"message": "Contact number is require"})
 
         #check for all the required fields if (empty)
         for field in required_fields:
+
             if is_field_empty(attrs.get(field)):
                 raise serializers.ValidationError({"message": f"{field} is required"})
         
@@ -411,6 +430,8 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
         if user is None:
             raise serializers.ValidationError({"message": "Invalid credentials"})
         
+        
+
         login(request, user)
 
         #generate token
@@ -418,6 +439,8 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
 
         try:
             user_profile = Profile.objects.get(user=user)
+            user_profile.user.status = 'online'
+            user_profile.user.save()
             picture = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
         except Profile.DoesNotExist:
             picture = None
@@ -428,10 +451,11 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
             "data": {
                 "access_token": str(refresh.access_token),
                 "refresh_token": str(refresh),
-                "user_id": user.id,
+                "user_id": str(user.id).replace("-", ""),
                 "user_email": user.username,
                 "user_image": picture,
                 "user_role": user.role,
+                "user_status": user_profile.user.status
             },
             "status": status.HTTP_200_OK
         }
@@ -456,8 +480,8 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
 
 class ChangePasswordSerializer(serializers.Serializer):
     
-    old_password = serializers.CharField(write_only=True)
-    new_password = serializers.CharField(write_only=True)
+    old_password = serializers.CharField()
+    new_password = serializers.CharField()
 
     def validate(self, attrs):
 
@@ -467,17 +491,20 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError({"message": "Password required"})
         
         if len(attrs["old_password"]) < 8 or len(attrs["new_password"]) < 8:
-            raise serializers.ValidationError({"message": "Old and New password must be atleast 8 characters long."})
+            raise serializers.ValidationError({"message": "New password must be atleast 8 characters long."})
         
         if not request.user.check_password(attrs["old_password"]):
             raise serializers.ValidationError({"message": "Old password don't match"})
-        
+
+        #set the instance to the current user for use in the update method
+        self.instance = request.user
+
         return attrs
     
     def update(self, instance, validated_data):
         #set and hash new password
         instance.set_password(validated_data["new_password"])
-        #save the updated user instance
+        #save the user instance
         instance.save()
         #return the updated user instance
         return instance
@@ -497,7 +524,7 @@ class LogoutSerializer(serializers.Serializer):
             raise serializers.ValidationError({"message": 'No valid Authorization header found.'})   
         
         #get the token part
-        self.access_token_str = auth_header.split(' ')[1] 
+        self.access_token_str = auth_header.split(' ')[1]
 
         return attrs
 
@@ -513,6 +540,14 @@ class LogoutSerializer(serializers.Serializer):
         try:
 
             access_token = AccessToken(self.access_token_str)
+
+            user = User.objects.get(id=access_token["user_id"])
+
+            if not user:
+                raise serializers.ValidationError({"message": "Invalid Token"})
+                            
+            user.status = 'offline'
+            user.save()
 
             # Ensure datetime fields are correctly formatted as strings
             created_at_str = datetime.fromtimestamp(access_token['iat']).isoformat()

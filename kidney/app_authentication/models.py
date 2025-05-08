@@ -19,6 +19,7 @@ class User(AbstractUser):
 
     middlename = models.CharField(max_length=50, null=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    status = models.CharField(max_length=20, default='offline')
 
     def __str__(self):
         return f"{self.username} ({self.role})"

@@ -126,15 +126,13 @@ class RegisterView(generics.CreateAPIView):
                 status_code=status.HTTP_400_BAD_REQUEST
             )
         except KeyError as e:
-            logger.error(f"Missing field error: {str(e)}")
             return ResponseMessageUtils(
                 message=f"Missing required field: {str(e)}",
                 status_code=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
-            logger.error(e)
             return ResponseMessageUtils(
-                message=f"Something went wrong: {e}",
+                message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
             
@@ -154,8 +152,11 @@ class AddAccountHealthCareProviderView(generics.CreateAPIView):
             return ResponseMessageUtils(message=serializer.errors["message"][0], status_code=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
-            logger.error(f"Error: {e}")
-            return ResponseMessageUtils(message="Error occured during adding account", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error(f"ERROR IS: {str(e)}")
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 
@@ -164,32 +165,43 @@ class LoginView(TokenObtainPairView):
 
 
 class RefreshTokenView(TokenRefreshView):
+
     serializer_class = RefreshTokenSerializer
 
+    def post(self, request, *args, **kwargs):
+
+        try:
+            serializer = self.get_serializer(data=request.data)
+
+            if serializer.is_valid():
+                return ResponseMessageUtils(message="Successfully Refresh your token", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(message=serializer.errors["message"][0], status_code=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
 class ChangePasswordView(generics.UpdateAPIView):
     
     permission_classes = [IsAuthenticated] #must be authenticated to change password
 
     serializer_class = ChangePasswordSerializer
 
-    def get_object(self):
-        return self.request.user
-
     def patch(self, request, *args, **kwargs):
         
         try:
-            serializer = self.get_serializer(instance=self.get_object(), data=request.data, partial=True)
+            serializer = self.get_serializer(data=request.data, partial=True)
 
             if serializer.is_valid():
                 serializer.save()
                 return ResponseMessageUtils(message="Password updated Successfully", status_code=status.HTTP_200_OK)
-            return ResponseMessageUtils(message=serializer.errors["message"][0], status_code=status.HTTP_400_BAD_REQUEST)
-        except AuthenticationFailed as e:
-            logger.error(f"Authentication failed: {str(e)}")
-            return ResponseMessageUtils(message="Token has expired or is invalid. Please log in again.", status_code=status.HTTP_401_UNAUTHORIZED)
+            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            logger.error(f"Error occurred during password change: {str(e)}")
-            return ResponseMessageUtils(message="An error occured during change password", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class LogoutView(generics.CreateAPIView):
@@ -208,7 +220,10 @@ class LogoutView(generics.CreateAPIView):
                 return ResponseMessageUtils(message="Successfully logged out", status_code=status.HTTP_200_OK) 
             return ResponseMessageUtils(message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST) 
         except Exception as e:
-            return ResponseMessageUtils(message="Error Occured during logout", status_code=status.HTTP_400_BAD_REQUEST) 
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class ChangePasswordHealthCareProviderView(generics.UpdateAPIView):
 
@@ -227,13 +242,14 @@ class ChangePasswordHealthCareProviderView(generics.UpdateAPIView):
             if serializer.is_valid():
                 serializer.save()
                 return ResponseMessageUtils(message="Password updated Successfully", status_code=status.HTTP_200_OK)
-            return ResponseMessageUtils(message=serializer.errors["message"][0], status_code=status.HTTP_400_BAD_REQUEST)
+            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except AuthenticationFailed as e:
-            logger.error(f"Authentication failed: {str(e)}")
             return ResponseMessageUtils(message="Token has expired or is invalid. Please log in again.", status_code=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
-            logger.error(f"Error occurred during password change: {str(e)}")
-            return ResponseMessageUtils(message="An error occured during change password", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
 
 class GetUsersView(generics.ListAPIView):
@@ -244,20 +260,21 @@ class GetUsersView(generics.ListAPIView):
 class GetUserView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GetUserSeriaizer
+    queryset = User.objects.all()
     lookup_field = 'id'
 
-    def get_queryset(self):
-        return User.objects.all()
+    # def get_queryset(self):
+    #     return User.objects.all()
     
-    def get_object(self):
+    # def get_object(self):
         
-        raw_id = self.kwargs.get('id')
+    #     raw_id = self.kwargs.get('id')
 
-        try:
-            #convert 32-char hex string into UUID object
-            user_id = uuid.UUID(hex=raw_id)
-        except ValueError:
-            raise NotFound("Invalid user ID format")
+    #     try:
+    #         #convert 32-char hex string into UUID object
+    #         user_id = uuid.UUID(hex=raw_id)
+    #     except ValueError:
+    #         raise NotFound("Invalid user ID format")
         
-        return self.get_queryset().get(id=user_id)
+    #     return self.get_queryset().get(id=user_id)
     
