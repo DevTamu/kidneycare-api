@@ -244,20 +244,21 @@ class GetUsersView(generics.ListAPIView):
 class GetUserView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GetUserSeriaizer
+    queryset = User.objects.all()
     lookup_field = 'id'
 
-    def get_queryset(self):
-        return User.objects.all()
+    # def get_queryset(self):
+    #     return User.objects.all()
     
-    def get_object(self):
+    # def get_object(self):
         
-        raw_id = self.kwargs.get('id')
+    #     raw_id = self.kwargs.get('id')
 
-        try:
-            #convert 32-char hex string into UUID object
-            user_id = uuid.UUID(hex=raw_id)
-        except ValueError:
-            raise NotFound("Invalid user ID format")
+    #     try:
+    #         #convert 32-char hex string into UUID object
+    #         user_id = uuid.UUID(hex=raw_id)
+    #     except ValueError:
+    #         raise NotFound("Invalid user ID format")
         
-        return self.get_queryset().get(id=user_id)
+    #     return self.get_queryset().get(id=user_id)
     
