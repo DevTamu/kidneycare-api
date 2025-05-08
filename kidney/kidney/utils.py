@@ -52,12 +52,26 @@ def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
 
     if response and isinstance(response.data, dict):
+<<<<<<< HEAD
         
         for key, value in response.data.items():
             if isinstance(value, list) and len(value) == 1:
                 response[key] = {
                     "message": value[0]
                 }
+=======
+        data = response.data
+        # Prioritize non_field_errors if present
+        if "non_field_errors" in data and isinstance(data["non_field_errors"], list):
+            response.data = {"message": data["non_field_errors"][0]}
+        else:
+            for key, value in data.items():
+                if isinstance(value, list) and len(value) == 1:
+                    response.data = {"message": value[0]}
+                    break  # stop after first useful messageatten list
+            
+         
+>>>>>>> 2174d557b70ee37e2910e613d0d6ca2ea0cec66b
     return response
 
 
@@ -191,10 +205,5 @@ def ucfirst(field_name):
     
 
 def extract_first_error_message(errors):
-    if isinstance(errors, dict):
-        for key, value in errors.items():
-            if isinstance(value, list) and value:
-                return str(value[0])
-            elif isinstance(value, dict):
-                return extract_first_error_message(value)
-    return "Invalid data"
+    for k, v in errors.items():
+        return v[0]
