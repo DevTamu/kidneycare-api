@@ -3,26 +3,24 @@ from pprint import pprint
 from app_chat.models import Message
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import database_sync_to_async, sync_to_async
-import uuid
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
+# from django.contrib.auth import get_user_model
+from app_authentication.models import User
 
 @sync_to_async
 def get_user_by_id(user_id):
+
     try:
         return User.objects.get(id=user_id)
     except User.DoesNotExist:
-        return None
+        return
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.receiver_id = uuid.UUID(hex=self.scope["url_route"]["kwargs"]["receiver_id"])
+        self.receiver_id = self.scope["url_route"]["kwargs"]["receiver_id"]
         self.sender_id = self.scope['user'].id #logged in user (sender)
-        print(self.receiver_id)
-        pprint(self.receiver_id)
+        print(f"Receiver ID: {self.receiver_id} AND Sender ID: {self.sender_id}")
         # self.room_name = f"chat_{min(self.sender_id, self.receiver_id)}_{max(self.sender_id, self.receiver_id)}"  # Unique room for each pair
-        pprint(f"connecting to room: {self.receiver_id}")
+        # pprint(f"connecting to room: {self.receiver_id}")
         self.room_group_name = f"chat_{self.receiver_id}"
 
         # Join room group
@@ -33,9 +31,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         # Leave room group
-        pprint(f"Disconnecting from room: {self.room_group_name}")
+        # pprint(f"Disconnecting from room: {self.room_group_name}")
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
-        pprint(f"disconnected from room: {self.room_group_name}")
+        # pprint(f"disconnected from room: {self.room_group_name}")
 
     async def receive(self, text_data):
         try:
@@ -57,9 +55,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
         message_content = data["message"]
 
-        message_obj = await self.save_message(message_content)
+        # message_obj = await self.save_message(message_content)
 
-        await self.send_mesage_to_receiver(message_obj)
+        # await self.send_mesage_to_receiver(message_obj)
 
     async def send_mesage_to_receiver(self, message):
         """Send the message to the specific receiver."""
@@ -79,13 +77,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def save_message(self, message_content):
 
-        receiver_user = await get_user_by_id(str(self.receiver_id).replace("-", ""))
+        receiver_user = await get_user_by_id(self.receiver_id)
         sender_user = await get_user_by_id(self.sender_id)
-
+        # print(f"Receiver user: {receiver_user} And Sender user: {sender_user}")
         message = Message(
             sender=sender_user,
             receiver=receiver_user,
-            content=message_content,
+            content=message_content,    
             status='sent' #initially sent status to 'sent'
         )
         #save the message obj
