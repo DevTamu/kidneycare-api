@@ -28,9 +28,12 @@ class RefreshTokenSerializer(TokenRefreshSerializer):
             
             data = super().validate(attrs)
 
+
+            print(f"DATA TOKEN: {data}")
+
             return {
                 "access": data["access"],
-                "refresh": data["refresh"]
+                "refresh": refresh_token
             }
 
         except TokenError as e:
@@ -411,6 +414,8 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
         if user is None:
             raise serializers.ValidationError({"message": "Invalid credentials"})
         
+        
+
         login(request, user)
 
         #generate token
@@ -418,6 +423,8 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
 
         try:
             user_profile = Profile.objects.get(user=user)
+            user_profile.user.status = 'online'
+            user_profile.user.save()
             picture = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
         except Profile.DoesNotExist:
             picture = None
@@ -432,6 +439,7 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
                 "user_email": user.username,
                 "user_image": picture,
                 "user_role": user.role,
+                "user_status": user_profile.user.status
             },
             "status": status.HTTP_200_OK
         }
@@ -497,7 +505,7 @@ class LogoutSerializer(serializers.Serializer):
             raise serializers.ValidationError({"message": 'No valid Authorization header found.'})   
         
         #get the token part
-        self.access_token_str = auth_header.split(' ')[1] 
+        self.access_token_str = auth_header.split(' ')[1]
 
         return attrs
 
@@ -513,6 +521,14 @@ class LogoutSerializer(serializers.Serializer):
         try:
 
             access_token = AccessToken(self.access_token_str)
+
+            user = User.objects.get(id=access_token["user_id"])
+
+            if not user:
+                raise serializers.ValidationError({"message": "Invalid Token"})
+                            
+            user.status = 'offline'
+            user.save()
 
             # Ensure datetime fields are correctly formatted as strings
             created_at_str = datetime.fromtimestamp(access_token['iat']).isoformat()

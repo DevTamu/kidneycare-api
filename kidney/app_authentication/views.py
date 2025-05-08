@@ -164,8 +164,20 @@ class LoginView(TokenObtainPairView):
 
 
 class RefreshTokenView(TokenRefreshView):
+
     serializer_class = RefreshTokenSerializer
 
+    def post(self, request, *args, **kwargs):
+
+        try:
+            serializer = self.get_serializer(data=request.data)
+
+            if serializer.is_valid():
+                return ResponseMessageUtils(message="Successfully Refresh your token", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(message=serializer.errors["message"][0], status_code=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return ResponseMessageUtils(f"Something went wrong: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 class ChangePasswordView(generics.UpdateAPIView):
     
     permission_classes = [IsAuthenticated] #must be authenticated to change password
