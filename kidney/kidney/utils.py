@@ -8,6 +8,8 @@ import random
 import re
 import secrets
 import string
+from app_authentication.models import User
+from asgiref.sync import sync_to_async
 
 def ResponseMessageUtils(
     message:str=None,
@@ -198,3 +200,12 @@ def extract_first_error_message(errors):
             elif isinstance(value, dict):
                 return extract_first_error_message(value)
     return "Invalid data"
+
+
+#helper to get a user by ID
+@sync_to_async
+def get_user_by_id(user_id):
+    try:
+        return User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return None

@@ -1,26 +1,38 @@
 import json
 from pprint import pprint
+from typing import Any
 from app_chat.models import Message
 from channels.generic.websocket import AsyncWebsocketConsumer
-from asgiref.sync import database_sync_to_async, sync_to_async
-# from django.contrib.auth import get_user_model
-from app_authentication.models import User
-
-@sync_to_async
-def get_user_by_id(user_id):
-
-    try:
-        return User.objects.get(id=user_id)
-    except User.DoesNotExist:
-        return
+from asgiref.sync import database_sync_to_async
+from .utils import get_user_by_id
+from rest_framework_simplejwt.tokens import AccessToken, TokenError
 
 class ChatConsumer(AsyncWebsocketConsumer):
+
     async def connect(self):
+        """Handles the WebSocket connection."""
         self.receiver_id = self.scope["url_route"]["kwargs"]["receiver_id"]
-        self.sender_id = self.scope['user'].id #logged in user (sender)
-        print(f"Receiver ID: {self.receiver_id} AND Sender ID: {self.sender_id}")
-        # self.room_name = f"chat_{min(self.sender_id, self.receiver_id)}_{max(self.sender_id, self.receiver_id)}"  # Unique room for each pair
-        # pprint(f"connecting to room: {self.receiver_id}")
+
+        #get the headers from the scope
+        headers = dict(self.scope.get('headers', []))
+
+        #get the authorization token value
+        auth_header = headers.get(b'authorization', b'').decode('utf-8')
+
+
+        #get the token part
+        token = auth_header.split(' ')[1]
+
+        #verify the token if its still valid
+        try:
+            access_token = AccessToken(token)   
+            self.sender_id = str(access_token["user_id"]).replace("-", "")
+            self.token = token  # Cache token for use in receive()
+        except TokenError:
+            await self.send_error_to_websocket("Invalid or expired, Please login again")
+            await self.close(code=4002)
+            return
+        
         self.room_group_name = f"chat_{self.receiver_id}"
 
         # Join room group
@@ -30,86 +42,84 @@ class ChatConsumer(AsyncWebsocketConsumer):
         pprint(f"connected to room: {self.room_group_name}")
 
     async def disconnect(self, close_code):
-        # Leave room group
-        # pprint(f"Disconnecting from room: {self.room_group_name}")
+        """Handles the WebSocket disconnection."""
+        pprint(f"Disconnecting from room: {self.room_group_name}")    
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
-        # pprint(f"disconnected from room: {self.room_group_name}")
+        pprint(f"disconnected from room: {self.room_group_name}")
 
     async def receive(self, text_data):
+        
+        #re-validate token on every message
+        try:
+            AccessToken(self.token)
+        except TokenError:
+            await self.send_error_to_websocket("Session expired or invalid. Please log in again.")
+            await self.close(code=4002)
+            return
+
+        """Handles incoming messages from the WebSocket."""
         try:
             data = json.loads(text_data)
         except json.JSONDecodeError:
             await self.send(text_data=json.dumps({"error": "Invalid JSON data."}))
             return
         
-        #update the database when the client reads the message by calling mark_message_as_read
+        # update the database when the client reads the message by calling mark_message_as_read
         if data.get('type') == "message_read":
             message_id = data.get("message_id")
             if message_id:
                 await self.mark_message_as_read(message_id)
             return
         
-        if "message" not in data:
+        message_content = data["message"]
+        #if message not provided
+        if not message_content:
             await self.send(text_data=json.dumps({"error": "Message is required."}))
             return
         
-        message_content = data["message"]
+        #get the returned message from the save_message
+        message_obj = await self.save_message(message_content)
+        await self.send_message_to_receiver(message_obj)
 
-        # message_obj = await self.save_message(message_content)
-
-        # await self.send_mesage_to_receiver(message_obj)
-
-    async def send_mesage_to_receiver(self, message):
-        """Send the message to the specific receiver."""
-
+    async def send_message_to_receiver(self, message):
+        """Send the saved message to the receiver."""
         await self.channel_layer.send(
             self.channel_name, #send to the receiver websocket
             {
-                'type': 'chat_message',
+                'type': 'chat_message',  #this will call the 'chat_message' method on the receiver's side
                 'message': message.content,
                 'sender_id': message.sender.id,
                 'message_id': message.id
-
             }
         )
 
-    
-
     async def save_message(self, message_content):
+        """Saves a new message to the database."""
+        receiver_user = await self.get_user(self.receiver_id)
+        sender_user = await self.get_user(self.sender_id)
 
-        receiver_user = await get_user_by_id(self.receiver_id)
-        sender_user = await get_user_by_id(self.sender_id)
-        # print(f"Receiver user: {receiver_user} And Sender user: {sender_user}")
         message = Message(
             sender=sender_user,
             receiver=receiver_user,
             content=message_content,    
             status='sent' #initially sent status to 'sent'
         )
+
         #save the message obj
         await database_sync_to_async(message.save)()
-
         #return the message
         return message
 
-    # Receive message from room group
-    async def chat_message(self, event):
-
-        # Send message to WebSocket
-        await self.send(text_data=json.dumps({
-            "message": event["message"], #message content
-            "sender_id": event["sender_id"], #sender id who to know which is the sender
-            "message_id": event["message_id"] #message_id to identify specific message
-        }))
 
     async def mark_message_as_read(self, message_id):
         try:
             #fetch the message from the database
             message = await database_sync_to_async(Message.objects.get)(id=message_id)
 
+            #ensure the message is for the correct receiver
             if message.receiver.id == self.sender_id:
-
-                #update the status as 'read' and read as 'True'
+                
+                #update the status and read 
                 message.status = 'read'
                 message.read = True
 
@@ -117,6 +127,25 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 await database_sync_to_async(message.save)()
 
         except Message.DoesNotExist:
-            await self.send(text_data=json.dumps({
-                "error": "Message not found"
-            }))
+            await self.send_error_to_websocket("Message not found")
+
+    # Receive message from room group
+    async def chat_message(self, event):
+        
+        """Handles broadcasting of the chat message to the WebSocket."""
+        # Send message to WebSocket
+        await self.send(text_data=json.dumps({
+            "message": event["message"], #message content
+            "sender_id": str(event["sender_id"]),
+            "message_id": str(event["message_id"])
+        }))
+
+    #helper function to get user from the database
+    async def get_user(self, user_id):
+        return await get_user_by_id(user_id)
+    
+
+    async def send_error_to_websocket(self, error_message):
+        await self.send(text_data=json.dumps({
+            "error": error_message
+        }))
