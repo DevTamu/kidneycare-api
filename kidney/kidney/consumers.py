@@ -33,7 +33,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close(code=4002)
             return
         
-        self.room_group_name = f"chat_{self.receiver_id}"
+        self.room_group_name = f"chat_{min(self.receiver_id, self.sender_id)}_{max(self.receiver_id, self.sender_id)}"
 
         # Join room group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
@@ -83,7 +83,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def send_message_to_receiver(self, message):
         """Send the saved message to the receiver."""
-        await self.channel_layer.send(
+        await self.channel_layer.group_send(
             self.channel_name, #send to the receiver websocket
             {
                 'type': 'chat_message',  #this will call the 'chat_message' method on the receiver's side
@@ -102,7 +102,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             sender=sender_user,
             receiver=receiver_user,
             content=message_content,    
-            status='sent' #initially sent status to 'sent'
+            status='sent' #initially set status to 'sent'
         )
 
         #save the message obj
