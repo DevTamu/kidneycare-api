@@ -43,7 +43,7 @@ class JWTAuthMiddleware(BaseMiddleware):
             return auth_header.split(' ')[1] #get the token part
         return None    
     
-
+    @database_sync_to_async
     def get_user_from_token(self, token):
         try:
             access_token = AccessToken(token)

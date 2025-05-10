@@ -6,19 +6,19 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import database_sync_to_async
 from .utils import get_user_by_id
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
+from app_authentication.models import User
 
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         """Handles the WebSocket connection."""
-        self.receiver_id = self.scope["url_route"]["kwargs"]["receiver_id"]
-
+        self.room_name = self.scope["url_route"]["kwargs"]["receiver_id"]
+        print(f"ROOOOM NAME:: {self.room_name}")
         #get the headers from the scope
         headers = dict(self.scope.get('headers', []))
 
         #get the authorization token value
         auth_header = headers.get(b'authorization', b'').decode('utf-8')
-
 
         #get the token part
         token = auth_header.split(' ')[1]
@@ -33,13 +33,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close(code=4002)
             return
         
-        self.room_group_name = f"chat_{min(self.receiver_id, self.sender_id)}_{max(self.receiver_id, self.sender_id)}"
+        self.room_group_name = f"chat_{min(self.room_name, self.sender_id)}_{max(self.room_name, self.sender_id)}"
 
         # Join room group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
         await self.accept()
         pprint(f"connected to room: {self.room_group_name}")
+
+        user_sender = await get_user_by_id(access_token["user_id"])
+        user_receiver = await get_user_by_id(self.room_name)
+
+        await self.send_message_introduction(user_sender, user_receiver)
+        
 
     async def disconnect(self, close_code):
         """Handles the WebSocket disconnection."""
@@ -51,7 +57,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
         #re-validate token on every message
         try:
-            AccessToken(self.token)
+            token = AccessToken(self.token)
         except TokenError:
             await self.send_error_to_websocket("Session expired or invalid. Please log in again.")
             await self.close(code=4002)
@@ -84,7 +90,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def send_message_to_receiver(self, message):
         """Send the saved message to the receiver."""
         await self.channel_layer.group_send(
-            self.channel_name, #send to the receiver websocket
+            self.room_group_name, #send to the receiver websocket
             {
                 'type': 'chat_message',  #this will call the 'chat_message' method on the receiver's side
                 'message': message.content,
@@ -93,9 +99,27 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }
         )
 
+    async def send_message_introduction(self, sender, receiver):
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'chat_message_introduction',
+                'message': f"Hi {receiver.first_name.capitalize()} {receiver.last_name.capitalize()}, this is {sender.first_name.capitalize()} from Boho Renal Care. I'd be happy to assist you",
+                "sender_id": sender.id,
+                "receiver_id": receiver.id  
+            }
+        )
+
+    async def chat_message_introduction(self, event):
+        await self.send(text_data=json.dumps({
+            'introduction_text': event['message'],
+            'sender': str(event['sender_id']),
+            'receiver': str(event['receiver_id']),
+        }))
+
     async def save_message(self, message_content):
         """Saves a new message to the database."""
-        receiver_user = await self.get_user(self.receiver_id)
+        receiver_user = await self.get_user(self.room_name)
         sender_user = await self.get_user(self.sender_id)
 
         message = Message(
