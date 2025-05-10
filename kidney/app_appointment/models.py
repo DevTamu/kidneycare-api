@@ -1,11 +1,21 @@
 from django.db import models
 from kidney.models import TimestampModel
 from app_authentication.models import User
+import uuid
 
 class Appointment(TimestampModel):
+
+    appointment_status = [
+        ('Pending', 'Pending'),
+        ('Completed', 'Completed'),
+        ('Approved', 'Approved'),
+        ('In Progress', 'In Progress'),
+    ]
+    
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    date_time = models.DateTimeField(blank=True, null=True)
-    status = models.CharField(max_length=20, blank=True, null=True)
+    date = models.DateField(blank=True, null=True)
+    time = models.TimeField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=appointment_status, default='Pending')
 
     def __str__(self):
         return f"{self.user.username} Appointment"
@@ -16,11 +26,18 @@ class AssignedMachine(models.Model):
 
     def __str__(self):
         return f"Assigned Machine: {self.assigned_machine}"
+    
+class AssignedProvider(models.Model):
+    assigned_provider = models.ForeignKey(User, on_delete=models.CASCADE, default=uuid.uuid4)  #list of assigned providers
+
+    def __str__(self):
+        return f"Assigned Provider: {self.assigned_provider.username}"
+
 
 class AssignedAppointment(models.Model):
     appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE, related_name='appointments')
-    assigned_machine = models.ForeignKey(AssignedMachine, on_delete=models.CASCADE, related_name='assigned_machine_appointments')
-    assigned_provider = models.JSONField(blank=True, null=True)  #list of assigned providers
+    assigned_machines = models.ManyToManyField(AssignedMachine, related_name='assigned_machine_appointments')
+    assigned_providers = models.ManyToManyField(AssignedProvider, related_name='assigned_provider_appointments')
 
     def __str__(self):
         return f"{self.appointment.user.username} Assigned"

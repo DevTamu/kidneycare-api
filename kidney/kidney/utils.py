@@ -160,7 +160,7 @@ def generate_otp():
 def generate_password(password_length=24):
 
     #define the possible characters for the password
-    alphabet = string.ascii_letters + string.digits + string.punctuation.replace('/', '').replace('\\', '')
+    alphabet = string.ascii_letters + string.digits + string.punctuation.replace('/', '').replace('\\', '').replace('"', '')
 
     #generate a random password by joining randomly chosen characters
     password = ''.join(secrets.choice(alphabet) for _ in range(password_length))
@@ -188,4 +188,11 @@ def is_field_empty(field_name):
 #a helper method that helps us convert the first letter to uppercae then the rest lowercase
 def ucfirst(field_name):
     return field_name[:1].upper() + field_name[1:]
-    
+
+
+def extract_first_error_message(errors):
+    for k, v in errors.items():
+        if k == "message":
+            return v
+        else:
+            return v[0]

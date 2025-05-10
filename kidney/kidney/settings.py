@@ -163,8 +163,10 @@ CHANNEL_LAYERS = {
     },
 }
 
+#custom authetication model
 AUTH_USER_MODEL = 'app_authentication.User'
 
+#email configurations
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')

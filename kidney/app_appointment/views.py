@@ -1,17 +1,20 @@
-from django.shortcuts import render
 from .serializers import (
     CreateAppointmentSerializer,
     GetAppointmentsInProviderSerializer,
     GetAppointmentDetailsInProviderSerializer,
-    GetAppointmentsInAdminSerializer
+    GetAppointmentsInAdminSerializer,
+    UpdateAppointmentInPatientSerializer,
+    AddAppointmentDetailsInAdminSerializer
 )
 from .models import Appointment
 from rest_framework import generics, status
-from kidney.utils import ResponseMessageUtils
+from kidney.utils import ResponseMessageUtils, extract_first_error_message
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import NotFound
 import logging
 import uuid
+from .models import AssignedAppointment
+
 
 logger = logging.getLogger(__name__)
 
@@ -20,20 +23,56 @@ class CreateAppointmentView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = CreateAppointmentSerializer
 
-
     def post(self, request, *args, **kwargs):
-
         try:
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
                 serializer.save()
                 return ResponseMessageUtils(message="Successfully created appointment", status_code=status.HTTP_201_CREATED)
-            logger.error(f"Error: {serializer.errors}")
-            return ResponseMessageUtils(message=serializer.errors["message"][0], status_code=status.HTTP_400_BAD_REQUEST)
+            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
             
         except Exception as e:
-            logger.error(f"Error: {e}")
             return ResponseMessageUtils(message=f"Something went wrong: {e}", status_code=status.HTTP_400_BAD_REQUEST)
+
+
+class UpdateAppointmentInPatientView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UpdateAppointmentInPatientSerializer
+    lookup_field = 'pk'
+
+    def put(self, request, *args, **kwargs):
+
+        try:
+            queryset = Appointment.objects.get(id=self.kwargs.get('pk'))
+            serializer = self.get_serializer(instance=queryset, data=request.data)
+
+            if serializer.is_valid():
+                serializer.save()
+
+                return ResponseMessageUtils(
+                    message="Your Appointment has been successfully updated",
+                    status_code=status.HTTP_200_OK
+                )
+            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(f"qweqweq: {str(e)}")
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+
+class AddAppointmentDetailsInAdminView(generics.CreateAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = AddAppointmentDetailsInAdminSerializer
+    queryset = AssignedAppointment.objects.all()
+    lookup_field = 'pk' #captures pk from the url
+
+    def perform_create(self, serializer):
+        appointment = Appointment.objects.get(id=self.kwargs.get('pk'))
+        return serializer.save(appointment=appointment)
+    
 
 
 class GetAppointmentInProviderView(generics.ListAPIView):
