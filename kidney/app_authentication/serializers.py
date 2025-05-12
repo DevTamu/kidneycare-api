@@ -659,3 +659,19 @@ class GetUserSeriaizer(serializers.ModelSerializer):
         if obj.user_profile and obj.user_profile.picture:
             return request.build_absolute_uri(obj.user_profile.picture.url) if obj.user_profile.picture else None
         return None
+    
+class GetUserRoleSerializer(serializers.ModelSerializer):
+
+    role = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['role']
+
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        data["user_role"] = data.pop('role')
+
+        return data

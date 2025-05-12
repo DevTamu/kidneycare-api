@@ -7,13 +7,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app_authentication', '0003_alter_otp_otp_token'),
+        ('app_authentication', '0004_alter_otp_otp_token'),
     ]
 
     operations = [
         migrations.AlterField(
             model_name='otp',
             name='otp_token',
-            field=models.UUIDField(default=uuid.UUID('fa01fbb3-2d97-4617-8888-26345d945ffd'), unique=True),
+            field=models.UUIDField(default=uuid.uuid4, unique=True),
         ),
     ]
