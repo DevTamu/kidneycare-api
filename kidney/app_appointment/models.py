@@ -7,9 +7,13 @@ class Appointment(TimestampModel):
 
     appointment_status = [
         ('Pending', 'Pending'),
-        ('Completed', 'Completed'),
         ('Approved', 'Approved'),
-        ('In Progress', 'In Progress'),
+        ('Check-In', 'Check-In'),
+        ('In-Progress', 'In-Progress'),
+        ('Completed', 'Completed'),
+        ('Cancelled', 'Cancelled'),
+        ('No Show', 'No Show'),
+        ('Rescheduled', 'Rescheduled'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -35,12 +39,16 @@ class AssignedProvider(models.Model):
 
 
 class AssignedAppointment(models.Model):
-    appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE, related_name='appointments')
+    appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name='assigned_appointments')
     assigned_machines = models.ManyToManyField(AssignedMachine, related_name='assigned_machine_appointments')
     assigned_providers = models.ManyToManyField(AssignedProvider, related_name='assigned_provider_appointments')
 
     def __str__(self):
-        return f"{self.appointment.user.username} Assigned"
+        username_data = []
+        for username in self.assigned_providers.all().values_list('assigned_provider__username'):
+            username_data.append(username)
+        
+        return f'{username_data} Assigned'
     
 
 class QWEWQe():

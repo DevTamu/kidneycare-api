@@ -2,10 +2,11 @@ from .serializers import (
     CreateAppointmentSerializer,
     GetAppointmentsInProviderSerializer,
     GetAppointmentDetailsInProviderSerializer,
-    GetAppointmentsInAdminSerializer,
+    # GetAppointmentsInAdminSerializer,
     UpdateAppointmentInPatientSerializer,
     AddAppointmentDetailsInAdminSerializer
 )
+from app_authentication.models import User
 from .models import Appointment
 from rest_framework import generics, status
 from kidney.utils import ResponseMessageUtils, extract_first_error_message
@@ -14,7 +15,7 @@ from rest_framework.exceptions import NotFound
 import logging
 import uuid
 from .models import AssignedAppointment
-
+from django.shortcuts import get_object_or_404
 
 logger = logging.getLogger(__name__)
 
@@ -78,55 +79,73 @@ class AddAppointmentDetailsInAdminView(generics.CreateAPIView):
 class GetAppointmentInProviderView(generics.ListAPIView):
 
     permission_classes = [IsAuthenticated]
-
     serializer_class = GetAppointmentsInProviderSerializer
 
-    def get(self, request, *args, **kwargs):
-
+    def get(self, request, *args, **kwargs):  
         try:
-            appointment = Appointment.objects.all()
-            serializer = self.get_serializer(appointment, many=True)
-            return ResponseMessageUtils(message="List of Appointments", data=serializer.data, status_code=status.HTTP_200_OK)
+            
+            #get all AssignedAppointment entries where current user is a provider
+            assigned_appointments = AssignedAppointment.objects.filter(
+                assigned_providers__assigned_provider=request.user,
+                appointment__status__in=['Approved', 'In-Progress']
+            ).distinct()
+            
+            #get the related appointment IDS
+            appointment_ids = assigned_appointments.values_list('appointment_id', flat=True)
+
+            #fetch the appointments
+            appointments = Appointment.objects.filter(id__in=appointment_ids).distinct()
+
+            serializer = self.get_serializer(appointments, many=True)
+            filtered_data = [item for item in serializer.data if item]
+            return ResponseMessageUtils(message="List of Appointments", data=filtered_data, status_code=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Error: {e}")
             return ResponseMessageUtils(message=f"Something went wrong: {str(e)}", status_code=status.HTTP_400_BAD_REQUEST)
         
 
-class GetAppointmentDetailsInProviderView(generics.RetrieveAPIView):
+class GetAppointmentDetailsInProviderView(generics.ListAPIView):
 
     permission_classes = [IsAuthenticated]
     serializer_class = GetAppointmentDetailsInProviderSerializer
-    lookup_field = 'id'
-    def get_queryset(self):
-        return Appointment.objects.all()
+    queryset = Appointment.objects.all()
+    lookup_field = 'pk'
+
+    def get_queryset(self):   
+        return Appointment.objects.get(user__id=self.kwargs.get('pk'))
     
-    def get_object(self):   
-        
-        raw_id = self.kwargs.get('id')
+    # def get_object(self):
 
-        try:
-            #convert 32-char hex string into UUID object
-            user_id = uuid.UUID(hex=raw_id)
+    #     # Perform the lookup filtering.
+    #     lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
 
-        except (ValueError):
-            raise NotFound("Invalid user ID format")
-        
-        return self.get_queryset().get(user__id=user_id)
+    #     queryset = self.filter_queryset(self.get_queryset().filter(user__id=self.kwargs.get('pk')))
+
+    #     filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
+
+    #     obj = get_object_or_404(queryset, **filter_kwargs)
+
+    #     #may raise a permission denied
+    #     self.check_object_permissions(self.request, obj)
+
+    #     return obj
+    
+   
     
         
 
-class GetAppointmentInAdminView(generics.ListAPIView):
+# class GetAppointmentInAdminView(generics.ListAPIView):
 
-    permission_classes = [IsAuthenticated]
+#     permission_classes = [IsAuthenticated]
 
-    serializer_class = GetAppointmentsInAdminSerializer
+#     serializer_class = GetAppointmentsInAdminSerializer
 
-    def get(self, request, *args, **kwargs):
+#     def get(self, request, *args, **kwargs):
 
-        try:
-            appointment = Appointment.objects.all()
-            serializer = self.get_serializer(appointment, many=True)
-            return ResponseMessageUtils(message="List of Appointments", data=serializer.data, status_code=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f"Error: {e}")
-            return ResponseMessageUtils(message=f"Something went wrong: {str(e)}", status_code=status.HTTP_400_BAD_REQUEST)
+#         try:
+#             appointment = Appointment.objects.all()
+#             serializer = self.get_serializer(appointment, many=True)
+#             return ResponseMessageUtils(message="List of Appointments", data=serializer.data, status_code=status.HTTP_200_OK)
+#         except Exception as e:
+#             logger.error(f"Error: {e}")
+#             return ResponseMessageUtils(message=f"Something went wrong: {str(e)}", status_code=status.HTTP_400_BAD_REQUEST)
