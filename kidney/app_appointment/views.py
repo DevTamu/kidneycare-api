@@ -1,23 +1,27 @@
 from .serializers import (
     CreateAppointmentSerializer,
     GetAppointmentsInProviderSerializer,
-    GetAppointmentDetailsInProviderSerializer,
+    GetPatientInformationSerializer,
     # GetAppointmentsInAdminSerializer,
     UpdateAppointmentInPatientSerializer,
-    AddAppointmentDetailsInAdminSerializer
+    AddAppointmentDetailsInAdminSerializer,
+    GetPatientAppointmentHistorySerializer
 )
 from app_authentication.models import User
 from .models import Appointment
 from rest_framework import generics, status
 from kidney.utils import ResponseMessageUtils, extract_first_error_message
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import NotFound
 import logging
-import uuid
 from .models import AssignedAppointment
-from django.shortcuts import get_object_or_404
+from rest_framework.pagination import PageNumberPagination
 
 logger = logging.getLogger(__name__)
+
+class AppointmentPagination(PageNumberPagination):
+    page_size = 10  #define how many appointments to show per page
+    page_size_query_param = 'page'  # Allow custom page size via query params
+    max_page_size = 25  # Maximum allowed page size
 
 class CreateAppointmentView(generics.CreateAPIView):
 
@@ -80,6 +84,7 @@ class GetAppointmentInProviderView(generics.ListAPIView):
 
     permission_classes = [IsAuthenticated]
     serializer_class = GetAppointmentsInProviderSerializer
+    pagination_class = AppointmentPagination
 
     def get(self, request, *args, **kwargs):  
         try:
@@ -96,43 +101,82 @@ class GetAppointmentInProviderView(generics.ListAPIView):
             #fetch the appointments
             appointments = Appointment.objects.filter(id__in=appointment_ids).distinct()
 
-            serializer = self.get_serializer(appointments, many=True)
-            filtered_data = [item for item in serializer.data if item]
-            return ResponseMessageUtils(message="List of Appointments", data=filtered_data, status_code=status.HTTP_200_OK)
+            paginator = self.pagination_class()
+            paginated_appointments = paginator.paginate_queryset(appointments, request)
+            serializer = self.get_serializer(paginated_appointments, many=True)
+
+            paginated_response = paginator.get_paginated_response(serializer.data)
+
+            return ResponseMessageUtils(message="List of Appointments", data=paginated_response.data, status_code=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Error: {e}")
             return ResponseMessageUtils(message=f"Something went wrong: {str(e)}", status_code=status.HTTP_400_BAD_REQUEST)
         
 
-class GetAppointmentDetailsInProviderView(generics.ListAPIView):
+class GetPatientInformationView(generics.RetrieveAPIView):
 
     permission_classes = [IsAuthenticated]
-    serializer_class = GetAppointmentDetailsInProviderSerializer
-    queryset = Appointment.objects.all()
+    serializer_class = GetPatientInformationSerializer
     lookup_field = 'pk'
 
-    def get_queryset(self):   
-        return Appointment.objects.get(user__id=self.kwargs.get('pk'))
-    
-    # def get_object(self):
-
-    #     # Perform the lookup filtering.
-    #     lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
-
-    #     queryset = self.filter_queryset(self.get_queryset().filter(user__id=self.kwargs.get('pk')))
-
-    #     filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
-
-    #     obj = get_object_or_404(queryset, **filter_kwargs)
-
-    #     #may raise a permission denied
-    #     self.check_object_permissions(self.request, obj)
-
-    #     return obj
-    
+    def get(self, request, *args, **kwargs):
+        
+        try:
+            user = User.objects.get(id=kwargs.get('pk'))
+            serializer = self.get_serializer(user, data=request.data)
+            if serializer.is_valid():
+                return ResponseMessageUtils(message="User information", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(f"qweqwe: {str(e)}")
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
    
     
+class GetPatientAppointmentHistoryView(generics.ListAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetPatientAppointmentHistorySerializer
+    lookup_field = 'pk'
+
+    # def get_queryset(self):
+    #     user_id = self.kwargs['pk']
+    #     return Appointment.objects.filter(user_id=user_id, status='Completed')
+
+  
+    def get(self, request, *args, **kwargs):
+
+        try:
+            queryset = Appointment.objects.filter(user_id=kwargs.get('pk'), status='Completed')
+            serializer = self.get_serializer(queryset, many=True)
+            return ResponseMessageUtils(message="List of Appointment history", data=serializer.data, status_code=status.HTTP_200_OK)
+        except Exception as e:
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+      
+
         
+
+
+
+    # def get(self, request, *args, **kwargs):
+    #     print(f"ID: {kwargs.get('pk')}")
+    #     try:
+    #         appointment = Appointment.objects.filter(user__id   =kwargs.get('pk')) 
+    #         serializer = self.get_serializer(appointment, data=request.data)
+    #         if serializer.is_valid():
+    #             return ResponseMessageUtils(message="User information", data=serializer.data, status_code=status.HTTP_200_OK)
+    #         return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+    #     except Exception as e:
+    #         print(f"qweqwe: {str(e)}")
+    #         return ResponseMessageUtils(
+    #             message="Something went wrong while processing your request.",
+    #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+    #         )  
 
 # class GetAppointmentInAdminView(generics.ListAPIView):
 

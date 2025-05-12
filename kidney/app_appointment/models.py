@@ -32,8 +32,8 @@ class AssignedMachine(models.Model):
         return f"Assigned Machine: {self.assigned_machine}"
     
 class AssignedProvider(models.Model):
-    assigned_provider = models.ForeignKey(User, on_delete=models.CASCADE, default=uuid.uuid4)  #list of assigned providers
-
+    assigned_provider = models.ForeignKey(User, on_delete=models.CASCADE, default=uuid.uuid4, related_name='assigned_user')  #list of assigned providers
+    assigned_provider_appointments = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name='provider_assignments', null=True, blank=True)
     def __str__(self):
         return f"Assigned Provider: {self.assigned_provider.username}"
 
@@ -41,7 +41,7 @@ class AssignedProvider(models.Model):
 class AssignedAppointment(models.Model):
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name='assigned_appointments')
     assigned_machines = models.ManyToManyField(AssignedMachine, related_name='assigned_machine_appointments')
-    assigned_providers = models.ManyToManyField(AssignedProvider, related_name='assigned_provider_appointments')
+    assigned_providers = models.ManyToManyField(AssignedProvider, related_name='assigned_appointments')
 
     def __str__(self):
         username_data = []
