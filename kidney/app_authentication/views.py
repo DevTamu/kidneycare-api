@@ -10,7 +10,8 @@ from .serializers import (
     AddAccountHealthCareProviderSerializer,
     ChangePasswordHealthCareProviderSeriallizer,
     GetUsersSeriaizer,
-    GetUserSeriaizer
+    GetUserSeriaizer,
+    GetUserRoleSerializer
 )
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import generics
@@ -18,7 +19,7 @@ from kidney.utils import ResponseMessageUtils, get_tokens_for_user, extract_firs
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from rest_framework_simplejwt.tokens import RefreshToken, TokenError
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError, AccessToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 import json
 from django.contrib.auth import logout
@@ -277,4 +278,47 @@ class GetUserView(generics.RetrieveAPIView):
     #         raise NotFound("Invalid user ID format")
         
     #     return self.get_queryset().get(id=user_id)
+
+
+class GetUserRoleView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetUserRoleSerializer
     
+
+    def get(self, request, *args, **kwargs):
+
+        try:
+            
+            auth_header = request.headers.get('Authorization')
+
+            #check if the authorization is empty or not starts with Bearer
+            if not auth_header or not auth_header.startswith('Bearer '):
+                return ResponseMessageUtils(message="Authorization is missing or invalid", status_code=status.HTTP_401_UNAUTHORIZED)
+            
+            #get the token part
+            token = auth_header.split(' ')[1]
+
+            try:
+                #parse the token
+                access_token = AccessToken(token)
+            except TokenError as e: 
+                return ResponseMessageUtils(message="token is Invalid or expired", status_code=status.HTTP_400_BAD_REQUEST) 
+
+            user = User.objects.get(id=str(access_token["user_id"]))
+
+            serializer = self.get_serializer(user, data=request.data)
+
+            if serializer.is_valid():
+                return ResponseMessageUtils(message="Success", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(f"qwewqe: {str(e)}")
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+
+
+            

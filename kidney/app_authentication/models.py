@@ -49,7 +49,7 @@ class OTP(TimestampModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     otp_code = models.CharField(max_length=6)
     is_verified = models.BooleanField(default=False)
-    otp_token = models.UUIDField(default=uuid.uuid4(), unique=True)
+    otp_token = models.UUIDField(default=uuid.uuid4, unique=True)
 
     def is_otp_expired(self):
         return timezone.now() > self.created_at + timedelta(minutes=3)
