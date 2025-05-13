@@ -298,6 +298,44 @@ class GetPatientAppointmentHistorySerializer(serializers.ModelSerializer):
         return data
 
 
+class GetPendingAppointsmentsInAdminSerializer(serializers.ModelSerializer):
+
+    date = serializers.DateField(format='%b %d, %Y', input_formats=['%b %d, %Y'])
+    time = serializers.TimeField(format='%I:%M %p', input_formats=['%I:%M %p'])
+
+    class Meta:
+        model = Appointment
+        fields = ['user', 'date', 'time', 'status']
+
+    def to_representation(self, instance):
+
+        #get the request from the context
+        request = self.context.get('request')
+
+        data = super().to_representation(instance)
+
+        #foreign key user id
+        user_id = data.get('user')
+
+        #get the matched users of the foreign key user id
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            raise serializers.ValidationError({"message": "User not found"})
+        
+        #get the matched user profiles of the foreign key user id
+        try:
+            user_profile = Profile.objects.get(user=user)
+        except Profile.DoesNotExist:
+            raise serializers.ValidationError({"message": "User profile not found"})
+        
+        data["patient_first_name"] = user.first_name
+        data["patient_last_name"] = user.last_name
+
+        data["patient_profile"] = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+
+
+        return data
 
 # class GetAppointmentsInAdminSerializer(serializers.ModelSerializer):
 
