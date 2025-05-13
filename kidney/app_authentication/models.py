@@ -28,7 +28,7 @@ class User(AbstractUser):
 
 class Profile(TimestampModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, related_name='user_profile')
-    picture = models.ImageField(upload_to=("upload/profile_picture/"), blank=True, null=True)
+    picture = models.ImageField(upload_to=("profile_picture/"), blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
