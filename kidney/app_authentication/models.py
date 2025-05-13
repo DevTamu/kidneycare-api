@@ -20,6 +20,8 @@ class User(AbstractUser):
     middlename = models.CharField(max_length=50, null=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     status = models.CharField(max_length=20, default='offline')
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f"{self.username} ({self.role})"
