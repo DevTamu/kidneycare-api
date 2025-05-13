@@ -4,7 +4,6 @@ from app_authentication.models import User
 import uuid
 
 class Appointment(TimestampModel):
-
     appointment_status = [
         ('Pending', 'Pending'),
         ('Approved', 'Approved'),

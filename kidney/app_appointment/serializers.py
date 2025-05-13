@@ -11,16 +11,6 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-
-# class CreateAssignedAppointmentSerializer(serializers.Serializer):
-#     assigned_provider = serializers.ListField(
-#         child=serializers.CharField(), allow_empty=False
-#     )
-#     assigned_machine = serializers.ListField(
-#         child=serializers.CharField(), allow_empty=False
-#     )
-
-
 class CreateAppointmentSerializer(serializers.ModelSerializer):
 
     date = serializers.DateField(format='%m/%d/%Y',input_formats=['%m/%d/%Y'])
