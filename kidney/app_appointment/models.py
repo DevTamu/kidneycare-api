@@ -51,6 +51,5 @@ class AssignedAppointment(models.Model):
         return f'{username_data} Assigned'
     
 
-class QWEWQe():
-    pass
+
 
