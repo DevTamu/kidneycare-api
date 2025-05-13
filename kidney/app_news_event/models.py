@@ -18,4 +18,4 @@ class NewsEventImage(TimestampModel):
     image = models.ImageField(upload_to='news_event_image/', blank=True, null=True)
 
     def __str__(self):
-        return f"{self.news_event.title}"
+        return f"{self.news_event.category} - {self.news_event.title}"

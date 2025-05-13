@@ -81,8 +81,11 @@ class DeleteNewsEventView(generics.DestroyAPIView):
     def delete(self, request, *args, **kwargs):
         
         try:
-            serializer = self.get_serializer(self.get_queryset())
+            instance = self.get_queryset()
+            instance.delete()
             return ResponseMessageUtils(message="Successfully Deleted", status_code=status.HTTP_200_OK)
+        except NewsEvent.DoesNotExist:
+            return ResponseMessageUtils(message="News event not found", status_code=status.HTTP_400_BAD_REQUEST)    
         except Exception as e:
             print(f'qwewqeqwe: {str(e)}')
             return ResponseMessageUtils(message="Something went wrong", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)    
