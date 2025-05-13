@@ -19,6 +19,9 @@ class User(AbstractUser):
 
     middlename = models.CharField(max_length=50, null=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    status = models.CharField(max_length=20, default='offline')
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f"{self.username} ({self.role})"
@@ -48,7 +51,7 @@ class OTP(TimestampModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     otp_code = models.CharField(max_length=6)
     is_verified = models.BooleanField(default=False)
-    otp_token = models.UUIDField(default=uuid.uuid4(), unique=True)
+    otp_token = models.UUIDField(default=uuid.uuid4, unique=True)
 
     def is_otp_expired(self):
         return timezone.now() > self.created_at + timedelta(minutes=3)
