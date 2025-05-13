@@ -31,7 +31,7 @@ class AddNewsEventView(generics.CreateAPIView):
         except Exception as e:
             logger.error(f"Error occurred: {e}")
             return ResponseMessageUtils(message=f"Error occured during creation: {e}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+            
         
 
 class GetNewsEventView(generics.RetrieveAPIView):
