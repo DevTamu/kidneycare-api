@@ -151,20 +151,8 @@ DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 
 STATIC_URL = 'static/'
 
-# STATICFILES_DIRS = [BASE_DIR / 'static']
-
-STATIC_ROOT = os.path.join(BASE_DIR, 'kidney', 'staticfiles')
-
-
-
-STORAGES = {
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
-    },
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    }
-}
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / MEDIA_URL
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
