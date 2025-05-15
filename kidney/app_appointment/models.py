@@ -2,6 +2,7 @@ from django.db import models
 from kidney.models import TimestampModel
 from app_authentication.models import User
 import uuid
+from django.utils import timezone
 
 class Appointment(TimestampModel):
     appointment_status = [

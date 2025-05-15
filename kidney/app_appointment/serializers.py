@@ -1,35 +1,70 @@
 from rest_framework import serializers
-from rest_framework import status
 from .models import Appointment, AssignedAppointment, AssignedMachine, AssignedProvider
 from kidney.utils import is_field_empty
 from django.db import transaction
 import logging
 from app_authentication.models import User, Profile, UserInformation
-from django.db.models import Q
-from kidney.utils import ucfirst
-from datetime import datetime
+from app_schedule.models import Schedule 
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
 class CreateAppointmentSerializer(serializers.ModelSerializer):
 
     date = serializers.DateField(format='%m/%d/%Y',input_formats=['%m/%d/%Y'])
-    time = serializers.TimeField(format='%H:%M %p',input_formats=['%H:%M %p'], allow_null=True)
+    time = serializers.TimeField(format='%I:%M %p',input_formats=['%I:%M %p'])
 
     class Meta:
         model = Appointment
-        fields = ['date', 'time']
-
+        fields = ['time', 'date']
 
     def to_internal_value(self, data):
-        if data['date'] in (None, ""):
-            raise serializers.ValidationError({"message": "Date is required"})
         
+        if data["date"] in (None, ""):
+            raise serializers.ValidationError({"message": "Date is required"})
+
         if data["time"] in (None, ""):
             raise serializers.ValidationError({"message": "Time is required"})
         
         return super().to_internal_value(data)
+    
 
+    def validate(self, attrs):
+
+        time = attrs.get('time', None)
+        date = attrs.get('date', None)
+
+        schedule_data = Schedule.objects.get(id=3)
+
+        #convert time into datetime objects
+        start_time = datetime.strptime(schedule_data.start_time.strftime('%I:%M %p'), '%I:%M %p')
+        end_time = datetime.strptime(schedule_data.end_time.strftime('%I:%M %p'), '%I:%M %p')
+
+        print(f'START TIME: {start_time}')
+        print(f'END  TIME: {end_time}')
+
+        interval = timedelta(hours=1)
+        current_time = start_time
+
+        time_slots = []
+
+        while current_time <= end_time:
+            #append the current_time to time slots
+            time_slots.append(current_time)
+            #adding 1hr interval to the current_time
+            current_time += interval
+
+
+        #sort by datetime before formatting
+        time_slots.sort()
+
+        #format the time to 12-hour strings
+        formatted_time = [slot.strftime('%I:%M %p') for slot in time_slots]
+
+        if any((time in ftime) for ftime in formatted_time):
+            raise serializers.ValidationError({"message": "This time slot is already booked. Please choose a different time."})
+
+        return attrs
     
     def create(self, validated_data):
 
@@ -111,7 +146,7 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
 
         return attrs
         
-
+    @transaction.atomic
     def create(self, validated_data):
 
         #extract the assigned machine data
