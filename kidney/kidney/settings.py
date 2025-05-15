@@ -28,9 +28,10 @@ load_dotenv()
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+DEBUG = os.environ.get('DEBUG')    
 
 ALLOWED_HOSTS = ["anxious-misti-devtamu-3916140d.koyeb.app"]
+# ["anxious-misti-devtamu-3916140d.koyeb.app"]
 
 CSRF_TRUSTED_ORIGINS = [
     'https://anxious-misti-devtamu-3916140d.koyeb.app',  # or your custom domain
