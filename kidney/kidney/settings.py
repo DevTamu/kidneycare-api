@@ -50,7 +50,8 @@ INSTALLED_APPS = [
     'app_authentication',
     'app_news_event',
     'app_appointment',
-    'app_schedule'
+    'app_schedule',
+    'app_diet_plan'
 ]
 
 MIDDLEWARE = [

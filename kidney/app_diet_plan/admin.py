@@ -1,3 +1,6 @@
 from django.contrib import admin
+from .models import DietPlan
 
-# Register your models here.
+@admin.register(DietPlan)
+class AdminDietPlan(admin.ModelAdmin):
+    pass
