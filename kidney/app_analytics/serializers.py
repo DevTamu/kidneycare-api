@@ -10,9 +10,10 @@ from rest_framework import status
 class GetPatientAnalyticsSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
-        print("to_representation called!")  # debug
+
         #get the request from the context
         request = self.context.get('request')
+
         data = super().to_representation(instance)
 
         today = timezone.now().date()
@@ -26,15 +27,11 @@ class GetPatientAnalyticsSerializer(serializers.Serializer):
             created_date__range=[this_week_start, today]
         ).values('user_id').count()
 
-        print(f"THIS WEEK PATIENT: {this_week_patients}")
-
         last_week_patients = Appointment.objects.annotate(
             created_date=TruncDate('created_at')
         ).filter(
             created_date__range=[last_week_start, last_week_end]
         ).values('user_id').count()
-
-        print(f"LAST WEEK PATIENT: {last_week_patients}")
 
         #calculate difference and percentage
         change = this_week_patients - last_week_patients
