@@ -3,6 +3,8 @@ from .models import Schedule
 from kidney.utils import is_field_empty
 from .models import Schedule
 from datetime import datetime, timedelta
+from django.utils import timezone
+
 
 class CreateScheduleSerializer(serializers.ModelSerializer):
     
@@ -14,7 +16,8 @@ class CreateScheduleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Schedule
-        fields = '__all__'
+        fields = ['available_days', 'start_time', 'end_time']
+
 
     def validate(self, attrs):
         
@@ -27,9 +30,15 @@ class CreateScheduleSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+
         return Schedule.objects.update_or_create(
             id=3,
-            defaults=validated_data
+            defaults={
+                "available_days": validated_data.get('available_days', []),
+                "start_time": validated_data.get('start_time', None),
+                "end_time": validated_data.get('end_time', None),
+                "date_created": timezone.now,
+            }
         )
     
 
