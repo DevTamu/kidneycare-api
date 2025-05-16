@@ -208,7 +208,7 @@ class GetAssignedProviderSerializer(serializers.ModelSerializer):
 
     def get_assigned_provider(self, obj):
         user = obj.assigned_provider 
-        return f"{user.first_name} {user.last_name}" if user else "Unknown User"
+        return f"{user.first_name} {user.last_name}" if user else None
 
 
 
@@ -432,60 +432,51 @@ class CancelAppointmentSerializer(serializers.ModelSerializer):
         for field in self.fields.values():
             field.required = False
 
-    
 
-# class GetAppointmentsInAdminSerializer(serializers.ModelSerializer):
+class GetPatietnUpcomingAppointmentSerializer(serializers.ModelSerializer):
 
-#     appointments = GetAssignedAppointmentSerializer()
-#     date_time = serializers.SerializerMethodField()
-#     patient_name = serializers.SerializerMethodField()
+    date = serializers.DateField(format='%m/%d/%Y', input_formats=['%m/%d/%Y'])
+    time = serializers.TimeField(format='%I:%M %p', input_formats=['%I:%M %p'])
 
-#     class Meta:
-#         model = Appointment
-#         fields = ['patient_name', 'date_time', 'status', 'appointments']
+    class Meta:
+        model = Appointment
+        fields = ['date', 'time', 'user', 'id']
 
-#     # def to_representation(self, instance):
+    def to_representation(self, instance):
 
-#     #     #get the request from the context
-#     #     request = self.context.get('request')
+        #get the request object from the serializer context
+        request = self.context.get('request')
 
-#     #     data = super(GetAppointmentsInProviderSerializer, self).to_representation(instance)
+        #get the default serialized data from the parent class
+        data = super().to_representation(instance)
 
-#     #     # get the fullname of the current user logged in assuming its (Provider)
-#     #     full_name = f"{request.user.first_name} {request.user.last_name}"
+        data["user_id"] = str(data.pop('user')).replace("-", "")
 
-#     #     #get all the assigned appointments data
-#     #     matching_assigned_appointments = AssignedAppointment.objects.all()
+        appointment_id = data.get('id', None)
 
-#     #     #store all the appointment id here
-#     #     matched_appointments_ids = []
+        # try:
+        #     assigned_machine = AssignedMachine.objects.get(assigned_machine_appointment=appointment_id)
+        # except AssignedMachine.DoesNotExist:
+        #     raise serializers.ValidationError({"message": "Assigned machine not found"})
 
-#     #     #loop through of all the matching assigned appointments
-#     #     for assigned in matching_assigned_appointments:
-#     #         provider_list = assigned.assigned_provider or []
-#     #         if full_name in provider_list and assigned.appointment.status == 'Pending':
-#     #             matched_appointments_ids.append(assigned.appointment.id)
+        # try:
+        #     assigned_provider = AssignedProvider.objects.get(assigned_provider_appointments=appointment_id)
+        # except AssignedProvider.DoesNotExist:
+        #     raise serializers.ValidationError({"message": "Assigned provider not found"})
 
-#     #     #if there is matched id return all the data
-#     #     if instance.id in matched_appointments_ids:
-#     #         return data
-#     #     else:
-#     #         return {}
+        # data["machine"] = f'Machine #{assigned_machine.assigned_machine}'
+        # data["name"] = f'{assigned_provider.assigned_provider.role} {assigned_provider.assigned_provider.first_name.capitalize()}'
+        
+        # try:
+        #     user_profile = Profile.objects.get(user=assigned_provider.assigned_provider.id)
+        # except Profile.DoesNotExist:
+        #     raise serializers.ValidationError({"message": "User profile not found"})
+
+        # data["picture"] = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+
+        return data
 
 
-#     def get_date_time(self, obj):
 
-#         date_time = obj.date_time
-#         if date_time:
-#             return date_time.strftime("%b %d, %Y - %I:%M %p")
-#         return None
-    
-#     def get_patient_name(self, obj):
-#         firstname_value = getattr(obj.user, 'first_name', None)
-#         lastname_value = getattr(obj.user, 'last_name', None)
-
-#         if firstname_value and lastname_value:
-#             return f"{ucfirst(firstname_value)} {ucfirst(lastname_value)}"
-#         return None
 
 

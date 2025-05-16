@@ -2,12 +2,12 @@ from .serializers import (
     CreateAppointmentSerializer,
     GetAppointmentsInProviderSerializer,
     GetPatientInformationSerializer,
-    # GetAppointmentsInAdminSerializer,
     UpdateAppointmentInPatientSerializer,
     AddAppointmentDetailsInAdminSerializer,
     GetPatientAppointmentHistorySerializer,
     GetPendingAppointsmentsInAdminSerializer,
-    CancelAppointmentSerializer
+    CancelAppointmentSerializer,
+    GetPatietnUpcomingAppointmentSerializer
 )
 from app_authentication.models import User
 from .models import Appointment
@@ -17,7 +17,8 @@ from rest_framework.permissions import IsAuthenticated
 import logging
 from .models import AssignedAppointment
 from rest_framework.pagination import PageNumberPagination
-
+from rest_framework_simplejwt.tokens import AccessToken, TokenError
+from datetime import datetime, timedelta
 logger = logging.getLogger(__name__)
 
 class AppointmentPagination(PageNumberPagination):
@@ -186,18 +187,43 @@ class CancelAppointmentView(generics.DestroyAPIView):
             return ResponseMessageUtils(message="Something went wrong", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)    
 
 
-# class GetAppointmentInAdminView(generics.ListAPIView):
+class GetPatietnUpcomingAppointmentView(generics.RetrieveAPIView):
 
-#     permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetPatietnUpcomingAppointmentSerializer
 
-#     serializer_class = GetAppointmentsInAdminSerializer
+    def get(self, request, *args, **kwargs):
+        
+        auth_header = request.headers.get('Authorization', [])
 
-#     def get(self, request, *args, **kwargs):
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return ResponseMessageUtils(message="Invalid Authorization header", status_code=status.HTTP_401_UNAUTHORIZED)
+        
+        #get the token part
+        auth_header_token = auth_header.split(' ')[1]
 
-#         try:
-#             appointment = Appointment.objects.all()
-#             serializer = self.get_serializer(appointment, many=True)
-#             return ResponseMessageUtils(message="List of Appointments", data=serializer.data, status_code=status.HTTP_200_OK)
-#         except Exception as e:
-#             logger.error(f"Error: {e}")
-#             return ResponseMessageUtils(message=f"Something went wrong: {str(e)}", status_code=status.HTTP_400_BAD_REQUEST)
+        try:
+            access_token = AccessToken(auth_header_token)
+        except TokenError as e:
+            return ResponseMessageUtils(message="Expired or invalid token", status_code=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+
+            today = datetime.today().date()
+            #starting day of the upcoming appointment
+            start = datetime.combine(today + timedelta(days=1), datetime.min.time())
+            #ending day of the upcoming appointment
+            end = datetime.combine(today + timedelta(days=1), datetime.max.time())
+            
+            #filter the upcoming appointments 1 day before the appointments
+            user_appointment = Appointment.objects.filter(
+                user_id=access_token["user_id"],
+                date__range=(start, end)
+            )
+
+            serializer = self.get_serializer(user_appointment, many=True)
+            return ResponseMessageUtils(message="Upcoming appointment", data=serializer.data, status_code=status.HTTP_200_OK)    
+            # if serializer.is_valid():
+        except Exception as e:
+            print(f'qweqwewqe: {e}')
+            return ResponseMessageUtils(message="Something went wrong", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)    

@@ -2,13 +2,13 @@ from django.urls import path
 from .views import (
     CreateAppointmentView,
     GetAppointmentInProviderView,
-    # GetAppointmentInAdminView,
     GetPatientInformationView,
     UpdateAppointmentInPatientView,
     AddAppointmentDetailsInAdminView,
     GetPatientAppointmentHistoryView,
     GetPendingAppointsmentsInAdminView,
-    CancelAppointmentView
+    CancelAppointmentView,
+    GetPatietnUpcomingAppointmentView
 )
 
 urlpatterns = [
@@ -20,5 +20,5 @@ urlpatterns = [
     path('patient/appointment-history/<str:pk>/', GetPatientAppointmentHistoryView.as_view(), name='patient-appointment-history'),
     path('patient/pending-appointments/', GetPendingAppointsmentsInAdminView.as_view(), name='patient-pending-appointments'),
     path('patient/cancel-appointment/<int:pk>/', CancelAppointmentView.as_view(), name='patient-pending-appointments'),
-    # path('get-admin-appointment/', GetAppointmentInAdminView.as_view(), name='get-admin-appointment'),
+    path('patient/upcoming-appointment/', GetPatietnUpcomingAppointmentView.as_view(), name='patient-pending-appointments'),
 ]
