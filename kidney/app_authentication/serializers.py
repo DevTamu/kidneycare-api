@@ -452,6 +452,8 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
                 "access_token": str(refresh.access_token),
                 "refresh_token": str(refresh),
                 "user_id": str(user.id).replace("-", ""),
+                "first_name": user.first_name,
+                "last_name": user.last_name,
                 "user_email": user.username,
                 "user_image": picture,
                 "user_role": user.role,
@@ -605,6 +607,9 @@ class ChangePasswordHealthCareProviderSeriallizer(serializers.Serializer):
 
 class GetUsersInformationSerializer(serializers.ModelSerializer):
 
+    #format the birthdate to readable format
+    birthdate = serializers.DateField(format='%b %d, %Y', input_formats=['%b %d, $Y'])
+
     class Meta:
         model = UserInformation
         fields = '__all__'
@@ -633,9 +638,10 @@ class GetUsersSeriaizer(serializers.ModelSerializer):
 
     def get_picture(self, obj):
 
-        #get the request from the context
+        #get the request object from the serializer context
         request = self.context.get('request')
 
+        #check if the user profile exist and the profile picture
         if obj.user_profile and obj.user_profile.picture:
             return request.build_absolute_uri(obj.user_profile.picture.url) if obj.user_profile.picture else None
         return None
