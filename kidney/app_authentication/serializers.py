@@ -98,6 +98,7 @@ class SendOTPSerializer(serializers.Serializer):
                 "otp_token": str(otp_obj.otp_token).replace("-", ""),
                 "user_id": str(user.id).replace("-", "")
             }
+        
         except Exception as e:
             raise serializers.ValidationError({"message": str(e)})
         
@@ -113,21 +114,21 @@ class VerifyOTPSerializer(serializers.Serializer):
         if is_field_empty(attrs["otp_code"]):
             raise serializers.ValidationError({"message": "OTP is required"})
 
-        otp_entry = OTP.objects.get(otp_token=request.query_params.get('otp_token'))
+        otp_token = OTP.objects.get(otp_token=request.query_params.get('otp_token'))
 
-        if not otp_entry:
+        if not otp_token:
             raise serializers.ValidationError({"message": "Invalid or expired token."})
            
         #check if the otp valid
-        if otp_entry.otp_code != attrs["otp_code"]:
+        if otp_token.otp_code != attrs["otp_code"]:
             raise serializers.ValidationError({"message": "Invalid OTP."})
         
         #check if the otp has expired
-        if otp_entry.is_otp_expired():
+        if otp_token.is_otp_expired():
             raise serializers.ValidationError({"message": "OTP has expired"})
         
         #set the instance to "otp_entry" object for use in "update"
-        self.instance = otp_entry
+        self.instance = otp_token
 
         return attrs
     
@@ -149,12 +150,12 @@ class ResendOTPSerializer(serializers.Serializer):
             raise serializers.ValidationError({"message": "OTP TOKEN is required"})
 
         try:
-            otp_entry = OTP.objects.get(otp_token=attrs["otp_token"])
+            otp_token = OTP.objects.get(otp_token=attrs["otp_token"])
         except OTP.DoesNotExist:
             raise serializers.ValidationError({"message": "OTP Token does not exist"})
         
-        #set the instance to "otp_entry" object for use in "update"
-        self.instance = otp_entry
+        #set the instance to "otp_token" object for use in "update"
+        self.instance = otp_token
 
         return attrs
 
@@ -184,6 +185,7 @@ class AddAccountHealthCareProviderSerializer(serializers.Serializer):
     
     #required fields
     username = serializers.CharField(allow_blank=True, allow_null=True)
+    # password = serializers.CharField(allow_blank=True, allow_null=True)
     firstname = serializers.CharField(allow_blank=True, allow_null=True)
     lastname = serializers.CharField(allow_blank=True, allow_null=True)
     role = serializers.CharField(allow_blank=True, allow_null=True)
@@ -199,6 +201,9 @@ class AddAccountHealthCareProviderSerializer(serializers.Serializer):
 
         if is_field_empty(attrs["username"]):
             raise serializers.ValidationError({"message": "Email is required"})
+        
+        # if is_field_empty(attrs["password"]):
+        #     raise serializers.ValidationError({"message": "Password is required"})
         
         if is_field_empty(attrs["contact_number"]):
             raise serializers.ValidationError({"message": "Contact number is require"})
@@ -218,6 +223,7 @@ class AddAccountHealthCareProviderSerializer(serializers.Serializer):
             
         return attrs
     
+    #add transaction atomic to ensure the data will rollback in case of failure 
     @transaction.atomic
     def create(self, validated_data):
         
@@ -269,7 +275,7 @@ class RegisterSerializer(serializers.Serializer):
     #user fields (required)
     first_name = serializers.CharField(allow_blank=True)
     last_name = serializers.CharField(allow_blank=True)
-    role = serializers.ChoiceField(allow_blank=True,choices=["Patient", "Admin", "Nurse"], default="Patient")
+    role = serializers.ChoiceField(allow_blank=True,choices=["Patient", "Admin"], default="Patient")
 
     # UserInformation fields (optional)
     suffix_name = serializers.BooleanField(required=False)
@@ -325,14 +331,14 @@ class RegisterSerializer(serializers.Serializer):
             for field in patient_required_fields:
                 if is_field_empty(attrs.get(field)):
                     raise serializers.ValidationError({"message": "This fields is required for patients"})
-        elif role in ['Admin', 'Nurse']:
+        elif role == 'Admin':
             #remove patient specific fields
             for field in patient_required_fields:
                 if field in attrs:
                     attrs.pop(field)
         
-        #check the username (username as email) only if the role is ["Admin", "Nurse"]
-        if User.objects.filter(username=attrs["username"]).exists() and role in ['Admin', 'Nurse']:
+        #check the username (username as email) only if the role is 'Admin'
+        if User.objects.filter(username=attrs["username"]).exists() and role == 'Admin':
             raise serializers.ValidationError({"message": "Email already used"})
 
         return attrs
@@ -414,7 +420,7 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
         if not user:
             raise serializers.ValidationError({"message": "Username does not exist"})
 
-        #OTP Verification (for applicable roles)
+        #OTP Verification (applicable only for PATIENT role)
         if user.role == 'Patient':
             user_otp = OTP.objects.filter(user__username=username).first()
             if not user_otp:
@@ -427,9 +433,9 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
         
         user = authenticate(request, username=username, password=password)
 
+        #if no user found
         if user is None:
             raise serializers.ValidationError({"message": "Invalid credentials"})
-        
         
 
         login(request, user)
@@ -439,8 +445,8 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
 
         try:
             user_profile = Profile.objects.get(user=user)
-            user_profile.user.status = 'online'
-            user_profile.user.save()
+            user.status = 'Online'
+            user.save()
             picture = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
         except Profile.DoesNotExist:
             picture = None
@@ -546,9 +552,9 @@ class LogoutSerializer(serializers.Serializer):
             user = User.objects.get(id=access_token["user_id"])
 
             if not user:
-                raise serializers.ValidationError({"message": "Invalid Token"})
+                raise serializers.ValidationError({"message": "No user found"})
                             
-            user.status = 'offline'
+            user.status = 'Offline'
             user.save()
 
             # Ensure datetime fields are correctly formatted as strings

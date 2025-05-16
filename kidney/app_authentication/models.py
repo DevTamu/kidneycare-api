@@ -13,7 +13,6 @@ class User(AbstractUser):
         ('Admin', 'Admin'),
         ('Nurse', 'Nurse'),
         ('Head Nurse', 'Head Nurse'),
-        ('Provider', 'Provider'),
         ('Caregiver', 'Caregiver'),
     )
 
