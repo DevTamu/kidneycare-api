@@ -21,57 +21,56 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
     def to_internal_value(self, data):
         
         if data["date"] in (None, ""):
-            raise serializers.ValidationError({"message": "Date is required"})
+            raise serializers.ValidationError({"message": "Date is required to book an appointment"})
 
         if data["time"] in (None, ""):
-            raise serializers.ValidationError({"message": "Time is required"})
+            raise serializers.ValidationError({"message": "Time is required to book an appointment"})
         
         return super().to_internal_value(data)
     
+    # def validate(self, attrs):
 
-    def validate(self, attrs):
+    #     time = attrs.get('time', None)
+    #     date = attrs.get('date', None)
 
-        time = attrs.get('time', None)
-        date = attrs.get('date', None)
+    #     schedule_data = Schedule.objects.get(id=3)
 
-        schedule_data = Schedule.objects.get(id=3)
+    #     #convert time into datetime objects
+    #     start_time = datetime.strptime(schedule_data.start_time.strftime('%I:%M %p'), '%I:%M %p')
+    #     end_time = datetime.strptime(schedule_data.end_time.strftime('%I:%M %p'), '%I:%M %p')
 
-        #convert time into datetime objects
-        start_time = datetime.strptime(schedule_data.start_time.strftime('%I:%M %p'), '%I:%M %p')
-        end_time = datetime.strptime(schedule_data.end_time.strftime('%I:%M %p'), '%I:%M %p')
+    #     #generate interval every 1 hour
+    #     interval = timedelta(hours=1)
+    #     current_time = start_time
 
+    #     time_slots = []
 
-        print(f'START TIME: {start_time}')
-        print(f'END  TIME: {end_time}')
-
-        interval = timedelta(hours=1)
-        current_time = start_time
-
-        time_slots = []
-
-        while current_time <= end_time:
-            #append the current_time to time slots
-            time_slots.append(current_time)
-            #adding 1hr interval to the current_time
-            current_time += interval
+    #     while current_time <= end_time:
+    #         #append the current_time to time slots
+    #         time_slots.append(current_time)
+    #         #adding 1hr interval to the current_time
+    #         current_time += interval
 
 
-        # #sort by datetime before formatting
-        time_slots.sort()
+    #     #format the time to 12-hour strings
+    #     formatted_time_slots = [datetime.strftime(slot, '%I:%M:%S') for slot in time_slots]
 
-        # #format the time to 12-hour strings
-        formatted_time_slots = [slot.strftime('%I:%M %p') for slot in time_slots]
+    #     #format the input time to readable format
+    #     formatted_time_input = time.strftime('%I:%M:%S')
 
-        print(f'FORMATTED TIME: {formatted_time_slots}')
-        formatted_time = time.strftime('%I:%M %p')
+    #     #if the time slots not exist
+    #     if formatted_time_input not in formatted_time_slots:
+    #         raise serializers.ValidationError({"message": "This time is not available"})
         
-        #check if time slots has already taken
-        if any((formatted_time in taken_slots) for taken_slots in formatted_time_slots):
-            raise serializers.ValidationError({"message": "This time slot is already booked. Please choose a different time."})
+    #     #check for every taken slots
+    #     taken_slots = [time_slot for time_slot in formatted_time_slots if Appointment.objects.filter(time=time_slot).exists()]
 
-        # if any((time in ftime) for ftime in formatted_time):
+    #     #check if the slots already in taken slots means someone already booked that time
+    #     if formatted_time_input in taken_slots and date == schedule_data.date_created:
+    #         raise serializers.ValidationError({"message": "This time slot is already booked. Please choose different time."})
 
-        return attrs
+
+    #     return attrs
     
     def create(self, validated_data):
 
@@ -82,7 +81,7 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
         create_appointment = Appointment.objects.create(
             user=request.user,
             date=validated_data.get('date', None),
-            time=validated_data.get('time', None),
+            time=validated_data.get('time', None).strftime('%I:%M:%S'),
         )
 
         #return the created appointment
