@@ -44,11 +44,12 @@ class CreateAppointmentView(generics.CreateAPIView):
 class UpdateAppointmentInPatientView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = UpdateAppointmentInPatientSerializer
-    lookup_field = 'pk'
+    lookup_field = 'pk' #capture the pk to the url
 
     def put(self, request, *args, **kwargs):
 
         try:
+            #get the patient appointment by id
             queryset = Appointment.objects.get(id=self.kwargs.get('pk'))
             serializer = self.get_serializer(instance=queryset, data=request.data)
 
