@@ -87,11 +87,13 @@ class SendOTPSerializer(serializers.Serializer):
                 otp_token=uuid.uuid4()
             )
 
+            print(f'qwewqeqwe: {otp_obj.otp_code}')
+
             send_otp_to_email(
                 subject='Your OTP Code',
                 message=f'Your OTP is {otp}',
-                recipient_list=[f'{validated_data['username']}'],
-                otp=otp
+                recipient_list=[user.username],
+                otp=otp_obj.otp_code
             )
 
             return {
@@ -610,7 +612,6 @@ class ChangePasswordHealthCareProviderSeriallizer(serializers.Serializer):
         return instance
 
             
-
 class GetUsersInformationSerializer(serializers.ModelSerializer):
 
     #format the birthdate to readable format
@@ -687,3 +688,37 @@ class GetUserRoleSerializer(serializers.ModelSerializer):
         data["user_role"] = data.pop('role')
 
         return data
+    
+
+class GetProfileSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Profile
+        fields = ['picture']
+
+
+class GetUserInformationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = UserInformation
+        fields = ['address', 'contact']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        #format the contact with (-)
+        data["contact"] = '{}{}{}{}-{}{}{}-{}{}{}{}'.format(*data.pop('contact'))
+
+        return data
+    
+
+class GetHealthCareProvidersSerializer(serializers.ModelSerializer):
+
+    user_profile = GetProfileSerializer()
+    user_information = GetUserInformationSerializer()
+
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name', 'role', 'user_profile', 'user_information']
+
+  

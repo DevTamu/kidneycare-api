@@ -11,7 +11,8 @@ from .serializers import (
     ChangePasswordHealthCareProviderSeriallizer,
     GetUsersSeriaizer,
     GetUserSeriaizer,
-    GetUserRoleSerializer
+    GetUserRoleSerializer,
+    GetHealthCareProvidersSerializer
 )
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import generics
@@ -191,6 +192,10 @@ class ChangePasswordView(generics.UpdateAPIView):
 
     def patch(self, request, *args, **kwargs):
         
+        auth_header = request.headers.get('Authorization')
+
+        print(f'AUTH HEADER {auth_header}')
+
         try:
             serializer = self.get_serializer(data=request.data, partial=True)
 
@@ -318,6 +323,28 @@ class GetUserRoleView(generics.ListAPIView):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+
+class GetHealthCareProvidersView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetHealthCareProvidersSerializer
+
+    def get_queryset(self):
+        return User.objects.filter(role__in=['Nurse', 'Head Nurse'])
+
+    def get(self, request, *args, **kwargs):
+
+        try:
+            user = self.get_queryset()  
+            serializer = self.get_serializer(user, many=True)
+            return ResponseMessageUtils(message="Success", data=serializer.data, status_code=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"qwewqe: {str(e)}")
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+    
 
 
 

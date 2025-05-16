@@ -12,7 +12,8 @@ from .views import (
     ChangePasswordHealthCareProviderView,
     GetUsersView,
     GetUserView,
-    GetUserRoleView
+    GetUserRoleView,
+    GetHealthCareProvidersView
 )
 
 urlpatterns = [
@@ -29,4 +30,5 @@ urlpatterns = [
     path('get/patients/', GetUsersView.as_view(), name='get-users'),
     path('get/patient/<str:id>/', GetUserView.as_view(), name='get-user'),
     path('user/role/', GetUserRoleView.as_view(), name='get-user-role'),
+    path('get/providers/', GetHealthCareProvidersView.as_view(), name='get-providers'),
 ]
