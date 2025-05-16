@@ -6,7 +6,8 @@ from .serializers import (
     UpdateAppointmentInPatientSerializer,
     AddAppointmentDetailsInAdminSerializer,
     GetPatientAppointmentHistorySerializer,
-    GetPendingAppointsmentsInAdminSerializer
+    GetPendingAppointsmentsInAdminSerializer,
+    CancelAppointmentSerializer
 )
 from app_authentication.models import User
 from .models import Appointment
@@ -163,6 +164,27 @@ class GetPendingAppointsmentsInAdminView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GetPendingAppointsmentsInAdminSerializer
     queryset = Appointment.objects.filter(status='Pending')
+
+
+class CancelAppointmentView(generics.DestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CancelAppointmentSerializer
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        return Appointment.objects.filter(id=self.kwargs.get('pk'))
+    
+    def delete(self, request, *args, **kwargs):
+        
+        try:
+            instance = self.get_queryset()
+            instance.delete()
+            return ResponseMessageUtils(message="Successfully Deleted", status_code=status.HTTP_200_OK)
+        except Appointment.DoesNotExist:
+            return ResponseMessageUtils(message="Appointment not found", status_code=status.HTTP_400_BAD_REQUEST)    
+        except Exception as e:
+            return ResponseMessageUtils(message="Something went wrong", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)    
+
 
 # class GetAppointmentInAdminView(generics.ListAPIView):
 

@@ -7,7 +7,8 @@ from .views import (
     UpdateAppointmentInPatientView,
     AddAppointmentDetailsInAdminView,
     GetPatientAppointmentHistoryView,
-    GetPendingAppointsmentsInAdminView
+    GetPendingAppointsmentsInAdminView,
+    CancelAppointmentView
 )
 
 urlpatterns = [
@@ -18,5 +19,6 @@ urlpatterns = [
     path('patient-information/<str:pk>/', GetPatientInformationView.as_view(), name='patient-information'),
     path('patient/appointment-history/<str:pk>/', GetPatientAppointmentHistoryView.as_view(), name='patient-appointment-history'),
     path('patient/pending-appointments/', GetPendingAppointsmentsInAdminView.as_view(), name='patient-pending-appointments'),
+    path('patient/cancel-appointment/<int:pk>/', CancelAppointmentView.as_view(), name='patient-pending-appointments'),
     # path('get-admin-appointment/', GetAppointmentInAdminView.as_view(), name='get-admin-appointment'),
 ]

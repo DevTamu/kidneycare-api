@@ -418,6 +418,21 @@ class GetPendingAppointsmentsInAdminSerializer(serializers.ModelSerializer):
 
 
         return data
+    
+
+class CancelAppointmentSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Appointment
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super(CancelAppointmentSerializer, self).__init__(*args, **kwargs)
+        #make all the fields not required
+        for field in self.fields.values():
+            field.required = False
+
+    
 
 # class GetAppointmentsInAdminSerializer(serializers.ModelSerializer):
 
