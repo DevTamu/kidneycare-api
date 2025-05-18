@@ -6,7 +6,6 @@ import logging
 from app_authentication.models import User, Profile, UserInformation
 from app_schedule.models import Schedule 
 from datetime import datetime, timedelta
-from kidney.utils import get_authenticated_user_id
 
 logger = logging.getLogger(__name__)
 

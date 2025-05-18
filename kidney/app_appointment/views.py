@@ -12,7 +12,7 @@ from .serializers import (
 from app_authentication.models import User
 from .models import Appointment
 from rest_framework import generics, status
-from kidney.utils import ResponseMessageUtils, extract_first_error_message, get_authenticated_user_id
+from kidney.utils import ResponseMessageUtils, extract_first_error_message, get_token_user_id
 from rest_framework.permissions import IsAuthenticated
 import logging
 from .models import AssignedAppointment, AssignedMachine, AssignedProvider
@@ -194,7 +194,7 @@ class GetPatietnUpcomingAppointmentView(generics.RetrieveAPIView):
 
     def get(self, request, *args, **kwargs):
         
-        user_id = get_authenticated_user_id(request)
+        user_id = get_token_user_id(request)
         
         try:
 
