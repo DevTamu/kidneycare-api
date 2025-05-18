@@ -5,7 +5,7 @@ from .views import (
 )
 
 urlpatterns = [
-    path('add/', AddNewsEventView.as_view(), name='add'),
-    path('get/', GetNewsEventView.as_view(), name='get')
+    path('add/news-event/', AddNewsEventView.as_view(), name='add'),
+    path('get/news-event/', GetNewsEventView.as_view(), name='get')
 ]
     

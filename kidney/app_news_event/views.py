@@ -31,17 +31,17 @@ class AddNewsEventView(generics.CreateAPIView):
         except Exception as e:
             logger.error(f"Error occurred: {e}")
             return ResponseMessageUtils(message=f"Error occured during creation: {e}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+            
         
 
 class GetNewsEventView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
-
+    serializer_class = GetNewsEventSerializer
     
     def get(self, request, *args, **kwargs):
         try:     
             events = NewsEvent.objects.all()       
-            serializer = GetNewsEventSerializer(events, many=True, context={'request': request})
+            serializer = self.get_serializer(events, many=True, context={'request': request})
             return ResponseMessageUtils(message="List of News Event Data",data=serializer.data, status_code=status.HTTP_200_OK)
         except NewsEvent.DoesNotExist:
             return ResponseMessageUtils(message="Event not found", status_code=status.HTTP_404_NOT_FOUND)    

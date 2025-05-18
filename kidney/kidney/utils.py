@@ -54,12 +54,17 @@ def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
 
     if response and isinstance(response.data, dict):
-        
-        for key, value in response.data.items():
-            if isinstance(value, list) and len(value) == 1:
-                response[key] = {
-                    "message": value[0]
-                }
+        data = response.data
+        # Prioritize non_field_errors if present
+        if "non_field_errors" in data and isinstance(data["non_field_errors"], list):
+            response.data = {"message": data["non_field_errors"][0]}
+        else:
+            for key, value in data.items():
+                if isinstance(value, list) and len(value) == 1:
+                    response.data = {"message": value[0]}
+                    break  # stop after first useful messageatten list
+            
+         
     return response
 
 
@@ -190,7 +195,6 @@ def is_field_empty(field_name):
 #a helper method that helps us convert the first letter to uppercae then the rest lowercase
 def ucfirst(field_name):
     return field_name[:1].upper() + field_name[1:]
-
 
 def extract_first_error_message(errors):
     for k, v in errors.items():
