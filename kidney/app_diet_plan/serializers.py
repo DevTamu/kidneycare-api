@@ -21,6 +21,13 @@ class AddDietPlanSerializer(serializers.ModelSerializer):
 
         return attrs
     
-    @transaction.atomic
     def create(self, validated_data):
         return DietPlan.objects.create(**validated_data)
+    
+
+
+class GetPatientDietPlanSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = DietPlan
+        fields = ['patient', 'patient_status'] 
