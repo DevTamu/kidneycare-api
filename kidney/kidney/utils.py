@@ -8,6 +8,8 @@ import random
 import re
 import secrets
 import string
+from rest_framework_simplejwt.tokens import AccessToken, TokenError
+from rest_framework import status
 
 def ResponseMessageUtils(
     message:str=None,
@@ -196,3 +198,20 @@ def extract_first_error_message(errors):
             return v
         else:
             return v[0]
+        
+
+def get_authenticated_user_id(request):
+
+    auth_header = request.headers.get('Authorization', [])
+
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return ResponseMessageUtils(message="Invalid Authorization header", status_code=status.HTTP_401_UNAUTHORIZED)
+    
+    #get the token part
+    auth_header_token = auth_header.split(' ')[1]
+
+    try:
+        access_token = AccessToken(auth_header_token)
+        return str(access_token["user_id"]).replace("-", "")
+    except TokenError as e:
+        return ResponseMessageUtils(message="Expired or invalid token", status_code=status.HTTP_401_UNAUTHORIZED)

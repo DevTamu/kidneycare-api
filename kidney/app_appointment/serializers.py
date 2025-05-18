@@ -6,6 +6,7 @@ import logging
 from app_authentication.models import User, Profile, UserInformation
 from app_schedule.models import Schedule 
 from datetime import datetime, timedelta
+from kidney.utils import get_authenticated_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -185,7 +186,8 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
         #loop through each provider to create or get the AssignedProvider
         for provider_data in assigned_providers_data:
             provider_obj, _ = AssignedProvider.objects.get_or_create(
-                assigned_provider=provider_data['assigned_provider']
+                assigned_provider=provider_data['assigned_provider'],
+                assigned_provider_appointments=appointment
             )
             assigned_appointment.assigned_providers.add(provider_obj)
 
@@ -437,7 +439,8 @@ class GetPatietnUpcomingAppointmentSerializer(serializers.ModelSerializer):
 
     date = serializers.DateField(format='%m/%d/%Y', input_formats=['%m/%d/%Y'])
     time = serializers.TimeField(format='%I:%M %p', input_formats=['%I:%M %p'])
-
+    
+    
     class Meta:
         model = Appointment
         fields = ['date', 'time', 'user', 'id']
@@ -452,27 +455,24 @@ class GetPatietnUpcomingAppointmentSerializer(serializers.ModelSerializer):
 
         data["user_id"] = str(data.pop('user')).replace("-", "")
 
-        appointment_id = data.get('id', None)
+        #get the assigned machined to the related appointment of the patient upcoming appointment
+        assigned_machine_upcoming_appointment = AssignedMachine.objects.get(
+            assigned_machine_appointment=data.get('id', None)
+        )
 
-        # try:
-        #     assigned_machine = AssignedMachine.objects.get(assigned_machine_appointment=appointment_id)
-        # except AssignedMachine.DoesNotExist:
-        #     raise serializers.ValidationError({"message": "Assigned machine not found"})
+        #get the assigned provider to the related appointment of the patient upcoming appointment
+        assigned_provider_upcoming_appointment = AssignedProvider.objects.get(
+            assigned_provider_appointments=data.get('id', None)
+        )
 
-        # try:
-        #     assigned_provider = AssignedProvider.objects.get(assigned_provider_appointments=appointment_id)
-        # except AssignedProvider.DoesNotExist:
-        #     raise serializers.ValidationError({"message": "Assigned provider not found"})
+        data["machine"] = f'Machine #{assigned_machine_upcoming_appointment.assigned_machine}'
 
-        # data["machine"] = f'Machine #{assigned_machine.assigned_machine}'
-        # data["name"] = f'{assigned_provider.assigned_provider.role} {assigned_provider.assigned_provider.first_name.capitalize()}'
-        
-        # try:
-        #     user_profile = Profile.objects.get(user=assigned_provider.assigned_provider.id)
-        # except Profile.DoesNotExist:
-        #     raise serializers.ValidationError({"message": "User profile not found"})
+        data["name"] = f'{assigned_provider_upcoming_appointment.assigned_provider.role.capitalize()} {assigned_provider_upcoming_appointment.assigned_provider.first_name.capitalize()}'
 
-        # data["picture"] = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+        #get the profile of the assigned provider
+        provider_profile = Profile.objects.get(user=assigned_provider_upcoming_appointment.assigned_provider.id)
+
+        data["picture"] = request.build_absolute_uri(provider_profile.picture.url) if provider_profile.picture else None
 
         return data
 
