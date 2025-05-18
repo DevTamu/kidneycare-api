@@ -200,7 +200,7 @@ def extract_first_error_message(errors):
             return v[0]
         
 
-def get_authenticated_user_id(request):
+def get_token_user_id(request):
 
     auth_header = request.headers.get('Authorization', [])
 
