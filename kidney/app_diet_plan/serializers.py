@@ -13,7 +13,7 @@ class AddDietPlanSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         
-        required_fields = ['patient', 'meal_type', 'recipe_name', 'recipe_tutorial_url', 'recipe_description']
+        required_fields = ['patient', 'meal_type', 'dish_image', 'recipe_name', 'recipe_tutorial_url', 'recipe_description']
 
         for field in required_fields:
             if is_field_empty(attrs.get(field)):
@@ -26,8 +26,18 @@ class AddDietPlanSerializer(serializers.ModelSerializer):
     
 
 
+class GetPatientHealthStatusSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = DietPlan
+        fields = ['patient_status'] 
+
+
 class GetPatientDietPlanSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DietPlan
-        fields = ['patient', 'patient_status'] 
+        fields = ['dish_image', 'recipe_tutorial_url', 'recipe_name', 'recipe_description']
+
+
+
