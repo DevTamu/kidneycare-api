@@ -47,4 +47,14 @@ class GetNewsEventView(generics.RetrieveAPIView):
             return ResponseMessageUtils(message="Event not found", status_code=status.HTTP_404_NOT_FOUND)    
 
 
-
+class GetNewsEventLimitByTwoView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetNewsEventSerializer
+    def get(self, request, *args, **kwargs):
+        try:     
+            #limit the display of the events
+            events = NewsEvent.objects.all().order_by('created_at')[0:2]
+            serializer = self.get_serializer(events, many=True, context={'request': request})
+            return ResponseMessageUtils(message="List of News Event Data",data=serializer.data, status_code=status.HTTP_200_OK)
+        except NewsEvent.DoesNotExist:
+            return ResponseMessageUtils(message="Event not found", status_code=status.HTTP_404_NOT_FOUND)  
