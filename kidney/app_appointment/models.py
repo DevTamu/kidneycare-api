@@ -16,7 +16,7 @@ class Appointment(TimestampModel):
         ('Rescheduled', 'Rescheduled'),
     ]
     
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     date = models.DateField(blank=True, null=True)
     time = models.TimeField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=appointment_status, default='Pending')
