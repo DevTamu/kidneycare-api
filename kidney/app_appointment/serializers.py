@@ -434,7 +434,7 @@ class CancelAppointmentSerializer(serializers.ModelSerializer):
             field.required = False
 
 
-class GetPatietnUpcomingAppointmentSerializer(serializers.ModelSerializer):
+class GetPatientUpcomingAppointmentSerializer(serializers.ModelSerializer):
 
     date = serializers.DateField(format='%m/%d/%Y', input_formats=['%m/%d/%Y'])
     time = serializers.TimeField(format='%I:%M %p', input_formats=['%I:%M %p'])
@@ -455,14 +455,68 @@ class GetPatietnUpcomingAppointmentSerializer(serializers.ModelSerializer):
         data["user_id"] = str(data.pop('user')).replace("-", "")
 
         #get the assigned machined to the related appointment of the patient upcoming appointment
-        assigned_machine_upcoming_appointment = AssignedMachine.objects.get(
-            assigned_machine_appointment=data.get('id', None)
-        )
+        try:
+            assigned_machine_upcoming_appointment = AssignedMachine.objects.get(
+                assigned_machine_appointment=data.get('id', None)
+            )
+        except AssignedMachine.DoesNotExist:
+            pass
 
         #get the assigned provider to the related appointment of the patient upcoming appointment
-        assigned_provider_upcoming_appointment = AssignedProvider.objects.get(
-            assigned_provider_appointments=data.get('id', None)
-        )
+        try:
+            assigned_provider_upcoming_appointment = AssignedProvider.objects.get(
+                assigned_provider_appointments=data.get('id', None)
+            )
+        except AssignedProvider.DoesNotExist:
+            pass
+
+        data["machine"] = f'Machine #{assigned_machine_upcoming_appointment.assigned_machine}'
+
+        data["name"] = f'{assigned_provider_upcoming_appointment.assigned_provider.role.capitalize()} {assigned_provider_upcoming_appointment.assigned_provider.first_name.capitalize()}'
+
+        #get the profile of the assigned provider
+        provider_profile = Profile.objects.get(user=assigned_provider_upcoming_appointment.assigned_provider.id)
+
+        data["picture"] = request.build_absolute_uri(provider_profile.picture.url) if provider_profile.picture else None
+
+        return data
+    
+
+class GetAllPatientUpcomingAppointmentInAppointmentPageSerializer(serializers.ModelSerializer):
+
+    date = serializers.DateField(format='%m/%d/%Y', input_formats=['%m/%d/%Y'])
+    time = serializers.TimeField(format='%I:%M %p', input_formats=['%I:%M %p'])
+    
+    
+    class Meta:
+        model = Appointment
+        fields = ['date', 'time', 'user', 'status', 'id']
+
+    def to_representation(self, instance):
+
+        #get the request object from the serializer context
+        request = self.context.get('request')
+
+        #get the default serialized data from the parent class
+        data = super().to_representation(instance)
+
+        data["user_id"] = str(data.pop('user')).replace("-", "")
+
+        #get the assigned machined to the related appointment of the patient upcoming appointment
+        try:
+            assigned_machine_upcoming_appointment = AssignedMachine.objects.get(
+                assigned_machine_appointment=data.get('id', None)
+            )
+        except AssignedMachine.DoesNotExist:
+            pass
+
+        #get the assigned provider to the related appointment of the patient upcoming appointment
+        try:
+            assigned_provider_upcoming_appointment = AssignedProvider.objects.get(
+                assigned_provider_appointments=data.get('id', None)
+            )
+        except AssignedProvider.DoesNotExist:
+            pass
 
         data["machine"] = f'Machine #{assigned_machine_upcoming_appointment.assigned_machine}'
 
@@ -476,6 +530,16 @@ class GetPatietnUpcomingAppointmentSerializer(serializers.ModelSerializer):
         return data
 
 
+class CancelPatientUpcomingAppointmentInAppointmentPageSerializer(serializers.ModelSerializer):
 
+    class Meta:
+        model = Appointment
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super(CancelAppointmentSerializer, self).__init__(*args, **kwargs)
+        #make all the fields not required
+        for field in self.fields.values():
+            field.required = False
 
 

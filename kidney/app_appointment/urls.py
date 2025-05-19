@@ -8,7 +8,10 @@ from .views import (
     GetPatientAppointmentHistoryView,
     GetPendingAppointsmentsInAdminView,
     CancelAppointmentView,
-    GetPatietnUpcomingAppointmentView
+    GetPatientUpcomingAppointmentView,
+    GetPatientUpcomingAppointmentsInHomeView,
+    GetAllPatientUpcomingAppointmentInAppointmentView,
+    CancelPatientUpcomingAppointmentInAppointmentView
 )
 
 urlpatterns = [
@@ -19,6 +22,9 @@ urlpatterns = [
     path('patient-information/<str:pk>/', GetPatientInformationView.as_view(), name='patient-information'),
     path('patient/appointment-history/<str:pk>/', GetPatientAppointmentHistoryView.as_view(), name='patient-appointment-history'),
     path('patient/pending-appointments/', GetPendingAppointsmentsInAdminView.as_view(), name='patient-pending-appointments'),
-    path('patient/cancel-appointment/<int:pk>/', CancelAppointmentView.as_view(), name='patient-pending-appointments'),
-    path('patient/upcoming-appointment/', GetPatietnUpcomingAppointmentView.as_view(), name='patient-pending-appointments'),
+    path('patient/cancel-appointment/<int:pk>/', CancelAppointmentView.as_view(), name='patient-cancel-appointment'),
+    path('patient/upcoming-appointment/', GetPatientUpcomingAppointmentView.as_view(), name='patient-upcoming-appointment'),
+    path('patient/upcoming-appointments/', GetPatientUpcomingAppointmentsInHomeView.as_view(), name='patient-upcoming-appointments'),
+    path('patient/all-upcoming-appointments/', GetAllPatientUpcomingAppointmentInAppointmentView.as_view(), name='patient-upcoming-appointments'),
+    path('patient/cancel-upcoming-appointment/<int:pk>/', CancelPatientUpcomingAppointmentInAppointmentView.as_view(), name='patient-cancel-appointment'),
 ]
