@@ -37,7 +37,11 @@ class GetPatientDietPlanSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DietPlan
-        fields = ['dish_image', 'recipe_tutorial_url', 'recipe_name', 'recipe_description']
+        fields = ['id','dish_image', 'recipe_tutorial_url', 'recipe_name', 'recipe_description', 'meal_type']
 
 
+class GetPatientDietPlanWithIDSerializer(serializers.ModelSerializer):
 
+    class Meta:
+        model = DietPlan
+        fields = ['id', 'dish_image', 'recipe_tutorial_url', 'recipe_name', 'recipe_description', 'meal_type']
