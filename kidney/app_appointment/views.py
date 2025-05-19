@@ -76,12 +76,32 @@ class AddAppointmentDetailsInAdminView(generics.CreateAPIView):
 
     permission_classes = [IsAuthenticated]
     serializer_class = AddAppointmentDetailsInAdminSerializer
-    queryset = AssignedAppointment.objects.all()
+    # queryset = AssignedAppointment.objects.all()
     lookup_field = 'pk' #captures pk from the url
 
-    def perform_create(self, serializer):
-        appointment = Appointment.objects.get(id=self.kwargs.get('pk'))
-        return serializer.save(appointment=appointment)
+
+    def post(self, request, *args, **kwargs):
+
+        try:
+            appointment = Appointment.objects.get(id=self.kwargs.get('pk'))
+
+            serializer = self.get_serializer(data=request.data, context={'appointment_pk': appointment})
+
+            if serializer.is_valid():
+                serializer.save()
+                return ResponseMessageUtils(message="Successfully added Appointment details", status_code=status.HTTP_201_CREATED)
+            print(f'qwewqeq: {str(serializer.errors)}')
+            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            print(f'Error: {str(e)}')
+            return ResponseMessageUtils(message=f'Something went wrong', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # def perform_create(self, serializer):
+    #     appointment = Appointment.objects.get(id=self.kwargs.get('pk'))
+    #     result = serializer.save(appointment=appointment)
+    #     print(f'RESULT: {result}')
+    #     return result
     
 
 
@@ -96,9 +116,11 @@ class GetAppointmentInProviderView(generics.ListAPIView):
             
             #get all AssignedAppointment entries where current user is a provider
             assigned_appointments = AssignedAppointment.objects.filter(
-                assigned_providers__assigned_provider=request.user,
+                assigned_provider__assigned_provider=request.user,
                 appointment__status__in=['Approved', 'In-Progress']
-            ).distinct()
+            )
+
+            print(f'qwewqeqe: {assigned_appointments}')
             
             #get the related appointment IDS
             appointment_ids = assigned_appointments.values_list('appointment_id', flat=True)
@@ -155,6 +177,7 @@ class GetPatientAppointmentHistoryView(generics.ListAPIView):
             serializer = self.get_serializer(self.get_queryset(), many=True)
             return ResponseMessageUtils(message="List of Appointment history", data=serializer.data, status_code=status.HTTP_200_OK)
         except Exception as e:
+            print(f'qweqwewqe: {str(e)}')
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
