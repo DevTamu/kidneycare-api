@@ -1,6 +1,5 @@
 import json
 from pprint import pprint
-from typing import Any
 from app_chat.models import Message
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import database_sync_to_async
@@ -12,8 +11,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         """Handles the WebSocket connection."""
-        self.room_name = self.scope["url_route"]["kwargs"]["receiver_id"]
-        print(f"ROOOOM NAME:: {self.room_name}")
+        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
+        print(f"ROOM NAME: {self.room_name}")
+        
         #get the headers from the scope
         headers = dict(self.scope.get('headers', []))
 
@@ -58,8 +58,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         #re-validate token on every message
         try:
             token = AccessToken(self.token)
+            self.sender_id = str(token["user_id"]).replace("-", "")
         except TokenError:
-            await self.send_error_to_websocket("Session expired or invalid. Please log in again.")
+            await self.send_error_to_websocket("Invalid or expired token. Please log in again.")
             await self.close(code=4002)
             return
 
@@ -85,6 +86,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
         #get the returned message from the save_message
         message_obj = await self.save_message(message_content)
+
         await self.send_message_to_receiver(message_obj)
 
     async def send_message_to_receiver(self, message):
@@ -95,7 +97,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'type': 'chat_message',  #this will call the 'chat_message' method on the receiver's side
                 'message': message.content,
                 'sender_id': message.sender.id,
-                'message_id': message.id
+                'message_id': message.id,
+                'date_sent': message.created_at
             }
         )
 
@@ -104,7 +107,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             {
                 'type': 'chat_message_introduction',
-                'message': f"Hi {receiver.first_name.capitalize()} {receiver.last_name.capitalize()}, this is {sender.first_name.capitalize()} from Boho Renal Care. I'd be happy to assist you",
+                'message': f"Hi {sender.first_name.capitalize()} {receiver.last_name.capitalize()}, this is {receiver.first_name.capitalize()} from Boho Renal Care. I'd be happy to assist you",
                 "sender_id": sender.id,
                 "receiver_id": receiver.id  
             }
@@ -112,7 +115,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def chat_message_introduction(self, event):
         await self.send(text_data=json.dumps({
-            'introduction_text': event['message'],
+            'introduction_message': event['message'],
             'sender': str(event['sender_id']),
             'receiver': str(event['receiver_id']),
         }))
@@ -126,11 +129,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             sender=sender_user,
             receiver=receiver_user,
             content=message_content,    
-            status='sent' #initially set status to 'sent'
+            status='sent' #initially set status to 'sent',
         )
 
         #save the message obj
         await database_sync_to_async(message.save)()
+
         #return the message
         return message
 
@@ -165,7 +169,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     #helper function to get user from the database
-    async def get_user(self, user_id):
+    async def get_user(self, user_id) -> User:
         return await get_user_by_id(user_id)
     
 
