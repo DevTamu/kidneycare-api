@@ -1,7 +1,7 @@
 import json
 from pprint import pprint
 from channels.generic.websocket import AsyncWebsocketConsumer
-from asgiref.sync import database_sync_to_async
+from channels.db import database_sync_to_async
 from .utils import get_user_by_id
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
 from app_authentication.models import User
