@@ -53,8 +53,12 @@ class UpdateAppointmentInPatientView(generics.UpdateAPIView):
 
         try:
             #get the patient appointment by id
-            queryset = Appointment.objects.get(id=self.kwargs.get('pk'))
-            serializer = self.get_serializer(instance=queryset, data=request.data)
+            appointment = Appointment.objects.filter(id=self.kwargs.get('pk')).first()
+
+            if not appointment:
+                return ResponseMessageUtils(message="No appointment found", status_code=status.HTTP_404_NOT_FOUND)
+
+            serializer = self.get_serializer(instance=appointment, data=request.data)
 
             if serializer.is_valid():
                 serializer.save()
@@ -223,9 +227,9 @@ class GetPatientUpcomingAppointmentView(generics.RetrieveAPIView):
         try:
 
             today = datetime.today().date()
-            #starting 1 day of the upcoming appointment
+            #starting 1 day before the upcoming appointment
             start = datetime.combine(today + timedelta(days=1), datetime.min.time())
-            #ending 1 day of the upcoming appointment
+            #ending 1 day before the upcoming appointment
             end = datetime.combine(today + timedelta(days=1), datetime.max.time())
             
             #filter the upcoming appointment 1 day before the appointment and get the first upcoming appointment
@@ -234,6 +238,9 @@ class GetPatientUpcomingAppointmentView(generics.RetrieveAPIView):
                 status='Approved',
                 date__range=(start, end),
             ).order_by('date').first()
+
+            if not user_appointment:
+                return ResponseMessageUtils(message="No upcoming apppointment found", status_code=status.HTTP_404_NOT_FOUND)
 
             serializer = self.get_serializer(user_appointment, many=False)
             return ResponseMessageUtils(message="Upcoming appointment", data=serializer.data, status_code=status.HTTP_200_OK)    
@@ -256,10 +263,14 @@ class GetPatientUpcomingAppointmentsInHomeView(generics.ListAPIView):
             #get all the appointments associated to the current authenticated user
             user_appointment = Appointment.objects.filter(
                 user_id=user_id).order_by('date')
-
+            
+            if not user_appointment:
+                return ResponseMessageUtils(message="No upcoming apppointment found", status_code=status.HTTP_404_NOT_FOUND)
+            
             serializer = self.get_serializer(user_appointment, many=True)
             return ResponseMessageUtils(message="List of Upcoming appointment", data=serializer.data, status_code=status.HTTP_200_OK)    
         except Exception as e:
+            print(f'qwewqewqe: {str(e)}')
             return ResponseMessageUtils(message="Something went wrong", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class GetAllPatientUpcomingAppointmentInAppointmentView(generics.ListAPIView):
