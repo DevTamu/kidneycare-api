@@ -14,6 +14,7 @@ from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
 
+OTP_VALIDITY_SECONDS = 180  # 3 minutes
 
 class RefreshTokenSerializer(TokenRefreshSerializer):
 
@@ -56,8 +57,8 @@ class SendOTPSerializer(serializers.Serializer):
         if not validate_email(username):
             raise serializers.ValidationError({"message": "Must be a valid email address"})
         
-        if User.objects.filter(username=username).exists():
-            raise serializers.ValidationError("Email already used")
+        # if OTP.objects.filter(user__username=username).exists():
+        #     raise serializers.ValidationError("Email already used")
 
         if is_field_empty(password):
             raise serializers.ValidationError({"message": "Password is required"})
@@ -70,6 +71,28 @@ class SendOTPSerializer(serializers.Serializer):
     def create(self, validated_data):
         
         try:
+
+            existing_user = User.objects.filter(username=validated_data["username"]).first()
+
+            #check if there's an existing OTP object for an unverified user
+            if existing_user:
+                otp_obj = OTP.objects.filter(user=existing_user, is_verified=False).first()
+
+                if otp_obj:
+                    
+                    now = timezone.now()
+                    #elapsed time that has passed after the first creation of the account
+                    elapsed_time = (now - otp_obj.created_at).total_seconds()
+                    #calculate the remaining time
+                    remaining_time = max(0, OTP_VALIDITY_SECONDS - int(elapsed_time))
+                    return {
+                        "is_verified": "Unverified",
+                        "otp_token": str(otp_obj.otp_token).replace("-", ""),
+                        "timer": remaining_time
+                    }
+                else:
+                    raise serializers.ValidationError({"message": "Email already used"})
+
             #generate an otp
             otp = generate_otp()
 
