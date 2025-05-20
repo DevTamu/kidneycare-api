@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class AppNewsEventConfig(AppConfig):
+class AppScheduleConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'app_news_event'
+    name = 'app_schedule'
