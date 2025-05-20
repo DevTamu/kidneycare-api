@@ -12,6 +12,7 @@ from kidney.utils import generate_otp, send_otp_to_email, send_password_to_email
 import uuid
 from django.db import transaction
 from django.utils import timezone
+from datetime import timedelta
 
 
 class RefreshTokenSerializer(TokenRefreshSerializer):
@@ -94,7 +95,7 @@ class SendOTPSerializer(serializers.Serializer):
 
             return {
                 "otp_token": str(otp_obj.otp_token).replace("-", ""),
-                "user_id": str(user.id).replace("-", "")
+                "timer": int(timedelta(minutes=3).total_seconds())
             }
         
         except Exception as e:
@@ -112,21 +113,24 @@ class VerifyOTPSerializer(serializers.Serializer):
         if is_field_empty(attrs["otp_code"]):
             raise serializers.ValidationError({"message": "OTP is required"})
 
-        otp_token = OTP.objects.get(otp_token=request.query_params.get('otp_token'))
+        otp = OTP.objects.get(otp_token=request.query_params.get('otp_token'))
 
-        if not otp_token:
-            raise serializers.ValidationError({"message": "Invalid or expired token."})
+        if not otp:
+            raise serializers.ValidationError({"message": "Invalid otp token"})
+        
+        if otp.is_verified:
+            raise serializers.ValidationError({"message": "This account has already been verified"})
            
         #check if the otp valid
-        if otp_token.otp_code != attrs["otp_code"]:
+        if otp.otp_code != attrs["otp_code"]:
             raise serializers.ValidationError({"message": "Invalid OTP."})
         
         #check if the otp has expired
-        if otp_token.is_otp_expired():
+        if otp.is_otp_expired():
             raise serializers.ValidationError({"message": "OTP has expired"})
         
-        #set the instance to "otp_entry" object for use in "update"
-        self.instance = otp_token
+        #set the instance to "otp" object for use in "update"
+        self.instance = otp
 
         return attrs
     
@@ -140,7 +144,7 @@ class VerifyOTPSerializer(serializers.Serializer):
 
 class ResendOTPSerializer(serializers.Serializer):
 
-    otp_token = serializers.UUIDField()
+    otp_token = serializers.CharField(error_messages={'blank': 'OTP TOKEN is required'})
 
     def validate(self, attrs):
 
@@ -152,6 +156,9 @@ class ResendOTPSerializer(serializers.Serializer):
         except OTP.DoesNotExist:
             raise serializers.ValidationError({"message": "OTP Token does not exist"})
         
+        if otp_token.is_verified:
+            raise serializers.ValidationError({"message": "This account has already been verified"})   
+
         #set the instance to "otp_token" object for use in "update"
         self.instance = otp_token
 
@@ -270,10 +277,9 @@ class RegisterSerializer(serializers.Serializer):
     #user fields (required)
     first_name = serializers.CharField(allow_blank=True)
     last_name = serializers.CharField(allow_blank=True)
-    role = serializers.ChoiceField(allow_blank=True,choices=["Patient", "Admin"], default="Patient")
+    role = serializers.CharField(allow_blank=True)
 
     # UserInformation fields (optional)
-    suffix_name = serializers.BooleanField(required=False)
     birthdate = serializers.DateField(required=False)
     gender = serializers.CharField(required=False)
     contact = serializers.CharField(required=False)
@@ -369,7 +375,7 @@ class RegisterSerializer(serializers.Serializer):
             UserInformation.objects.update_or_create(
                 user=user,
                 defaults={
-                    "suffix_name": validated_data.get("suffix_name", False),
+                    # "suffix_name": validated_data.get("suffix_name", False),
                     "birthdate": validated_data.get("birthdate"),
                     "gender": validated_data.get("gender"),
                     "contact": validated_data.get("contact"),
@@ -640,7 +646,7 @@ class GetUsersInformationSerializer(serializers.ModelSerializer):
         data.pop('created_at')
         data.pop('updated_at')
         data.pop('user')
-        data.pop('suffix_name')
+        # data.pop('suffix_name')
         data.pop('address')
 
         return data
@@ -834,3 +840,10 @@ class GetProfileProfileInPatientSerializer(serializers.ModelSerializer):
         data["contact_number"] = user_information.contact
 
         return data
+    
+
+class AutomaticDeleteUnverifiedUserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'is_verified', 'created_at']

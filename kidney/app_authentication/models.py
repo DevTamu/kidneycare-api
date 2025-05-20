@@ -15,7 +15,6 @@ class User(AbstractUser):
         ('Head Nurse', 'Head Nurse'),
         ('Caregiver', 'Caregiver'),
     )
-
     middlename = models.CharField(max_length=50, null=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     status = models.CharField(max_length=20, default='offline')
@@ -34,7 +33,7 @@ class Profile(TimestampModel):
 
 class UserInformation(TimestampModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, related_name='user_information')
-    suffix_name = models.BooleanField(default=False)
+    # suffix_name = models.BooleanField(default=False)
     birthdate = models.DateField(blank=True, null=True)
     gender = models.CharField(max_length=10, blank=True, null=True)
     contact = models.CharField(max_length=11, blank=True, null=True)
@@ -47,7 +46,7 @@ class UserInformation(TimestampModel):
     
 
 class OTP(TimestampModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='user_otp')
     otp_code = models.CharField(max_length=6)
     is_verified = models.BooleanField(default=False)
     otp_token = models.UUIDField(default=uuid.uuid4, unique=True)

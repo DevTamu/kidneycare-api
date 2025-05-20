@@ -15,7 +15,8 @@ from .views import (
     GetUserRoleView,
     GetHealthCareProvidersView,
     EditProfileInPatientView,
-    GetUserProfileInformationView
+    GetUserProfileInformationView,
+    AutomaticDeleteUnverifiedUserView
 )
 
 urlpatterns = [
@@ -35,4 +36,5 @@ urlpatterns = [
     path('get/patient/<str:pk>/', GetUserView.as_view(), name='get-user'),
     path('user/role/', GetUserRoleView.as_view(), name='get-user-role'),
     path('get/providers/', GetHealthCareProvidersView.as_view(), name='get-providers'),
+    path('user/unverify/', AutomaticDeleteUnverifiedUserView.as_view(), name='delete-unverify-user'),
 ]
