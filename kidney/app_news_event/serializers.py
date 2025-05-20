@@ -49,19 +49,22 @@ class NewsEventImageSerializer(serializers.ModelSerializer):
         fields = ['image']  
 
 class GetNewsEventSerializer(serializers.ModelSerializer):
-    images = NewsEventImageSerializer(many=True)
+    news_events = NewsEventImageSerializer(many=True)
     date = serializers.DateField(format='%b %d, %Y', input_formats=['%b %d, %Y'])
 
     class Meta:
         model = NewsEvent
-        fields = ['id', 'title', 'date', 'description', 'category', 'images']
+        fields = ['id', 'title', 'date', 'description', 'category', 'news_events']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
 
+        #Removed id from the reponse
         data.pop('id')
+        
+        #rename keys
         data["category"] = data.pop('category').capitalize()
-        data["images"] = data.pop('images', [])
+        data["images"] = data.pop('news_events', [])
 
         return data
 
