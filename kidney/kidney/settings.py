@@ -55,6 +55,8 @@ INSTALLED_APPS = [
     'app_news_event',
     'app_appointment',
     'app_analytics'
+    'app_appointment',
+    'app_treatment'
 ]
 
 MIDDLEWARE = [
