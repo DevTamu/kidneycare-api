@@ -6,6 +6,7 @@ from .serializers import (
     AddNewsEventSerializer,
     GetNewsEventSerializer
 )
+
 from .models import NewsEvent
 import logging
 
@@ -23,13 +24,10 @@ class AddNewsEventView(generics.CreateAPIView):
             if serializer.is_valid():
                 serializer.save()
                 return ResponseMessageUtils(message="Successfully Added News Event", status_code=status.HTTP_201_CREATED)
-            logger.error(f"Logger Error: {str(serializer.errors)}")
-            logger.debug(f"Logger Debug: {str(serializer.errors)}")
             
             return ResponseMessageUtils(message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
                 
         except Exception as e:
-            logger.error(f"Error occurred: {e}")
             return ResponseMessageUtils(message=f"Error occured during creation: {e}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
         
