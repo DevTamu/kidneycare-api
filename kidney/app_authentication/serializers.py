@@ -697,6 +697,7 @@ class GetUserRoleSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
 
+        #rename key
         data["user_role"] = data.pop('role')
 
         return data
@@ -711,6 +712,7 @@ class GetProfileSerializer(serializers.ModelSerializer):
 
 class GetUserInformationSerializer(serializers.ModelSerializer):
 
+
     class Meta:
         model = UserInformation
         fields = ['address', 'contact']
@@ -718,7 +720,7 @@ class GetUserInformationSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
 
-        #format the contact with (-)
+        #formatting the contact with hyphens
         data["contact"] = '{}{}{}{}-{}{}{}-{}{}{}{}'.format(*data.pop('contact'))
 
         return data
@@ -732,6 +734,23 @@ class GetHealthCareProvidersSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username', 'first_name', 'last_name', 'role', 'user_profile', 'user_information']
+
+    def to_representation(self, instance):
+
+        data = super().to_representation(instance)
+
+        #flatten user_information into the main data response
+        user_info = data.pop('user_information', {})
+        data.update(user_info)
+
+        #flatten user profile into the main data response
+        user_profile = data.pop('user_profile', {})
+        data.update(user_profile)
+
+        #rename keys
+        data["contact_number"] = data.pop('contact', None)
+
+        return data
 
 
 class EditProfileInPatientSerializer(serializers.Serializer):
