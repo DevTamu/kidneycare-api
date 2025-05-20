@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 from .serializers import (
     GetUsersMessageSerializer,
-    GetNotificationChatsInProviderSerializer
+    GetNotificationChatsToProviderSerializer
 )
 from django.shortcuts import get_object_or_404
 from .models import Message
@@ -42,10 +42,10 @@ class GetUsersMessageView(generics.ListAPIView):
 
         return obj
 
-class GetNotificationChatsInProviderView(generics.ListAPIView):
+class GetNotificationChatsToProviderView(generics.ListAPIView):
 
     permission_classes = [IsAuthenticated]
-    serializer_class = GetNotificationChatsInProviderSerializer
+    serializer_class = GetNotificationChatsToProviderSerializer
        
     
     def get_queryset(self):
@@ -60,7 +60,7 @@ class GetNotificationChatsInProviderView(generics.ListAPIView):
         #get the current user
         user = self.request.user
 
-        #filter the queryset to include only notification messages between the logged-in user and the user with the given ID
+        #filter the queryset to include only notification messages that belongs to the provider
         queryset = self.filter_queryset(self.get_queryset().filter(
             receiver=user
         ))

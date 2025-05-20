@@ -30,7 +30,7 @@ class GetUsersMessageSerializer(serializers.ModelSerializer):
         return data
     
 
-class GetNotificationChatsInProviderSerializer(serializers.ModelSerializer):
+class GetNotificationChatsToProviderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
