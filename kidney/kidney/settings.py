@@ -170,8 +170,8 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=1), #5 minute access tokens
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1), # 1 day refresh tokens
-    'ROTATE_REFRESH_TOKENS': False, # Issues new refresh token on refresh
-    'BLACKLIST_AFTER_ROTATION': True, # Invalidates old refresh tokens
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
     'TOKEN_BLACKLIST_ENABLED': True,
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
