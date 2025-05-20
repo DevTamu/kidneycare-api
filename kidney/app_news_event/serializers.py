@@ -11,7 +11,7 @@ class AddNewsEventSerializer(serializers.Serializer):
     time = serializers.TimeField(allow_null=True, format="%H:%M:%S", input_formats=["%H:%M:%S"])
     description = serializers.CharField()
     category = serializers.CharField()
-    images = serializers.ListField(child=serializers.ImageField(), write_only=True, required=False)
+    images = serializers.ListField(child=serializers.ImageField(), allow_empty=True, required=False)
     
     def validate(self, attrs):
 
@@ -21,7 +21,6 @@ class AddNewsEventSerializer(serializers.Serializer):
             
         return attrs
     
-    @transaction.atomic
     def create(self, validated_data):   
         #seperate the image
         images_data = validated_data.pop('images')
@@ -41,7 +40,18 @@ class NewsEventImageSerializer(serializers.ModelSerializer):
 
 class GetNewsEventSerializer(serializers.ModelSerializer):
     images = NewsEventImageSerializer(many=True)
-    
+    date = serializers.DateField(format='%b %d, %Y', input_formats=['%b %d, %Y'])
+
     class Meta:
         model = NewsEvent
-        fields = ['id', 'title', 'date', 'time', 'description', 'category', 'images']
+        fields = ['id', 'title', 'date', 'description', 'category', 'images']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        data.pop('id')
+        data["category"] = data.pop('category').capitalize()
+        data["images"] = data.pop('images', [])
+
+        return data
+
