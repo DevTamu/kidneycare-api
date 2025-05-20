@@ -10,41 +10,21 @@ from app_authentication.models import User
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
-        """Handles the WebSocket connection."""
-        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
-        print(f"ROOM NAME: {self.room_name}")
-        
-        #get the headers from the scope
-        headers = dict(self.scope.get('headers', []))
 
-        #get the authorization token value
-        auth_header = headers.get(b'authorization', b'').decode('utf-8')
-
-        #get the token part
-        token = auth_header.split(' ')[1]
-
-        #verify the token if its still valid
-        try:
-            access_token = AccessToken(token)   
-            self.sender_id = str(access_token["user_id"]).replace("-", "")
-            self.token = token  # Cache token for use in receive()
-        except TokenError:
-            await self.send_error_to_websocket("Invalid or expired, Please login again")
+        user = self.scope.get("user")
+        if user is None or user.is_anonymous:
             await self.close(code=4002)
             return
-        
+
+        self.sender_id = str(user.id).replace("-", "")
+        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
         self.room_group_name = f"chat_{min(self.room_name, self.sender_id)}_{max(self.room_name, self.sender_id)}"
-
-        # Join room group
+        
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-
         await self.accept()
-        pprint(f"connected to room: {self.room_group_name}")
 
-        user_sender = await get_user_by_id(access_token["user_id"])
         user_receiver = await get_user_by_id(self.room_name)
-
-        await self.send_message_introduction(user_sender, user_receiver)
+        await self.send_message_introduction(user, user_receiver)
         
 
     async def disconnect(self, close_code):
