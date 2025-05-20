@@ -25,32 +25,29 @@ class Appointment(TimestampModel):
         return f"{self.user.username} Appointment"
 
 class AssignedMachine(models.Model):
-    assigned_machine_appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name='machine_assignments', null=True, blank=True)
-    assigned_machine = models.JSONField(blank=True, null=True)  #list of assigned machines
+    assigned_machine_appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name='assigned_machine_appointment', null=True, blank=True)
+    assigned_machine = models.CharField(blank=True, null=True)  #list of assigned machines
     status = models.CharField(max_length=20, blank=True, null=True)
 
     def __str__(self):
-        return f"Patient {self.assigned_machine_appointment.user.username} - Assigned Machine: {self.assigned_machine}"
+        return f"{self.assigned_machine_appointment.user.username} - Assigned Machine: {self.assigned_machine}"
     
 class AssignedProvider(models.Model):
-    assigned_provider = models.ForeignKey(User, on_delete=models.CASCADE, default=uuid.uuid4, related_name='assigned_user')  #list of assigned providers
-    assigned_provider_appointments = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name='provider_assignments', null=True, blank=True)
+    assigned_provider = models.ForeignKey(User, on_delete=models.CASCADE, default=uuid.uuid4, related_name='assigned_user') 
+    assigned_patient_appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name='assigned_patient_appointment', null=True, blank=True)
     def __str__(self):
         return f"Assigned Provider: {self.assigned_provider.username}"
 
 
 class AssignedAppointment(models.Model):
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name='assigned_appointments')
-    assigned_machines = models.ManyToManyField(AssignedMachine, related_name='assigned_machine_appointments')
-    assigned_providers = models.ManyToManyField(AssignedProvider, related_name='assigned_appointments')
+    assigned_machine = models.ForeignKey(AssignedMachine, on_delete=models.CASCADE, related_name='assigned_machine_appointments', null=True, blank=True)
+    assigned_provider = models.ForeignKey(AssignedProvider, on_delete=models.CASCADE, related_name='assigned_provider_appointment', null=True, blank=True)
 
+  
     def __str__(self):
-        username_data = []
-        for username in self.assigned_providers.all().values_list('assigned_provider__username'):
-            username_data.append(username)
-        
-        return f'{username_data} Assigned'
-    
+        return f'Assigned Appointment: {self.appointment.user.username}'
+
 
 
 
