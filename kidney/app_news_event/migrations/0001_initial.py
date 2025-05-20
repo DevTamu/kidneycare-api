@@ -34,8 +34,8 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
-                ('image', models.ImageField(blank=True, null=True, upload_to='upload/news_event_image/')),
-                ('news_event', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='images', to='app_news_event.newsevent')),
+                ('image', models.ImageField(blank=True, null=True, upload_to='news_event_image/')),
+                ('news_event', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='news_events', to='app_news_event.newsevent')),
             ],
             options={
                 'abstract': False,

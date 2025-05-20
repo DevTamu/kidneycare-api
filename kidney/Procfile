@@ -1,1 +1,1 @@
-web: daphne -b 0.0.0.0 -p 8000 kidney.asgi:application
+web: DJANGO_SETTINGS_MODULE=kidney.settings daphne -b 0.0.0.0 -p 8000 kidney.asgi:application
