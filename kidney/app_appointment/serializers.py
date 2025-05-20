@@ -514,17 +514,20 @@ class GetPatientUpcomingAppointmentSerializer(serializers.ModelSerializer):
         except AssignedMachine.DoesNotExist:
             pass
 
+        print(f'qwewqe: {assigned_machine_upcoming_appointment}')
+
         #get the assigned provider to the related appointment of the patient upcoming appointment
         try:
             assigned_provider_upcoming_appointment = AssignedProvider.objects.get(
-                assigned_provider_appointments=data.get('id', None)
+                assigned_provider_appointment=data.get('id', None)
             )
         except AssignedProvider.DoesNotExist:
             pass
 
-        data["machine"] = f'Machine #{assigned_machine_upcoming_appointment.assigned_machine}'
+        data["machine"] = f'Machine #{assigned_machine_upcoming_appointment.assigned_machine}' if assigned_machine_upcoming_appointment.assigned_machine else None
 
-        data["name"] = f'{assigned_provider_upcoming_appointment.assigned_provider.role.capitalize()} {assigned_provider_upcoming_appointment.assigned_provider.first_name.capitalize()}'
+        data["name"] = f'{assigned_provider_upcoming_appointment.assigned_provider.role.capitalize()} {assigned_provider_upcoming_appointment.assigned_provider.first_name.capitalize()}' \
+            if assigned_provider_upcoming_appointment.assigned_provider else None
 
         #get the profile of the assigned provider
         provider_profile = Profile.objects.get(user=assigned_provider_upcoming_appointment.assigned_provider.id)
