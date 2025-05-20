@@ -10,6 +10,8 @@ import secrets
 import string
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
 from rest_framework import status
+from app_authentication.models import User
+from asgiref.sync import sync_to_async
 
 def ResponseMessageUtils(
     message:str=None,
@@ -214,3 +216,12 @@ def get_token_user_id(request):
         return str(access_token["user_id"]).replace("-", "")
     except TokenError as e:
         return ResponseMessageUtils(message="Expired or invalid token", status_code=status.HTTP_401_UNAUTHORIZED)
+    
+
+#helper to get a user by ID
+@sync_to_async
+def get_user_by_id(user_id):
+    try:
+        return User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return None
