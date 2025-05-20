@@ -1,8 +1,7 @@
 import json
 from pprint import pprint
-from app_chat.models import Message
 from channels.generic.websocket import AsyncWebsocketConsumer
-from asgiref.sync import database_sync_to_async
+from channels.db import database_sync_to_async
 from .utils import get_user_by_id
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
 from app_authentication.models import User
@@ -101,6 +100,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def save_message(self, message_content):
+        from app_chat.models import Message
         """Saves a new message to the database."""
         receiver_user = await self.get_user(self.room_name)
         sender_user = await self.get_user(self.sender_id)
@@ -120,6 +120,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 
     async def mark_message_as_read(self, message_id):
+        from app_chat.models import Message
         try:
             #fetch the message from the database
             message = await database_sync_to_async(Message.objects.get)(id=message_id)
