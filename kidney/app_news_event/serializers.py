@@ -1,8 +1,11 @@
 import datetime
 from rest_framework import serializers
-from .models import NewsEvent, NewsEventImage
+from .models import (
+    NewsEvent,
+    NewsEventImage
+)
 from django.db import transaction
-
+from kidney.utils import is_field_empty
 
 class AddNewsEventSerializer(serializers.Serializer):
     
@@ -15,22 +18,29 @@ class AddNewsEventSerializer(serializers.Serializer):
     
     def validate(self, attrs):
 
-        for field in ['title', 'date', 'time', 'description', 'category']:
-            if not attrs.get(field):
+        required_fields = ['title', 'date', 'time', 'description', 'category']
+
+        for field in required_fields:
+            if is_field_empty(attrs.get(field)):
                 raise serializers.ValidationError({"message": "All fields are required"})
             
         return attrs
     
     def create(self, validated_data):   
+
+        #get the request object from the serializer context
+        request = self.context.get('request')
+
         #seperate the image
-        images_data = validated_data.pop('images')
+        images_data = validated_data.pop('images', [])
+
         #create the news event object
         news_event = NewsEvent.objects.create(**validated_data)
         #create each related NewsEventImage
         for image in images_data:
             NewsEventImage.objects.create(news_event=news_event, image=image)
         
-        #return the newly created news event
+        #return the newly created news event object
         return news_event
 
 class NewsEventImageSerializer(serializers.ModelSerializer):
@@ -39,19 +49,22 @@ class NewsEventImageSerializer(serializers.ModelSerializer):
         fields = ['image']  
 
 class GetNewsEventSerializer(serializers.ModelSerializer):
-    images = NewsEventImageSerializer(many=True)
+    news_events = NewsEventImageSerializer(many=True)
     date = serializers.DateField(format='%b %d, %Y', input_formats=['%b %d, %Y'])
 
     class Meta:
         model = NewsEvent
-        fields = ['id', 'title', 'date', 'description', 'category', 'images']
+        fields = ['id', 'title', 'date', 'description', 'category', 'news_events']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
 
+        #Removed id from the reponse
         data.pop('id')
+        
+        #rename keys
         data["category"] = data.pop('category').capitalize()
-        data["images"] = data.pop('images', [])
+        data["images"] = data.pop('news_events', [])
 
         return data
 

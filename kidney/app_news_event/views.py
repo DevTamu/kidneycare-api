@@ -24,13 +24,14 @@ class AddNewsEventView(generics.CreateAPIView):
             if serializer.is_valid():
                 serializer.save()
                 return ResponseMessageUtils(message="Successfully Added News Event", status_code=status.HTTP_201_CREATED)
-            
             return ResponseMessageUtils(message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
                 
         except Exception as e:
-            return ResponseMessageUtils(message=f"Error occured during creation: {e}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return ResponseMessageUtils(
+                message=f"Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
             
-        
 
 class GetNewsEventView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
@@ -42,7 +43,10 @@ class GetNewsEventView(generics.RetrieveAPIView):
             serializer = self.get_serializer(events, many=True, context={'request': request})
             return ResponseMessageUtils(message="List of News Event Data",data=serializer.data, status_code=status.HTTP_200_OK)
         except NewsEvent.DoesNotExist:
-            return ResponseMessageUtils(message="Event not found", status_code=status.HTTP_404_NOT_FOUND)    
+            return ResponseMessageUtils(
+                message=f"Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class GetNewsEventLimitByTwoView(generics.RetrieveAPIView):
@@ -55,4 +59,7 @@ class GetNewsEventLimitByTwoView(generics.RetrieveAPIView):
             serializer = self.get_serializer(events, many=True, context={'request': request})
             return ResponseMessageUtils(message="List of News Event Data",data=serializer.data, status_code=status.HTTP_200_OK)
         except NewsEvent.DoesNotExist:
-            return ResponseMessageUtils(message="Event not found", status_code=status.HTTP_404_NOT_FOUND)  
+            return ResponseMessageUtils(
+                message=f"Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+           )
