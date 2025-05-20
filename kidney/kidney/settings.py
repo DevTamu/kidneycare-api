@@ -55,10 +55,10 @@ INSTALLED_APPS = [
     'app_news_event',
     'app_appointment',
     'app_analytics'
-    'app_appointment',
     'app_treatment'
     'app_schedule',
     'app_diet_plan'
+    'app_chat'
 ]
 
 MIDDLEWARE = [
@@ -182,6 +182,8 @@ SIMPLE_JWT = {
 }
 
 ASGI_APPLICATION = 'kidney.asgi.application'
+
+
 
 CHANNEL_LAYERS = {
     "default": {
