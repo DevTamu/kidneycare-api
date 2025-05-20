@@ -67,13 +67,13 @@ class GetAppointmentAnalyticsView(generics.ListAPIView):
         last_week_end = this_week_start - timedelta(days=1)
 
         this_week_appointments = Appointment.objects.annotate(
-            created_date=TruncDate('created_at'),
+            created_date=TruncDate('date'),
         ).filter(
             created_date__range=[this_week_start, today]
         ).values('id').count()
 
         last_week_appointments = Appointment.objects.annotate(
-            created_date=TruncDate('created_at')
+            created_date=TruncDate('date')
         ).filter(
             created_date__range=[last_week_start, last_week_end]
         ).values('id').count()
@@ -105,7 +105,7 @@ class GetProviderAnalyticsView(generics.ListAPIView):
 
     def get(self, request, *args, **kwargs):
         
-        total_provider = User.objects.filter(role='Provider').count()
+        total_provider = User.objects.filter(role__in=['Nurse', 'Head Nurse']).count()
 
         return ResponseMessageUtils(
             message="Analytics of Healthcare Provider",
@@ -124,8 +124,6 @@ class GetAppointmentStatusBreakdownView(generics.ListAPIView):
         
         total_appointments = Appointment.objects.count()
 
-        print(f"TOTAL APPOINTMENTS: {total_appointments}")
-
         #initialize default data
         data = {}
 
@@ -136,17 +134,19 @@ class GetAppointmentStatusBreakdownView(generics.ListAPIView):
                 .values('status')
                 .annotate(count=Count('id'))
             )
-            # print(str(status_counts))
+
             #convert to percentage format
             for item in status_counts.all():
-                print(f"items: {item}")
                 status = item["status"]
                 percentage = round((item["count"] / total_appointments) * 100, 2)
-                data[f"percentage_{status}_appointment"] = percentage
+                data[f"percentage_{str(status.lower()).replace("-", "_")}_appointment"] = percentage
         else:
+            #no appointments: set all to 0%
             statuses = ['pending', 'approved', 'check_in', 'in_progress', 'completed', 'cancelled', 'no_show', 'rescheduled']
+            for status in statuses:
+                data[f"percentage_{str(status).replace("-", "_")}_appointment"] = 0
         return ResponseMessageUtils(
             message="Analytics of Appointment status breakdown",
             data=data,
-            status_code=status.HTTP_200_OK
+            status_code=200
         )
