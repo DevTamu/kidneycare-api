@@ -45,12 +45,13 @@ class SendOTPView(generics.CreateAPIView):
             if serializer.is_valid():
                 result = serializer.save()
                 return ResponseMessageUtils(
-                    message="Your OTP code has been sent to your gmail",
+                    message="Please verifiy your account" if result.get('is_verified') == "Unverified" else "Your OTP code has been sent to your gmail",
                     data=result,
                     status_code=status.HTTP_200_OK
                 )
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            print(f'qwewqe: {str(e)}')
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
