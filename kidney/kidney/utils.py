@@ -167,7 +167,7 @@ def generate_otp():
 def generate_password(password_length=32):
 
     #define the possible characters for the password
-    alphabet = string.ascii_letters + string.digits + string.punctuation.replace('/', '').replace('\\', '')
+    alphabet = string.ascii_letters + string.digits + string.punctuation.replace('/', '').replace('\\', '').replace('"', '')
 
     #generate a random password by joining randomly chosen characters
     password = ''.join(secrets.choice(alphabet) for _ in range(password_length))
@@ -196,26 +196,4 @@ def is_field_empty(field_name):
 #a helper function that extracts the first error message
 def extract_first_error_message(errors):
     for k, v in errors.items():
-        return v[0] #flatten the error message
-    
-
-#a helper function that gets the user id from the token
-def get_token_user_id(request):
-    
-    #get the authorization from the header
-    auth_header = request.headers.get('Authorization', [])
-
-    #Check if the Authorization header is missing or does not start with "Bearer "
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return ResponseMessageUtils(message="Invalid Authorization header", status_code=status.HTTP_401_UNAUTHORIZED)
-    
-    #get the token part
-    auth_header_token = auth_header.split(' ')[1]
-
-    try:
-        #parse the token
-        access_token = AccessToken(auth_header_token)
-        #return the user id
-        return str(access_token["user_id"]).replace("-", "")
-    except TokenError as e:
-        return ResponseMessageUtils(message="Token has expired or invalid", status_code=status.HTTP_401_UNAUTHORIZED)
+            return v[0]
