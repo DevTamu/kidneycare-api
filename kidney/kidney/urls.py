@@ -25,7 +25,9 @@ urlpatterns = [
     path('news-event/', include('app_news_event.urls')),
     path('api/', include('app_appointment.urls')),
     path('api/', include('app_treatment.urls')),
-    path('api/', include('app_analytics.urls'))
+    path('api/', include('app_analytics.urls')),
+    path('api/', include('app_schedule.urls')),
+    path('api/', include('app_diet_plan.urls')),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

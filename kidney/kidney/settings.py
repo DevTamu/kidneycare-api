@@ -57,6 +57,8 @@ INSTALLED_APPS = [
     'app_analytics'
     'app_appointment',
     'app_treatment'
+    'app_schedule',
+    'app_diet_plan'
 ]
 
 MIDDLEWARE = [
