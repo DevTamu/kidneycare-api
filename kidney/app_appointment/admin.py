@@ -4,6 +4,7 @@ from .models import AssignedAppointment, Appointment, AssignedMachine, AssignedP
 
 @admin.register(Appointment)
 class AdminAppointment(admin.ModelAdmin):
+    readonly_fields  = ('created_at', 'updated_at')
     pass
 
 @admin.register(AssignedAppointment)
