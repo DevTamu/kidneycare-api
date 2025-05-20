@@ -61,19 +61,20 @@ class GetAppointmentAnalyticsView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+
         today = timezone.now().date()
         this_week_start = today - timedelta(days=6)
         last_week_start = this_week_start - timedelta(days=7)
         last_week_end = this_week_start - timedelta(days=1)
-
+        
         this_week_appointments = Appointment.objects.annotate(
-            created_date=TruncDate('date'),
+            created_date=TruncDate('created_at'),
         ).filter(
             created_date__range=[this_week_start, today]
         ).values('id').count()
 
         last_week_appointments = Appointment.objects.annotate(
-            created_date=TruncDate('date')
+            created_date=TruncDate('created_at')
         ).filter(
             created_date__range=[last_week_start, last_week_end]
         ).values('id').count()
