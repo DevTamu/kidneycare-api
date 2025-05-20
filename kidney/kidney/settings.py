@@ -30,8 +30,8 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG')    
 
+# ALLOWED_HOSTS = ["*"]
 ALLOWED_HOSTS = ["anxious-misti-devtamu-3916140d.koyeb.app"]
-# ["anxious-misti-devtamu-3916140d.koyeb.app"]
 
 CSRF_TRUSTED_ORIGINS = [
     'https://anxious-misti-devtamu-3916140d.koyeb.app',  # or your custom domain
@@ -54,7 +54,12 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'app_authentication',
     'app_news_event',
-    'app_appointment'
+    'app_appointment',
+    'app_analytics',
+    'app_treatment',
+    'app_schedule',
+    'app_diet_plan',
+    'app_chat'
 ]
 
 MIDDLEWARE = [
@@ -112,6 +117,7 @@ DATABASES = {
         'OPTIONS': {'sslmode': 'require'},
     }
 }
+
 
 
 # Password validation
@@ -173,13 +179,15 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=1), #5 minute access tokens
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1), # 1 day refresh tokens
-    'ROTATE_REFRESH_TOKENS': False, # Issues new refresh token on refresh
-    'BLACKLIST_AFTER_ROTATION': True, # Invalidates old refresh tokens
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
     'TOKEN_BLACKLIST_ENABLED': True,
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
 
 ASGI_APPLICATION = 'kidney.asgi.application'
+
+
 
 CHANNEL_LAYERS = {
     "default": {
@@ -196,8 +204,10 @@ CHANNEL_LAYERS = {
 #     },
 # }
 
+#custom authetication model
 AUTH_USER_MODEL = 'app_authentication.User'
 
+#email configurations
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')

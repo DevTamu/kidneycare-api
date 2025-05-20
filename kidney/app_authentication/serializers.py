@@ -12,6 +12,7 @@ from kidney.utils import generate_otp, send_otp_to_email, send_password_to_email
 import uuid
 from django.db import transaction
 from django.utils import timezone
+from datetime import timedelta
 
 
 class RefreshTokenSerializer(TokenRefreshSerializer):
@@ -27,9 +28,6 @@ class RefreshTokenSerializer(TokenRefreshSerializer):
         try:
             
             data = super().validate(attrs)
-
-
-            print(f"DATA TOKEN: {data}")
 
             return {
                 "access": data["access"],
@@ -51,6 +49,7 @@ class SendOTPSerializer(serializers.Serializer):
         username = attrs["username"]
         password = attrs["password"]
 
+        #fields validations
         if is_field_empty(username):
             raise serializers.ValidationError({"message": "Email is required"})
         
@@ -90,14 +89,15 @@ class SendOTPSerializer(serializers.Serializer):
             send_otp_to_email(
                 subject='Your OTP Code',
                 message=f'Your OTP is {otp}',
-                recipient_list=[f'{validated_data['username']}'],
-                otp=otp
+                recipient_list=[user.username],
+                otp=otp_obj.otp_code
             )
 
             return {
                 "otp_token": str(otp_obj.otp_token).replace("-", ""),
-                "user_id": str(user.id).replace("-", "")
+                "timer": int(timedelta(minutes=3).total_seconds())
             }
+        
         except Exception as e:
             raise serializers.ValidationError({"message": str(e)})
         
@@ -113,21 +113,24 @@ class VerifyOTPSerializer(serializers.Serializer):
         if is_field_empty(attrs["otp_code"]):
             raise serializers.ValidationError({"message": "OTP is required"})
 
-        otp_entry = OTP.objects.get(otp_token=request.query_params.get('otp_token'))
+        otp = OTP.objects.get(otp_token=request.query_params.get('otp_token'))
 
-        if not otp_entry:
-            raise serializers.ValidationError({"message": "Invalid or expired token."})
+        if not otp:
+            raise serializers.ValidationError({"message": "Invalid otp token"})
+        
+        if otp.is_verified:
+            raise serializers.ValidationError({"message": "This account has already been verified"})
            
         #check if the otp valid
-        if otp_entry.otp_code != attrs["otp_code"]:
+        if otp.otp_code != attrs["otp_code"]:
             raise serializers.ValidationError({"message": "Invalid OTP."})
         
         #check if the otp has expired
-        if otp_entry.is_otp_expired():
+        if otp.is_otp_expired():
             raise serializers.ValidationError({"message": "OTP has expired"})
         
-        #set the instance to "otp_entry" object for use in "update"
-        self.instance = otp_entry
+        #set the instance to "otp" object for use in "update"
+        self.instance = otp
 
         return attrs
     
@@ -141,7 +144,7 @@ class VerifyOTPSerializer(serializers.Serializer):
 
 class ResendOTPSerializer(serializers.Serializer):
 
-    otp_token = serializers.UUIDField()
+    otp_token = serializers.CharField(error_messages={'blank': 'OTP TOKEN is required'})
 
     def validate(self, attrs):
 
@@ -149,12 +152,15 @@ class ResendOTPSerializer(serializers.Serializer):
             raise serializers.ValidationError({"message": "OTP TOKEN is required"})
 
         try:
-            otp_entry = OTP.objects.get(otp_token=attrs["otp_token"])
+            otp_token = OTP.objects.get(otp_token=attrs["otp_token"])
         except OTP.DoesNotExist:
             raise serializers.ValidationError({"message": "OTP Token does not exist"})
         
-        #set the instance to "otp_entry" object for use in "update"
-        self.instance = otp_entry
+        if otp_token.is_verified:
+            raise serializers.ValidationError({"message": "This account has already been verified"})   
+
+        #set the instance to "otp_token" object for use in "update"
+        self.instance = otp_token
 
         return attrs
 
@@ -170,13 +176,14 @@ class ResendOTPSerializer(serializers.Serializer):
         instance.created_at = timezone.now()
         #save the updated otp
         instance.save()
-        #return the updated instance
+        #send otp to email
         send_otp_to_email(
             subject='Your OTP Code',
             message=f'Your OTP is {otp}',
             recipient_list=[f'{instance.user.username}'],
             otp=otp
         )
+        #return the updated instance
         return instance
 
 
@@ -199,7 +206,7 @@ class AddAccountHealthCareProviderSerializer(serializers.Serializer):
 
         if is_field_empty(attrs["username"]):
             raise serializers.ValidationError({"message": "Email is required"})
-        
+                
         if is_field_empty(attrs["contact_number"]):
             raise serializers.ValidationError({"message": "Contact number is require"})
 
@@ -218,6 +225,7 @@ class AddAccountHealthCareProviderSerializer(serializers.Serializer):
             
         return attrs
     
+    #add transaction atomic to ensure the data will rollback in case of failure 
     @transaction.atomic
     def create(self, validated_data):
         
@@ -247,7 +255,7 @@ class AddAccountHealthCareProviderSerializer(serializers.Serializer):
             picture=picture
         )
 
-        #send the password to the gmail
+        #send password to the gmail
         send_password_to_email(
             subject='Generated Password',
             message=f'Your Password is {generated_password}',
@@ -269,10 +277,9 @@ class RegisterSerializer(serializers.Serializer):
     #user fields (required)
     first_name = serializers.CharField(allow_blank=True)
     last_name = serializers.CharField(allow_blank=True)
-    role = serializers.ChoiceField(allow_blank=True,choices=["Patient", "Admin", "Nurse"], default="Patient")
+    role = serializers.CharField(allow_blank=True)
 
     # UserInformation fields (optional)
-    suffix_name = serializers.BooleanField(required=False)
     birthdate = serializers.DateField(required=False)
     gender = serializers.CharField(required=False)
     contact = serializers.CharField(required=False)
@@ -325,14 +332,14 @@ class RegisterSerializer(serializers.Serializer):
             for field in patient_required_fields:
                 if is_field_empty(attrs.get(field)):
                     raise serializers.ValidationError({"message": "This fields is required for patients"})
-        elif role in ['Admin', 'Nurse']:
+        elif role == 'Admin':
             #remove patient specific fields
             for field in patient_required_fields:
                 if field in attrs:
                     attrs.pop(field)
         
-        #check the username (username as email) only if the role is ["Admin", "Nurse"]
-        if User.objects.filter(username=attrs["username"]).exists() and role in ['Admin', 'Nurse']:
+        #check the username (username as email) only if the role is 'Admin'
+        if User.objects.filter(username=attrs["username"]).exists() and role == 'Admin':
             raise serializers.ValidationError({"message": "Email already used"})
 
         return attrs
@@ -368,7 +375,7 @@ class RegisterSerializer(serializers.Serializer):
             UserInformation.objects.update_or_create(
                 user=user,
                 defaults={
-                    "suffix_name": validated_data.get("suffix_name", False),
+                    # "suffix_name": validated_data.get("suffix_name", False),
                     "birthdate": validated_data.get("birthdate"),
                     "gender": validated_data.get("gender"),
                     "contact": validated_data.get("contact"),
@@ -401,8 +408,11 @@ class RegisterSerializer(serializers.Serializer):
 class LoginObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
+        #set the is_verified default to None
         self.is_verified = None
+        #get the request object from the serializer context
         request = self.context.get("request")
+        #login fields
         username = attrs.get("username")
         password = attrs.get("password")
 
@@ -414,22 +424,22 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
         if not user:
             raise serializers.ValidationError({"message": "Username does not exist"})
 
-        #OTP Verification (for applicable roles)
+        #OTP Verification (applicable only for PATIENT role)
         if user.role == 'Patient':
-            user_otp = OTP.objects.filter(user__username=username).first()
-            if not user_otp:
-                raise serializers.ValidationError({"message": "User OTP not found"})
-            if not user_otp.is_verified:
-                raise serializers.ValidationError({"message": f"{user_otp.user.role} account verification is required before proceeding."})
+            otp = OTP.objects.filter(user__username=username).first()
+            if not otp:
+                raise serializers.ValidationError({"message": "OTP not found"})
+            if not otp.is_verified:
+                raise serializers.ValidationError({"message": f"{otp.user.role} account verification is required before proceeding."})
             else:
-                self.is_verified = user_otp.is_verified
+                self.is_verified = otp.is_verified
             
         
         user = authenticate(request, username=username, password=password)
 
+        #if no user found
         if user is None:
             raise serializers.ValidationError({"message": "Invalid credentials"})
-        
         
 
         login(request, user)
@@ -439,8 +449,8 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
 
         try:
             user_profile = Profile.objects.get(user=user)
-            user_profile.user.status = 'online'
-            user_profile.user.save()
+            user.status = 'Online'
+            user.save()
             picture = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
         except Profile.DoesNotExist:
             picture = None
@@ -452,12 +462,13 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
                 "access_token": str(refresh.access_token),
                 "refresh_token": str(refresh),
                 "user_id": str(user.id).replace("-", ""),
+                "first_name": user.first_name,
+                "last_name": user.last_name,
                 "user_email": user.username,
                 "user_image": picture,
                 "user_role": user.role,
                 "user_status": user_profile.user.status
             },
-            "status": status.HTTP_200_OK
         }
 
         if user.role == 'Patient':
@@ -467,8 +478,6 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
 
         return data
     
-
-
     @classmethod
     def get_token(self, user):
         token = super().get_token(user)
@@ -480,21 +489,40 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
 
 class ChangePasswordSerializer(serializers.Serializer):
     
-    old_password = serializers.CharField()
-    new_password = serializers.CharField()
+    old_password = serializers.CharField(
+        write_only=True,
+        error_messages={'blank': 'Old password cannot be blank'}
+    )
+    new_password = serializers.CharField(
+        write_only=True,
+        error_messages={'blank': 'New password cannot be blank'}
+    )
+    confirm_password = serializers.CharField(
+        write_only=True,
+        error_messages={'blank': 'Confirm password cannot be blank'}
+    )
 
     def validate(self, attrs):
 
         request = self.context.get('request')
 
-        if is_field_empty(attrs["old_password"]) or is_field_empty(attrs["new_password"]):
-            raise serializers.ValidationError({"message": "Password required"})
-        
-        if len(attrs["old_password"]) < 8 or len(attrs["new_password"]) < 8:
-            raise serializers.ValidationError({"message": "New password must be atleast 8 characters long."})
+        if is_field_empty(attrs["old_password"]):
+            raise serializers.ValidationError({"message": "Old password is required"})
+
+        if is_field_empty(attrs["new_password"]):
+            raise serializers.ValidationError({"message": "New password is required"})
+
+        if is_field_empty(attrs["confirm_password"]):
+            raise serializers.ValidationError({"message": "Confirm password is required"})
         
         if not request.user.check_password(attrs["old_password"]):
             raise serializers.ValidationError({"message": "Old password don't match"})
+        
+        if len(attrs["confirm_password"]) < 8 or len(attrs["new_password"]) < 8:
+            raise serializers.ValidationError({"message": "New password and Confirm password must be atleast 8 characters long"})
+        
+        if attrs["confirm_password"] != attrs["new_password"]:
+            raise serializers.ValidationError({"message": "New password and Confirm password don't match"})
 
         #set the instance to the current user for use in the update method
         self.instance = request.user
@@ -544,9 +572,9 @@ class LogoutSerializer(serializers.Serializer):
             user = User.objects.get(id=access_token["user_id"])
 
             if not user:
-                raise serializers.ValidationError({"message": "Invalid Token"})
+                raise serializers.ValidationError({"message": "No user found"})
                             
-            user.status = 'offline'
+            user.status = 'Offline'
             user.save()
 
             # Ensure datetime fields are correctly formatted as strings
@@ -602,8 +630,10 @@ class ChangePasswordHealthCareProviderSeriallizer(serializers.Serializer):
         return instance
 
             
-
 class GetUsersInformationSerializer(serializers.ModelSerializer):
+
+    #format the birthdate to readable format
+    birthdate = serializers.DateField(format='%b %d, %Y', input_formats=['%b %d, $Y'])
 
     class Meta:
         model = UserInformation
@@ -616,7 +646,7 @@ class GetUsersInformationSerializer(serializers.ModelSerializer):
         data.pop('created_at')
         data.pop('updated_at')
         data.pop('user')
-        data.pop('suffix_name')
+        # data.pop('suffix_name')
         data.pop('address')
 
         return data
@@ -633,9 +663,10 @@ class GetUsersSeriaizer(serializers.ModelSerializer):
 
     def get_picture(self, obj):
 
-        #get the request from the context
+        #get the request object from the serializer context
         request = self.context.get('request')
 
+        #check if the user profile exist and the profile picture
         if obj.user_profile and obj.user_profile.picture:
             return request.build_absolute_uri(obj.user_profile.picture.url) if obj.user_profile.picture else None
         return None
@@ -672,6 +703,147 @@ class GetUserRoleSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
 
+        #rename key
         data["user_role"] = data.pop('role')
 
         return data
+    
+
+class GetProfileSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Profile
+        fields = ['picture']
+
+
+class GetUserInformationSerializer(serializers.ModelSerializer):
+
+
+    class Meta:
+        model = UserInformation
+        fields = ['address', 'contact']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        #formatting the contact with hyphens
+        data["contact"] = '{}{}{}{}-{}{}{}-{}{}{}{}'.format(*data.pop('contact'))
+
+        return data
+    
+
+class GetHealthCareProvidersSerializer(serializers.ModelSerializer):
+
+    user_profile = GetProfileSerializer()
+    user_information = GetUserInformationSerializer()
+
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name', 'role', 'user_profile', 'user_information']
+
+    def to_representation(self, instance):
+
+        data = super().to_representation(instance)
+
+        #flatten user_information into the main data response
+        user_info = data.pop('user_information', {})
+        data.update(user_info)
+
+        #flatten user profile into the main data response
+        user_profile = data.pop('user_profile', {})
+        data.update(user_profile)
+
+        #rename keys
+        data["contact_number"] = data.pop('contact', None)
+
+        return data
+
+
+class EditProfileInPatientSerializer(serializers.Serializer):
+
+    #optional field
+    picture = serializers.ImageField(required=False)
+    
+    #user fields inputs
+    first_name = serializers.CharField(write_only=True, allow_null=True, allow_blank=True, error_messages={"blank": "This field is required"})
+    middle_name = serializers.CharField(write_only=True, allow_null=True, allow_blank=True, error_messages={"blank": "This field is required"})
+    last_name = serializers.CharField(write_only=True, allow_null=True, allow_blank=True, error_messages={"blank": "This field is required"})
+    
+    #user information inputs
+    birth_date = serializers.DateField(format='%m/%d/%Y', input_formats=['%m/%d/%Y'])
+    gender = serializers.CharField(write_only=True, allow_null=True, allow_blank=True, error_messages={"blank": "This field is required"})
+    contact_number = serializers.CharField(write_only=True, allow_null=True, allow_blank=True, error_messages={"blank": "This field is required"})
+
+    def validate(self, attrs):
+
+        required_fields = ['first_name', 'last_name', 'birth_date', 'gender', 'contact_number']
+
+        for field in required_fields:
+            if is_field_empty(attrs.get(field)):
+                raise serializers.ValidationError({"message": "All fields are required"})
+
+        return attrs        
+
+    def update(self, instance, validated_data):
+        
+
+        picture = validated_data.get('picture', None)
+        if picture:
+            instance.picture = picture
+        
+        #user instance object
+        user = instance.user
+
+        user.first_name = validated_data.get('first_name', None)
+        user.middlename = validated_data.get('middle_name', None)
+        user.last_name = validated_data.get('last_name', None)
+
+        #save the user object
+        user.save()
+
+        #user information instance object
+        user_information = instance.user.user_information
+        user_information.birthdate = validated_data.get('birth_date', None)
+        user_information.gender = validated_data.get('gender', None)
+        user_information.contact = validated_data.get('contact_number', None)
+
+        #save the user information object
+        user_information.save()
+        
+        #save the profile object
+        instance.save()
+
+        return instance
+
+class GetProfileProfileInPatientSerializer(serializers.ModelSerializer):
+
+
+    class Meta:
+        model = Profile
+        fields = ['picture', 'user']
+
+    def to_representation(self, instance):
+
+        data = super().to_representation(instance)
+
+        try:
+            user_information = UserInformation.objects.select_related('user').get(user=data["user"])
+        except Exception as e:
+            pass
+        
+        #user informations
+        data["first_name"] = user_information.user.first_name
+        data["middle_name"] = user_information.user.middlename if user_information.user.middlename else None
+        data["last_name"] = user_information.user.last_name
+        data["birth_date"] = user_information.birthdate
+        data["gender"] = user_information.gender
+        data["contact_number"] = user_information.contact
+
+        return data
+    
+
+class AutomaticDeleteUnverifiedUserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'is_verified', 'created_at']
