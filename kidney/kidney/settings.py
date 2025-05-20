@@ -30,11 +30,12 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG')    
 
-ALLOWED_HOSTS = ["anxious-misti-devtamu-3916140d.koyeb.app"]
+ALLOWED_HOSTS = ["*"]
+# ALLOWED_HOSTS = ["anxious-misti-devtamu-3916140d.koyeb.app"]
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://anxious-misti-devtamu-3916140d.koyeb.app',  # or your custom domain
-]
+# CSRF_TRUSTED_ORIGINS = [
+#     'https://anxious-misti-devtamu-3916140d.koyeb.app',  # or your custom domain
+# ]
 
 # Application definition
 
@@ -54,10 +55,10 @@ INSTALLED_APPS = [
     'app_authentication',
     'app_news_event',
     'app_appointment',
-    'app_analytics'
-    'app_treatment'
+    'app_analytics',
+    'app_treatment',
     'app_schedule',
-    'app_diet_plan'
+    'app_diet_plan',
     'app_chat'
 ]
 
