@@ -249,13 +249,12 @@ class GetUsersView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GetUsersSeriaizer
     
-    def get_queryset(self):
-        return User.objects.filter(role='Patient')
     
     def get(self, request, *args, **kwargs):
 
         try:
-            serializer = self.get_serializer(self.get_queryset(), many=True, context={'request': request})
+            user = User.objects.filter(role='Patient')
+            serializer = self.get_serializer(user, many=True, context={'request': request})
             print(f'serializer: {serializer.data}')
             return ResponseMessageUtils(message="List of Patients", data=serializer.data)
         except Exception as e:

@@ -669,7 +669,9 @@ class GetUsersInformationSerializer(serializers.ModelSerializer):
 
         data.pop('created_at')
         data.pop('updated_at')
+
         data.pop('user')
+
         # data.pop('suffix_name')
         data.pop('address')
 
@@ -684,14 +686,30 @@ class GetUsersSeriaizer(serializers.ModelSerializer):
         model = User
         fields = ['first_name', 'last_name', 'id', 'picture', 'user_information']
 
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
 
-        # user_info = data.pop('user_information', {})
+        #rename keys
+        data["user_id"] = str(data.pop('id')).replace("-", "")
 
-        # data.update(user_info)
+        #default keys from user_information
+        default_user_info = {
+            "birthdate": None,
+            "gender": None,
+            "contact": None,
+            "age": None
+        }
 
-        return data 
+        user_information = data.pop('user_information', {}) or {}
+
+        #merge with defaults to ensure all keys are present
+        full_user_info = {**default_user_info, **user_information}
+
+        data.update(full_user_info)
+        
+        return data
+
 
     def get_picture(self, obj):
 
@@ -715,6 +733,29 @@ class GetUserSeriaizer(serializers.ModelSerializer):
         model = User
         fields = ['first_name', 'last_name', 'id', 'picture', 'user_information']
 
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        #rename keys
+        data["user_id"] = str(data.pop('id')).replace("-", "")
+        
+        #default keys from user_information
+        default_user_info = {
+            "birthdate": None,
+            "gender": None,
+            "contact": None,
+            "age": None
+        }
+
+        user_information = data.pop('user_information', {}) or {}
+
+        #merge with defaults to ensure all keys are present
+        full_user_info = {**default_user_info, **user_information}
+
+        data.update(full_user_info)
+        
+        return data
 
     def get_picture(self, obj):
 
