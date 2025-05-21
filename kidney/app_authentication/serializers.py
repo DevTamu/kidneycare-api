@@ -12,6 +12,7 @@ from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
 from django.core.cache import cache
+from django.contrib.auth.hashers import make_password
 
 OTP_VALIDITY_SECONDS = 180  # 3 minutes otp validity    
 
@@ -22,7 +23,7 @@ class RefreshTokenSerializer(TokenRefreshSerializer):
         refresh_token = attrs.get("refresh")
 
         #if refresh token is empty
-        if not refresh_token:
+        if is_field_empty(refresh_token):
             raise serializers.ValidationError({"message": "Refresh token is required"})
 
         try:
@@ -79,7 +80,7 @@ class SendOTPSerializer(serializers.Serializer):
       
             #check if theres an exisiting unverified otp
             cached_data = cache.get(user_cache_key)
-
+            print(f'CACHED DATA: {cached_data}')
             if cached_data:
                 otp_obj = OTP.objects.filter(otp_token=cached_data["otp_token"], is_verified=False).first()
                 if otp_obj:
@@ -115,7 +116,7 @@ class SendOTPSerializer(serializers.Serializer):
             #cache user data and timer
             cache.set(user_cache_key, {
                 "username": username,
-                "password": password,
+                "password": make_password(password),
                 "otp_token": str(otp_token) 
             },timeout=OTP_VALIDITY_SECONDS)
 
@@ -174,23 +175,20 @@ class VerifyOTPSerializer(serializers.Serializer):
         # Get username from OTP token map
         username = cache.get(f"otp_token_to_username_{otp_token}")
 
-        print(f'USERNAME: {username}')
         if not username:
             raise serializers.ValidationError({"message": "User data not found or expired."})
 
         # Get user data from username key
         user_data = cache.get(f"otp_user_data_{username}")
 
-        print(f'USER DATA: {user_data}')
-
         if not user_data:
             raise serializers.ValidationError({"message": "User data not found or expired."})
         
         # Create the user
-        user = User.objects.create_user(
+        user = User.objects.create(
             username=user_data["username"],
             password=user_data["password"],
-            role="Patient"  # if applicable
+            role="Patient" 
         )
 
         #update OTP to be verified and attach user
@@ -199,13 +197,13 @@ class VerifyOTPSerializer(serializers.Serializer):
         instance.is_verified = True
         #save the updated value of is_verified
         instance.save()
-        #return the updated instance
 
-        # Clean up caches
+        #clean up caches
         cache.delete(f" {username}")
         cache.delete(f"otp_token_to_username_{otp_token}")
         cache.delete(f"otp_timer_{username}")
 
+        #return the updated instance
         return instance
 
 class ResendOTPSerializer(serializers.Serializer):
@@ -404,7 +402,7 @@ class RegisterSerializer(serializers.Serializer):
                 if field in attrs:
                     attrs.pop(field)
         
-        #check the username (username as email) only if the role is 'Admin'
+        #check the username (username as email) if exists only if the role is 'Admin'
         if User.objects.filter(username=attrs["username"]).exists() and role == 'Admin':
             raise serializers.ValidationError({"message": "Email already used"})
 
@@ -450,7 +448,7 @@ class RegisterSerializer(serializers.Serializer):
             )
 
         else:
-            #for Admin or Nurse, create the user based on validated data
+            #Admin or [Nurse, Head Nurse], create the user based on validated data
             user = User(
                 username=validated_data["username"], 
                 first_name=validated_data["first_name"],
@@ -515,13 +513,22 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
 
         try:
             user_profile = Profile.objects.get(user=user)
-            user.status = 'Online'
-            user.save()
             picture = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
         except Profile.DoesNotExist:
             picture = None
 
-       
+        user.status = 'Online'
+        user.save()
+
+        default_data = {
+            "message": "Successfully Logged in",
+            "data": {
+                "first_name": None,
+                "last_name": None,
+                "user_image": None,
+            }
+        }
+
         data =  {
             "message": "Successfully Logged in",
             "data": {
@@ -531,18 +538,20 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "user_email": user.username,
-                "user_image": picture,
+                "user_image": picture,  
                 "user_role": user.role,
-                "user_status": user_profile.user.status
+                "user_status": user.status.capitalize()
             },
         }
 
+        user_data = {**default_data, **data}
+
         if user.role == 'Patient':
-            data["data"]["is_verified"] = self.is_verified
+            user_data["data"]["is_verified"] = self.is_verified
         else:
             pass
 
-        return data
+        return user_data
     
     @classmethod
     def get_token(self, user):

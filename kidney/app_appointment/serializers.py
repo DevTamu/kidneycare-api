@@ -401,15 +401,20 @@ class GetPatientAppointmentHistorySerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
 
         #remove the user, id from the response
-        data.pop('user')
+        user_id = data.pop('user')
         appointment_id = data.pop('id')
-        
+
+        data["user_id"] = str(user_id).replace("-", "")
+        data["appointment_id"] = appointment_id
+
         #fetch all assigned appointments linked to the specific appointment
         #and get the related assigned machine, provider
-        assigned_appointments = AssignedAppointment.objects  \
+        try:
+            assigned_appointments = AssignedAppointment.objects  \
             .prefetch_related('assigned_machine', 'assigned_provider')  \
             .get(appointment=appointment_id)
-        
+        except AssignedAppointment.DoesNotExist:
+            pass
 
         data["provider_full_name"] = f'{assigned_appointments.assigned_provider.assigned_provider.first_name.capitalize()} {assigned_appointments.assigned_provider.assigned_provider.last_name.capitalize()}'
         data["provider_role"] = assigned_appointments.assigned_provider.assigned_provider.role
@@ -434,7 +439,7 @@ class GetPendingAppointsmentsInAdminSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Appointment
-        fields = ['user', 'date', 'time', 'status']
+        fields = ['user', 'date', 'time', 'status', 'id']
 
     def to_representation(self, instance):
 
@@ -445,7 +450,10 @@ class GetPendingAppointsmentsInAdminSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
 
         #foreign key user id
-        user_id = data.get('user')
+        user_id = data.pop('user')
+
+        data["user_id"] = str(user_id).replace("-", "")
+        data["appointment_id"] = data.pop('id')
 
         #get the matched users of the foreign key user id
         try:
