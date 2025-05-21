@@ -130,13 +130,14 @@ class VerifyOTPSerializer(serializers.Serializer):
     otp_code = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
-        #retrieve the request from the context
+
+        #get the request object from the serializer context
         request = self.context.get('request')
 
         if is_field_empty(attrs["otp_code"]):
             raise serializers.ValidationError({"message": "OTP is required"})
 
-        otp = OTP.objects.get(otp_token=request.query_params.get('otp_token'))
+        otp = OTP.objects.get(otp_token=request.headers.get('X-OTP-Token'))
 
         if not otp:
             raise serializers.ValidationError({"message": "Invalid otp token"})
