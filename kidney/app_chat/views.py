@@ -7,7 +7,8 @@ import logging
 logger = logging.getLogger(__name__)
 from .serializers import (
     GetUsersMessageSerializer,
-    GetNotificationChatsToProviderSerializer
+    GetNotificationChatsToProviderSerializer,
+    GetUsersChatSerializer
 )
 from django.shortcuts import get_object_or_404
 from .models import Message
@@ -19,6 +20,29 @@ class GetUsersMessageView(generics.ListAPIView):
 
     def get_queryset(self):
         return Message.objects.all()
+    
+
+    # def get(self, request, *args, **kwargs):
+
+    #     try:
+
+    #         user = request.user
+
+    #         messages = Message.objects.filter(
+    #             Q(sender=user, receiver__id=id) |
+    #             Q(sender__id=id, receiver=user)
+    #         )
+    #         print(f'Messages: {messages}')
+          
+
+    #         serializer = self.get_serializer(messages, many=True)
+
+    #         return ResponseMessageUtils(message="List of messages", data=serializer.data, status_code=status.HTTP_200_OK)
+    #     except Exception as e:
+    #         return ResponseMessageUtils(
+    #             message="Something went wrong while processing your request.",
+    #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+    #         )
     
     def get_object(self):
         
@@ -52,24 +76,19 @@ class GetNotificationChatsToProviderView(generics.ListAPIView):
         return Message.objects.all()
 
 
-    def get_object(self):
+    def get(self, request, *args, **kwargs):
+
+        try:
+            messages = self.get_queryset().filter(receiver=request.user)
+
+            serializer = self.get_serializer(messages, many=True)
+
+            return ResponseMessageUtils(message="List of notification messages", data=serializer.data)
+        except Exception as e:
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
-        # Perform the lookup filtering.
-        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
 
-        #get the current user
-        user = self.request.user
-
-        #filter the queryset to include only notification messages that belongs to the provider
-        queryset = self.filter_queryset(self.get_queryset().filter(
-            receiver=user
-        ))
-
-        filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
-
-        obj = get_object_or_404(queryset, **filter_kwargs)
-
-        #may raise a permission denied
-        self.check_object_permissions(self.request, obj)
-
-        return obj
+    

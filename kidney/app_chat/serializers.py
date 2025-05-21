@@ -12,7 +12,7 @@ class GetUsersMessageSerializer(serializers.ModelSerializer):
 
     #convert created_at to a readable time-format
     def get_created_at(self, obj):
-        return obj.created_at.strftime("%I:%M")
+        return obj.created_at.strftime("%I:%M: %p")
 
     def to_representation(self, instance):
 
@@ -49,5 +49,11 @@ class GetNotificationChatsToProviderSerializer(serializers.ModelSerializer):
         data["sender_id"] = str(data.pop('sender')).replace("-", "")
         data["receiver_id"] = str(data.pop('receiver')).replace("-", "")
         data["chat_id"] = data.pop('id')
+        data["created_at"] = str(data.pop('created_at'))[10:].strip()
 
         return data
+    
+
+
+
+    
