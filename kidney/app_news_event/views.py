@@ -4,7 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 from kidney.utils import ResponseMessageUtils
 from .serializers import (
     AddNewsEventSerializer,
-    GetNewsEventSerializer
+    GetNewsEventSerializer,
+    GetNewsEventWithIDSerializer
 )
 
 from .models import NewsEvent
@@ -49,6 +50,33 @@ class GetNewsEventView(generics.RetrieveAPIView):
             )
 
 
+class GetNewsEventWithIDView(generics.RetrieveAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetNewsEventWithIDSerializer
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        return NewsEvent.objects.all()
+
+    def get(self, request, *args, **kwargs):
+
+        try:
+            news_event = self.get_queryset().filter(id=kwargs.get('pk')).first()
+
+            if not news_event:
+                return ResponseMessageUtils(message="No news event found", status_code=status.HTTP_404_NOT_FOUND)
+
+            serializer = self.get_serializer(news_event)
+
+            return ResponseMessageUtils(message="News Event", data=serializer.data, status_code=status.HTTP_200_OK)
+
+        except Exception as e:
+            return ResponseMessageUtils(
+                message=f"Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 class GetNewsEventLimitByTwoView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GetNewsEventSerializer
@@ -62,4 +90,4 @@ class GetNewsEventLimitByTwoView(generics.RetrieveAPIView):
             return ResponseMessageUtils(
                 message=f"Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-           )
+            )

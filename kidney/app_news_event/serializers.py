@@ -11,14 +11,13 @@ class AddNewsEventSerializer(serializers.Serializer):
     
     title = serializers.CharField()
     date = serializers.DateField(allow_null=True, format="%Y-%m-%d", input_formats=["%Y-%m-%d"])
-    time = serializers.TimeField(allow_null=True, format="%H:%M:%S", input_formats=["%H:%M:%S"])
     description = serializers.CharField()
     category = serializers.CharField()
     images = serializers.ListField(child=serializers.ImageField(), allow_empty=True, required=False)
     
     def validate(self, attrs):
 
-        required_fields = ['title', 'date', 'time', 'description', 'category']
+        required_fields = ['title', 'date', 'description', 'category']
 
         for field in required_fields:
             if is_field_empty(attrs.get(field)):
@@ -51,10 +50,29 @@ class NewsEventImageSerializer(serializers.ModelSerializer):
 class GetNewsEventSerializer(serializers.ModelSerializer):
     news_events = NewsEventImageSerializer(many=True)
     date = serializers.DateField(format='%b %d, %Y', input_formats=['%b %d, %Y'])
+    time = serializers.TimeField(format='%I:%M %p', input_formats=['%I:%M %p'])
 
     class Meta:
         model = NewsEvent
-        fields = ['id', 'title', 'date', 'description', 'category', 'news_events']
+        fields = ['id', 'title', 'date', 'time', 'description', 'category', 'news_events']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        
+        #rename keys
+        data["category"] = data.pop('category').capitalize()
+        data["images"] = data.pop('news_events', [])
+
+        return data
+    
+
+class GetNewsEventWithIDSerializer(serializers.ModelSerializer):
+    news_events = NewsEventImageSerializer(many=True)
+    date = serializers.DateField(format='%b %d, %Y', input_formats=['%b %d, %Y'])
+    time = serializers.TimeField(format='%I:%M %p', input_formats=['%I:%M %p'])
+    class Meta:
+        model = NewsEvent
+        fields = ['id', 'title', 'date', 'time', 'description', 'category', 'news_events']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
