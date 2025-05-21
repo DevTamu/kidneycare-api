@@ -32,6 +32,8 @@ class GetUsersMessageSerializer(serializers.ModelSerializer):
 
 class GetNotificationChatsToProviderSerializer(serializers.ModelSerializer):
 
+    created_at = serializers.DateTimeField(format='%Y-%m-%d %H:%M %p', input_formats=['%Y-%m-%d %H:%M %p'])
+
     class Meta:
         model = Message
         fields = '__all__'
@@ -41,7 +43,6 @@ class GetNotificationChatsToProviderSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
 
         #removed from the response
-        data.pop('created_at')
         data.pop('updated_at')
 
         #rename keys
