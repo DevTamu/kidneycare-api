@@ -969,8 +969,4 @@ class GetProfileProfileInPatientSerializer(serializers.ModelSerializer):
         return data
     
 
-class AutomaticDeleteUnverifiedUserSerializer(serializers.ModelSerializer):
 
-    class Meta:
-        model = User
-        fields = ['id', 'email', 'is_verified', 'created_at']

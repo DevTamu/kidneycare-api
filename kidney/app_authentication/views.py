@@ -15,7 +15,6 @@ from .serializers import (
     GetHealthCareProvidersSerializer,
     EditProfileInPatientSerializer,
     GetProfileProfileInPatientSerializer,
-    AutomaticDeleteUnverifiedUserSerializer
 )
 from django.db.models.functions import TruncDate
 from rest_framework.exceptions import AuthenticationFailed
@@ -381,35 +380,7 @@ class GetUserProfileInformationView(generics.ListAPIView):
             )
         
 
-class AutomaticDeleteUnverifiedUserView(generics.DestroyAPIView):
 
-    serializer_class = AutomaticDeleteUnverifiedUserSerializer
-
-    def get_queryset(self):
-        #older than 3 minutes
-        cutoff = timezone.now() - timedelta(minutes=3)
-        #only delete users that has not verified and older than 3 minutes
-        user_ids = OTP.objects.select_related('user').filter(
-            created_at__lt=cutoff,
-            is_verified=False
-        ).values_list('user_id', flat=True).distinct()
-
-        return user_ids
-
-    def delete(self, request, *args, **kwargs):
-        
-        try:
-            instance = self.get_queryset()
-            if not instance:
-                return ResponseMessageUtils(message="No account can be deleted", status_code=status.HTTP_404_NOT_FOUND)
-            User.objects.filter(id__in=self.get_queryset()).delete()
-            return ResponseMessageUtils(message="Successfully deleted an account", status_code=status.HTTP_200_OK)
-        except Exception as e:
-            print(f'qwewqe: {str(e)}')
-            return ResponseMessageUtils(
-                message="Something went wrong while processing your request.",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
 
         
     
