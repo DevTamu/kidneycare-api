@@ -684,15 +684,25 @@ class GetUsersSeriaizer(serializers.ModelSerializer):
         model = User
         fields = ['first_name', 'last_name', 'id', 'picture', 'user_information']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        # user_info = data.pop('user_information', {})
+
+        # data.update(user_info)
+
+        return data 
 
     def get_picture(self, obj):
 
         #get the request object from the serializer context
         request = self.context.get('request')
 
+        profile = getattr(obj, 'user_profile', None)
+
         #check if the user profile exist and the profile picture
-        if obj.user_profile and obj.user_profile.picture:
-            return request.build_absolute_uri(obj.user_profile.picture.url) if obj.user_profile.picture else None
+        if profile and profile.picture:
+            return request.build_absolute_uri(profile.picture.url) if profile.picture else None
         return None
 
 

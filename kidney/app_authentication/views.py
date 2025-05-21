@@ -248,7 +248,22 @@ class ChangePasswordHealthCareProviderView(generics.UpdateAPIView):
 class GetUsersView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GetUsersSeriaizer
-    queryset = User.objects.filter(role='Patient')
+    
+    def get_queryset(self):
+        return User.objects.filter(role='Patient')
+    
+    def get(self, request, *args, **kwargs):
+
+        try:
+            serializer = self.get_serializer(self.get_queryset(), many=True, context={'request': request})
+            print(f'serializer: {serializer.data}')
+            return ResponseMessageUtils(message="List of Patients", data=serializer.data)
+        except Exception as e:
+            print(f'qwewqeqwe: {str(e)}')
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class GetUserView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
