@@ -763,7 +763,7 @@ class GetHealthCareProvidersSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'role', 'user_profile', 'user_information']
+        fields = ['id', 'username', 'first_name', 'last_name', 'role', 'user_profile', 'user_information']
 
     def to_representation(self, instance):
 
@@ -779,6 +779,7 @@ class GetHealthCareProvidersSerializer(serializers.ModelSerializer):
 
         #rename keys
         data["contact_number"] = data.pop('contact', None)
+        data["user_id"] = str(data.pop('id')).replace("-", "")
 
         return data
 
