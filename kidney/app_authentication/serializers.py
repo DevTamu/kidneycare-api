@@ -1,9 +1,7 @@
 from datetime import datetime
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 from app_authentication.models import User, OTP
-from django.db.models import Q
 from .models import Profile, UserInformation, User
-from rest_framework import status
 from rest_framework import serializers
 from django.contrib.auth import authenticate, login
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError, AccessToken
@@ -13,8 +11,9 @@ import uuid
 from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
+from django.core.cache import cache
 
-OTP_VALIDITY_SECONDS = 180  # 3 minutes
+OTP_VALIDITY_SECONDS = 180  # 3 minutes otp validity    
 
 class RefreshTokenSerializer(TokenRefreshSerializer):
 
@@ -57,9 +56,9 @@ class SendOTPSerializer(serializers.Serializer):
         if not validate_email(username):
             raise serializers.ValidationError({"message": "Must be a valid email address"})
         
-        # if OTP.objects.filter(user__username=username).exists():
-        #     raise serializers.ValidationError("Email already used")
-
+        if User.objects.filter(username=username).exists():
+            raise serializers.ValidationError({"message": "Email already used"})
+        
         if is_field_empty(password):
             raise serializers.ValidationError({"message": "Password is required"})
         
@@ -72,49 +71,59 @@ class SendOTPSerializer(serializers.Serializer):
         
         try:
 
-            existing_user = User.objects.filter(username=validated_data["username"]).first()
+            username = validated_data.get("username", None)
+            password = validated_data.get("password", None)
+            #cache keys
+            user_cache_key = f"otp_user_data_{username.lower()}"
+            timer_key = f"otp_timer_{username.lower()}"
+      
+            #check if theres an exisiting unverified otp
+            cached_data = cache.get(user_cache_key)
 
-            #check if there's an existing OTP object for an unverified user
-            if existing_user:
-                otp_obj = OTP.objects.filter(user=existing_user, is_verified=False).first()
-
+            if cached_data:
+                otp_obj = OTP.objects.filter(otp_token=cached_data["otp_token"], is_verified=False).first()
                 if otp_obj:
-                    
                     now = timezone.now()
-                    #elapsed time that has passed after the first creation of the account
                     elapsed_time = (now - otp_obj.created_at).total_seconds()
-                    #calculate the remaining time
                     remaining_time = max(0, OTP_VALIDITY_SECONDS - int(elapsed_time))
                     return {
                         "is_verified": "Unverified",
                         "otp_token": str(otp_obj.otp_token).replace("-", ""),
                         "timer": remaining_time
                     }
-                else:
-                    raise serializers.ValidationError({"message": "Email already used"})
 
-            #generate an otp
+            #generate OTP
             otp = generate_otp()
-
-            user = User.objects.create_user(
-                username=validated_data["username"],
-                password=validated_data["password"],
-                role="Patient"
-            )
-
+            otp_token = uuid.uuid4()
+            
+            #save otp no user assigned yet
             otp_obj = OTP.objects.create(
-                user=user,
+                user=None,
                 otp_code=otp,
                 is_verified=False,
-                otp_token=uuid.uuid4()
+                otp_token=otp_token
             )
 
+            #send otp via email
             send_otp_to_email(
                 subject='Your OTP Code',
                 message=f'Your OTP is {otp}',
-                recipient_list=[user.username],
+                recipient_list=[username],
                 otp=otp_obj.otp_code
             )
+
+            #cache user data and timer
+            cache.set(user_cache_key, {
+                "username": username,
+                "password": password,
+                "otp_token": str(otp_token) 
+            },timeout=OTP_VALIDITY_SECONDS)
+
+            #set the cache timer
+            cache.set(timer_key, True, timeout=OTP_VALIDITY_SECONDS)
+
+            #cache username by OTP token to find user data easily
+            cache.set(f"otp_token_to_username_{str(otp_token)}", username.lower(), timeout=OTP_VALIDITY_SECONDS)
 
             return {
                 "otp_token": str(otp_obj.otp_token).replace("-", ""),
@@ -159,11 +168,44 @@ class VerifyOTPSerializer(serializers.Serializer):
         return attrs
     
     def update(self, instance, validated_data):
+        #get the otp token from the instance
+        otp_token = str(instance.otp_token)
+
+        # Get username from OTP token map
+        username = cache.get(f"otp_token_to_username_{otp_token}")
+
+        print(f'USERNAME: {username}')
+        if not username:
+            raise serializers.ValidationError({"message": "User data not found or expired."})
+
+        # Get user data from username key
+        user_data = cache.get(f"otp_user_data_{username}")
+
+        print(f'USER DATA: {user_data}')
+
+        if not user_data:
+            raise serializers.ValidationError({"message": "User data not found or expired."})
+        
+        # Create the user
+        user = User.objects.create_user(
+            username=user_data["username"],
+            password=user_data["password"],
+            role="Patient"  # if applicable
+        )
+
+        #update OTP to be verified and attach user
+        instance.user = user
         #set the is_verified to True
         instance.is_verified = True
         #save the updated value of is_verified
         instance.save()
         #return the updated instance
+
+        # Clean up caches
+        cache.delete(f" {username}")
+        cache.delete(f"otp_token_to_username_{otp_token}")
+        cache.delete(f"otp_timer_{username}")
+
         return instance
 
 class ResendOTPSerializer(serializers.Serializer):
