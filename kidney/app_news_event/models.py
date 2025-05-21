@@ -5,7 +5,7 @@ class NewsEvent(TimestampModel):
     title = models.CharField(max_length=100)
     date = models.DateField(blank=True,null=True)
     time = models.TimeField(auto_created=True, auto_now=True, null=True)
-    description = models.CharField(max_length=255)
+    description = models.CharField(max_length=2000)
     category = models.CharField(max_length=20)
 
     def __str__(self):
