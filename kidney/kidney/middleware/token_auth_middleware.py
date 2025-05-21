@@ -1,14 +1,15 @@
 from urllib.parse import parse_qs
 from django.contrib.auth.models import AnonymousUser
-from django.contrib.auth import get_user_model
 from channels.db import database_sync_to_async
 from channels.middleware import BaseMiddleware
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
-User = get_user_model()
+
 
 @database_sync_to_async
 def get_user(user_id):
+    from django.contrib.auth import get_user_model
     try:
+        User = get_user_model()
         return User.objects.get(id=user_id)
     except Exception:
         return AnonymousUser()

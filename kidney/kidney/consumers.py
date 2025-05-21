@@ -9,6 +9,8 @@ from app_authentication.models import User
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
+
+   
         """Handles the WebSocket connection."""
         self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
         print(f"ROOM NAME: {self.room_name}")
