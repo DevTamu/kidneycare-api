@@ -58,9 +58,6 @@ class GetNewsEventSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-
-        #Removed id from the reponse
-        data.pop('id')
         
         #rename keys
         data["category"] = data.pop('category').capitalize()
