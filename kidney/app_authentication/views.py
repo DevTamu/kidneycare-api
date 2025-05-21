@@ -308,9 +308,8 @@ class GetHealthCareProvidersView(generics.ListAPIView):
         try:
             user = self.get_queryset()  
             serializer = self.get_serializer(user, many=True)
-            return ResponseMessageUtils(message="Success", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(message="List of Providers", data=serializer.data, status_code=status.HTTP_200_OK)
         except Exception as e:
-            print(f'qweqwqweqwe: {str(e)}')
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
