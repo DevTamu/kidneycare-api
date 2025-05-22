@@ -1,7 +1,7 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
 from rest_framework import status
-from kidney.utils import ResponseMessageUtils
+from kidney.utils import ResponseMessageUtils, get_token_user_id
 from django.db.models import Q
 import logging
 logger = logging.getLogger(__name__)
@@ -90,5 +90,26 @@ class GetNotificationChatsToProviderView(generics.ListAPIView):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
+
+class GetUsersChatView(generics.ListAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetUsersChatSerializer
+    def get(self, request, *args, **kwargs):
+
+        try:
+            user_id = get_token_user_id(request)
+
+            messages = Message.objects.select_related('sender', 'receiver').filter(receiver=user_id)
+
+            serializer = self.get_serializer(messages, many=True)
+
+            return ResponseMessageUtils(message="List of users chat", data=serializer.data, status_code=status.HTTP_200_OK)
+
+        except Exception as e:
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     

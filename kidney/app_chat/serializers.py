@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Message
-
+from app_authentication.models import Profile
 
 class GetUsersMessageSerializer(serializers.ModelSerializer):
     
@@ -54,6 +54,49 @@ class GetNotificationChatsToProviderSerializer(serializers.ModelSerializer):
         return data
     
 
+class GetUsersChatSerializer(serializers.ModelSerializer):
+    
+    created_at = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Message
+        fields = '__all__'
+
+    def get_created_at(self, obj):
+
+        created_at = obj.created_at
+
+        return created_at.strftime('%I:%M %p')
+
+    def to_representation(self, instance):
+
+        #get the default serialized data from the parent class
+        data = super().to_representation(instance)
+
+        #get the request object from the serializer context
+        request = self.context.get('request')
+
+        sender_id = data.pop('sender')
+        receiver_id = data.pop('receiver')
+
+        user_profile = Profile.objects.select_related('user').filter(user=sender_id)
+
+        for user in user_profile.all():
+
+            data["first_name"] = user.user.first_name
+            data["last_name"] = user.user.last_name
+            data["picture"] = request.build_absolute_uri(user.picture.url) if user.picture else None
+
+        #removed from the response
+        data.pop('updated_at')
+
+        #rename keys
+        data["time_sent"] = data.pop('created_at')
+        data["sender_id"] = str(sender_id).replace("-", "")
+        data["receiver_id"] = str(receiver_id).replace("-", "")
+        data["chat_id"] = data.pop('id  ')
+
+        return data
 
 
     
