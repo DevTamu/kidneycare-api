@@ -11,7 +11,8 @@ from .views import (
     GetPatientUpcomingAppointmentView,
     GetPatientUpcomingAppointmentsInHomeView,
     GetAllPatientUpcomingAppointmentInAppointmentView,
-    CancelPatientUpcomingAppointmentInAppointmentView
+    CancelPatientUpcomingAppointmentInAppointmentView,
+    
 )
 
 urlpatterns = [

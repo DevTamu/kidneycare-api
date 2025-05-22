@@ -198,10 +198,7 @@ def ucfirst(field_name):
 
 def extract_first_error_message(errors):
     for k, v in errors.items():
-        if k == "message":
-            return v
-        else:
-            return v[0]
+        return v[0]
         
 
 def get_token_user_id(request):
