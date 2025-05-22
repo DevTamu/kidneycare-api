@@ -35,12 +35,12 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG')    
 
-ALLOWED_HOSTS = ["*"]
-# ALLOWED_HOSTS = ["anxious-misti-devtamu-3916140d.koyeb.app"]
+# ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["anxious-misti-devtamu-3916140d.koyeb.app"]
 
-# CSRF_TRUSTED_ORIGINS = [
-#     'https://anxious-misti-devtamu-3916140d.koyeb.app',  # or your custom domain
-# ]
+CSRF_TRUSTED_ORIGINS = [
+    'https://anxious-misti-devtamu-3916140d.koyeb.app',  # or your custom domain
+]
 
 
 
@@ -109,23 +109,23 @@ WSGI_APPLICATION = 'kidney.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': os.environ.get('DATABASE_NAME'),
-#         'USER': os.environ.get('DATABASE_USER'),
-#         'PASSWORD': os.environ.get('DATABASE_PASSWORD'),
-#         'HOST': os.environ.get('DATABASE_HOST'),
-#         'OPTIONS': {'sslmode': 'require'},
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DATABASE_NAME'),
+        'USER': os.environ.get('DATABASE_USER'),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD'),
+        'HOST': os.environ.get('DATABASE_HOST'),
+        'OPTIONS': {'sslmode': 'require'},
+    }
+}
 
 
 
@@ -153,7 +153,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Hong_Kong'
 
 USE_I18N = True
 
