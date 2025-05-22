@@ -115,8 +115,13 @@ class RegisterView(generics.CreateAPIView):
                     data={
                         "access_token": token["access_token"],
                         "refresh_token": token["refresh_token"],
-                        # "email": user.username,
-                        # "picture": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None 
+                        "user_id": str(user.id).replace("-", ""),
+                        "user_email": user.username,
+                        "first_name": user.first_name,
+                        "last_name": user.last_name,
+                        "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None,
+                        "user_role": user.role,
+                        "user_status": user.status.capitalize()
                     },
                     status_code=status.HTTP_201_CREATED
                 )

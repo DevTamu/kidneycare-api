@@ -80,7 +80,6 @@ class SendOTPSerializer(serializers.Serializer):
       
             #check if theres an exisiting unverified otp
             cached_data = cache.get(user_cache_key)
-            print(f'CACHED DATA: {cached_data}')
             if cached_data:
                 otp_obj = OTP.objects.filter(otp_token=cached_data["otp_token"], is_verified=False).first()
                 if otp_obj:
@@ -433,6 +432,7 @@ class RegisterSerializer(serializers.Serializer):
             user.first_name = validated_data["first_name"]
             user.middlename = validated_data["middlename"]
             user.last_name = validated_data["last_name"]
+            user.status = 'Online'
             user.save()
      
             # Create or update User information
