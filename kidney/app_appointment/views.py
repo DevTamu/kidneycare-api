@@ -7,8 +7,9 @@ from .serializers import (
     GetPatientAppointmentHistorySerializer,
     GetPendingAppointsmentsInAdminSerializer,
     CancelAppointmentSerializer,
+    GetPatientUpcomingAppointmentsSerializer,
     GetPatientUpcomingAppointmentSerializer,
-    GetAllPatientUpcomingAppointmentInAppointmentPageSerializer,
+    # GetAllPatientUpcomingAppointmentInAppointmentPageSerializer,
     CancelPatientUpcomingAppointmentInAppointmentPageSerializer,
     # ReschedulePatientAppointmentSerializer
 )
@@ -232,27 +233,27 @@ class GetPatientUpcomingAppointmentView(generics.RetrieveAPIView):
 
     def get(self, request, *args, **kwargs):
         
+        #user id of the current authenticated user
         user_id = get_token_user_id(request)
         
         try:
 
-            today = datetime.today().date()
-            #starting 1 day before the upcoming appointment
-            start = datetime.combine(today + timedelta(days=1), datetime.min.time())
-            #ending 1 day before the upcoming appointment
-            end = datetime.combine(today + timedelta(days=1), datetime.max.time())
+            # today = datetime.today().date()
+            # #starting 1 day before the upcoming appointment
+            # start = datetime.combine(today + timedelta(days=1), datetime.min.time())
+            # #ending 1 day before the upcoming appointment
+            # end = datetime.combine(today + timedelta(days=1), datetime.max.time())
             
-            #filter the upcoming appointment 1 day before the appointment and get the first upcoming appointment
+            #get the most recently created appointment for the patient/user
             user_appointment = Appointment.objects.filter(
                 user_id=user_id,
-                status='Approved',
-                date__range=(start, end),
-            ).order_by('date').first()
+                # date__range=(start, end),
+            ).order_by('-created_at').first()
 
             if not user_appointment:
                 return ResponseMessageUtils(message="No upcoming apppointment found", status_code=status.HTTP_404_NOT_FOUND)
 
-            serializer = self.get_serializer(user_appointment, many=False)
+            serializer = self.get_serializer(user_appointment)
             return ResponseMessageUtils(message="Upcoming appointment", data=serializer.data, status_code=status.HTTP_200_OK)    
         except Exception as e:
             print(f'qwewqe: {e}')
@@ -265,7 +266,7 @@ class GetPatientUpcomingAppointmentView(generics.RetrieveAPIView):
 class GetPatientUpcomingAppointmentsInHomeView(generics.ListAPIView):
 
     permission_classes = [IsAuthenticated]
-    serializer_class = GetPatientUpcomingAppointmentSerializer
+    serializer_class = GetPatientUpcomingAppointmentsSerializer
 
     def get(self, request, *args, **kwargs):
         
@@ -275,8 +276,7 @@ class GetPatientUpcomingAppointmentsInHomeView(generics.ListAPIView):
         try:
             
             #get all the appointments associated to the current authenticated user
-            user_appointment = Appointment.objects.filter(
-                user_id=user_id).order_by('date')
+            user_appointment = Appointment.objects.filter(user_id=user_id).order_by('date')
             
             if not user_appointment:
                 return ResponseMessageUtils(message="No upcoming apppointment found", status_code=status.HTTP_404_NOT_FOUND)
@@ -284,38 +284,39 @@ class GetPatientUpcomingAppointmentsInHomeView(generics.ListAPIView):
             serializer = self.get_serializer(user_appointment, many=True)
             return ResponseMessageUtils(message="List of Upcoming appointment", data=serializer.data, status_code=status.HTTP_200_OK)    
         except Exception as e:
+            print(f'MARTIN: {str(e)}')
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class GetAllPatientUpcomingAppointmentInAppointmentView(generics.ListAPIView):
+# class GetAllPatientUpcomingAppointmentInAppointmentView(generics.ListAPIView):
 
-    permission_classes = [IsAuthenticated]
-    serializer_class = GetAllPatientUpcomingAppointmentInAppointmentPageSerializer
+#     permission_classes = [IsAuthenticated]
+#     serializer_class = GetAllPatientUpcomingAppointmentInAppointmentPageSerializer
 
-    def get(self, request, *args, **kwargs):
+#     def get(self, request, *args, **kwargs):
         
-        #get the token user id of the current authenticated user
-        user_id = get_token_user_id(request)
+#         #get the token user id of the current authenticated user
+#         user_id = get_token_user_id(request)
         
-        try:
+#         try:
             
-            #get all the appointments associated to the current authenticated user
-            user_appointment = Appointment.objects.filter(
-                user_id=user_id,
-                status='Approved'
-            ).order_by('date')
+#             #get all the appointments associated to the current authenticated user
+#             user_appointment = Appointment.objects.filter(
+#                 user_id=user_id,
+#                 status='Approved'
+#             ).order_by('date')
 
 
-            serializer = self.get_serializer(user_appointment, many=True)
-            return ResponseMessageUtils(message="List of Upcoming appointment", data=serializer.data, status_code=status.HTTP_200_OK)    
-        except Exception as e:
-            print(f'qwewqe: {str(e)}')
-            return ResponseMessageUtils(
-                message="Something went wrong while processing your request.",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+#             serializer = self.get_serializer(user_appointment, many=True)
+#             return ResponseMessageUtils(message="List of Upcoming appointment", data=serializer.data, status_code=status.HTTP_200_OK)    
+#         except Exception as e:
+#             print(f'qwewqe: {str(e)}')
+#             return ResponseMessageUtils(
+#                 message="Something went wrong while processing your request.",
+#                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            # )
 
 
 class CancelPatientUpcomingAppointmentInAppointmentView(generics.DestroyAPIView):

@@ -203,6 +203,7 @@ def extract_first_error_message(errors):
 
 def get_token_user_id(request):
 
+    #get the authorization from the headers
     auth_header = request.headers.get('Authorization', [])
 
     if not auth_header or not auth_header.startswith('Bearer '):
@@ -212,6 +213,7 @@ def get_token_user_id(request):
     auth_header_token = auth_header.split(' ')[1]
 
     try:
+        #parse the token
         access_token = AccessToken(auth_header_token)
         return str(access_token["user_id"]).replace("-", "")
     except TokenError as e:
