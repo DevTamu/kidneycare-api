@@ -1,11 +1,13 @@
 from django.urls import path
 from .views import (
     AddNewsEventView,
-    GetNewsEventView
+    GetNewsEventView,
+    GetNewsEventLimitByTwoView
 )
 
 urlpatterns = [
-    path('add/', AddNewsEventView.as_view(), name='add'),
-    path('get/', GetNewsEventView.as_view(), name='get')
+    path('add/news-event/', AddNewsEventView.as_view(), name='add'),
+    path('get/news-event/', GetNewsEventView.as_view(), name='get-news-event'),
+    path('get/limit-news-event/', GetNewsEventLimitByTwoView.as_view(), name='get-news-event-limit'),
 ]
     
