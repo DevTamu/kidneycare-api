@@ -7,7 +7,7 @@ from .models import (
 
 @admin.register(NewsEvent)
 class AdminNewsEvent(admin.ModelAdmin):
-    pass
+    readonly_fields = ('time', )
 
 @admin.register(NewsEventImage)
 class AdminNewsEventImage(admin.ModelAdmin):
