@@ -171,7 +171,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 MEDIA_URL = "media/"
 # MEDIA_ROOT = BASE_DIR / MEDIA_URL
-
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # or your preferred path
+STATICFILES_STORAGE = 'cloudinary_storage.storage.StaticCloudinaryStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
