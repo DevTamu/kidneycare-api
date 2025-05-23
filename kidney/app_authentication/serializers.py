@@ -472,6 +472,7 @@ class RegisterSerializer(serializers.Serializer):
 class LoginObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
+        user_information = None
         #set the is_verified default to None
         self.is_verified = None
         #get the request object from the serializer context
@@ -517,6 +518,12 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
         except Profile.DoesNotExist:
             picture = None
 
+
+        try:
+            user_information = UserInformation.objects.get(user=user)
+        except UserInformation.DoesNotExist:
+            pass
+
         user.status = 'Online'
         user.save()
 
@@ -536,10 +543,14 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
                 "refresh_token": str(refresh),
                 "user_id": str(user.id).replace("-", ""),
                 "first_name": user.first_name,
+                "middle_name": user.middlename if user.middlename else None,
                 "last_name": user.last_name,
                 "user_email": user.username,
                 "user_image": picture,  
                 "user_role": user.role,
+                "birth_date": user_information.birthdate,
+                "gender": user_information.gender,
+                "contact_number": user_information.contact,
                 "user_status": user.status.capitalize()
             },
         }
