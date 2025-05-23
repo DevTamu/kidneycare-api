@@ -1,5 +1,6 @@
 from .serializers import (
     RegisterSerializer,
+    RegisterAdminSerializer,
     LoginObtainPairSerializer,
     RefreshTokenSerializer,
     ChangePasswordSerializer,
@@ -15,7 +16,6 @@ from .serializers import (
     GetHealthCareProvidersSerializer,
     EditProfileInPatientSerializer,
     GetProfileProfileInPatientSerializer,
-    AutomaticDeleteUnverifiedUserSerializer
 )
 from django.db.models.functions import TruncDate
 from rest_framework.exceptions import AuthenticationFailed
@@ -28,7 +28,7 @@ from rest_framework_simplejwt.tokens import TokenError, AccessToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth import logout
 import logging
-from .models import OTP, User, Profile
+from .models import OTP, User, Profile, UserInformation
 from datetime import timedelta
 from django.utils import timezone
 
@@ -45,12 +45,13 @@ class SendOTPView(generics.CreateAPIView):
             if serializer.is_valid():
                 result = serializer.save()
                 return ResponseMessageUtils(
-                    message="Your OTP code has been sent to your gmail",
+                    message="Please verifiy your account" if result.get('is_verified') == "Unverified" else "Your OTP code has been sent to your gmail",
                     data=result,
                     status_code=status.HTTP_200_OK
                 )
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            print(f'qwewqe: {str(e)}')
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -70,6 +71,7 @@ class VerifyOTPView(generics.UpdateAPIView):
                 return ResponseMessageUtils(message="Account verified successfully, you may now log in.",data={'user_id': str(result.user.id).replace('-', '').strip()}, status_code=status.HTTP_200_OK)
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            print(f'qwewqe: {str(e)}')
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -100,6 +102,54 @@ class RegisterView(generics.CreateAPIView):
     def post(self, request):
 
         try:
+            user_information = None
+            serializer = self.get_serializer(data=request.data)
+
+            if serializer.is_valid():
+                #save the data
+                user_profile = serializer.save()
+                user = user_profile.user
+                try:
+                    user_information = UserInformation.objects.get(user=user)
+                except UserInformation.DoesNotExist:
+                    pass
+                token = get_tokens_for_user(user)
+
+                return ResponseMessageUtils(
+                    message="Account Registered Successfully",
+                    data={
+                        "access_token": token["access_token"],
+                        "refresh_token": token["refresh_token"],
+                        "user_id": str(user.id).replace("-", ""),
+                        "user_email": user.username,
+                        "first_name": user.first_name,
+                        "middle_name": user.middlename if user.middlename else None,
+                        "last_name": user.last_name,
+                        "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None,
+                        "user_role": user.role,
+                        "birth_date": user_information.birthdate.strftime('%m/%d/%Y') if user_information.birthdate else None,
+                        "gender": user_information.gender,
+                        "contact_number":  user_information.contact,
+                        "user_status": user.status.capitalize()
+                    },
+                    status_code=status.HTTP_201_CREATED
+                )
+            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(f'WHAT WENT WRONG?: {str(e)}')
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+
+class RegisterAdminView(generics.CreateAPIView):
+
+    serializer_class = RegisterAdminSerializer
+
+    def post(self, request):
+
+        try:
             serializer = self.get_serializer(data=request.data)
 
             if serializer.is_valid():
@@ -114,12 +164,20 @@ class RegisterView(generics.CreateAPIView):
                     data={
                         "access_token": token["access_token"],
                         "refresh_token": token["refresh_token"],
-                        # "email": user.username,
-                        # "picture": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None 
+                        "user_id": str(user.id).replace("-", ""),
+                        "user_email": user.username,
+                        "first_name": user.first_name,
+                        "last_name": user.last_name,
+                        "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None,
+                        "user_role": user.role,
+                        "user_status": user.status.capitalize()
                     },
                     status_code=status.HTTP_201_CREATED
                 )
+            print(f'qweqwe: {serializer.errors}')
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(f'WHAT WENT WRONG?: {str(e)}')
         except Exception as e:
             print(f'qweqwewqe: {str(e)}')
             return ResponseMessageUtils(
@@ -247,7 +305,21 @@ class ChangePasswordHealthCareProviderView(generics.UpdateAPIView):
 class GetUsersView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GetUsersSeriaizer
-    queryset = User.objects.filter(role='Patient')
+    
+    
+    def get(self, request, *args, **kwargs):
+
+        try:
+            user = User.objects.filter(role='Patient')
+            serializer = self.get_serializer(user, many=True, context={'request': request})
+            print(f'serializer: {serializer.data}')
+            return ResponseMessageUtils(message="List of Patients", data=serializer.data)
+        except Exception as e:
+            print(f'qwewqeqwe: {str(e)}')
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class GetUserView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
@@ -307,9 +379,8 @@ class GetHealthCareProvidersView(generics.ListAPIView):
         try:
             user = self.get_queryset()  
             serializer = self.get_serializer(user, many=True)
-            return ResponseMessageUtils(message="Success", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(message="List of Providers", data=serializer.data, status_code=status.HTTP_200_OK)
         except Exception as e:
-            print(f'qweqwqweqwe: {str(e)}')
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -326,6 +397,21 @@ class EditProfileInPatientView(generics.UpdateAPIView):
         try:
             #get the user id
             user_id = get_token_user_id(request)
+            
+            try:
+                user = User.objects.get(id=user_id)
+            except User.DoesNotExist:
+                pass
+
+            try:
+                user_info = UserInformation.objects.get(user=user)
+            except UserInformation.DoesNotExist:
+                pass
+
+            try:
+                user_profile = Profile.objects.get(user_id=user_id)
+            except Profile.DoesNotExist:
+                pass
 
             user_profile = Profile.objects.get(user_id=user_id)
 
@@ -333,6 +419,21 @@ class EditProfileInPatientView(generics.UpdateAPIView):
 
             if serializer.is_valid():
                 serializer.save()
+
+                #refresh from the database to get updated values
+                user.refresh_from_db()
+                user_info.refresh_from_db()
+                user_profile.refresh_from_db()
+
+                return ResponseMessageUtils(message="Successfully updated your profile", data={
+                    "first_name": user.first_name,
+                    "middle_name": user.middlename,
+                    "last_name": user.last_name,
+                    "birth_date": user_info.birthdate.strftime('%m/%d/%Y'),
+                    "gender": user_info.gender,
+                    "contact_number": user_info.contact,
+                    "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+                }, status_code=status.HTTP_200_OK)
                 return ResponseMessageUtils(message="Successfully updated your profile", status_code=status.HTTP_200_OK)
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
@@ -366,35 +467,7 @@ class GetUserProfileInformationView(generics.ListAPIView):
             )
         
 
-class AutomaticDeleteUnverifiedUserView(generics.DestroyAPIView):
 
-    serializer_class = AutomaticDeleteUnverifiedUserSerializer
-
-    def get_queryset(self):
-        #older than 3 minutes
-        cutoff = timezone.now() - timedelta(minutes=3)
-        #only delete users that has not verified and older than 3 minutes
-        user_ids = OTP.objects.select_related('user').filter(
-            created_at__lt=cutoff,
-            is_verified=False
-        ).values_list('user_id', flat=True).distinct()
-
-        return user_ids
-
-    def delete(self, request, *args, **kwargs):
-        
-        try:
-            instance = self.get_queryset()
-            if not instance:
-                return ResponseMessageUtils(message="No account can be deleted", status_code=status.HTTP_404_NOT_FOUND)
-            User.objects.filter(id__in=self.get_queryset()).delete()
-            return ResponseMessageUtils(message="Successfully deleted an account", status_code=status.HTTP_200_OK)
-        except Exception as e:
-            print(f'qwewqe: {str(e)}')
-            return ResponseMessageUtils(
-                message="Something went wrong while processing your request.",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
 
         
     
