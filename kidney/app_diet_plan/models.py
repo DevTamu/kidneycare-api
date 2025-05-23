@@ -1,7 +1,7 @@
 from django.db import models
 from kidney.models import TimestampModel
 from app_authentication.models import User
-
+from cloudinary_storage.storage import MediaCloudinaryStorage
 class DietPlan(TimestampModel):
 
     patient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='patient_diet_plan')
