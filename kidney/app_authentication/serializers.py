@@ -513,6 +513,9 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
                 "first_name": None,
                 "last_name": None,
                 "user_image": None,
+                "birth_date": None,
+                "gender": None,
+                "contact_number": None
             }
         }
 
@@ -528,9 +531,9 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
                 "user_email": user.username,
                 "user_image": picture,  
                 "user_role": user.role,
-                "birth_date": user_information.birthdate.strftime('%m/%d/%Y'),
-                "gender": user_information.gender,
-                "contact_number": user_information.contact,
+                "birth_date": user_information.birthdate.strftime('%m/%d/%Y') if user_information and user_information.birthdate else None,
+                "gender": user_information.gender if user_information and user_information.gender else None,
+                "contact_number": user_information.contact if user_information and user_information.contact else None,
                 "user_status": user.status.capitalize()
             },
         }
@@ -540,7 +543,11 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
         if user.role == 'Patient':
             user_data["data"]["is_verified"] = self.is_verified
         else:
-            pass
+            #removed this response from the admin user
+            user_data["data"].pop('birth_date')
+            user_data["data"].pop('gender')
+            user_data["data"].pop('contact_number')
+            user_data["data"].pop('middle_name')
 
         return user_data
     
