@@ -8,7 +8,7 @@ class UserAdmin(admin.ModelAdmin):
 
 @admin.register(OTP)
 class OTPAdmin(admin.ModelAdmin):
-    pass
+    readonly_fields = ('created_at',)
 
 @admin.register(UserInformation)
 class UserInformationAdmin(admin.ModelAdmin):

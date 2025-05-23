@@ -12,7 +12,10 @@ from .views import (
     ChangePasswordHealthCareProviderView,
     GetUsersView,
     GetUserView,
-    GetUserRoleView
+    GetUserRoleView,
+    GetHealthCareProvidersView,
+    EditProfileInPatientView,
+    GetUserProfileInformationView,
 )
 
 urlpatterns = [
@@ -24,9 +27,12 @@ urlpatterns = [
     path('refresh-token/', RefreshTokenView.as_view(), name='refresh-token'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path('edit/profile/', EditProfileInPatientView.as_view(), name='edit-profile'),
+    path('profile/', GetUserProfileInformationView.as_view(), name='profile'),
     path('provider/add-account/', AddAccountHealthCareProviderView.as_view(), name='provider-add-account'),
     path('provider/change-password/', ChangePasswordHealthCareProviderView.as_view(), name='provider-change-password'),
-    path('get/patients/', GetUsersView.as_view(), name='get-users'),
-    path('get/patient/<str:id>/', GetUserView.as_view(), name='get-user'),
+    path('get/patients/', GetUsersView.as_view(), name='get-patients'),
+    path('get/patient/<str:pk>/', GetUserView.as_view(), name='get-user'),
     path('user/role/', GetUserRoleView.as_view(), name='get-user-role'),
+    path('get/providers/', GetHealthCareProvidersView.as_view(), name='get-providers'),
 ]
