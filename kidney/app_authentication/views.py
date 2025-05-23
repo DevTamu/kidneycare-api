@@ -454,16 +454,6 @@ class GetUserProfileInformationView(generics.ListAPIView):
             #get the user id
             user_id = get_token_user_id(request)
 
-
-    permission_classes = [IsAuthenticated]
-    serializer_class = GetProfileProfileInPatientSerializer
-
-    def get(self, request, *args, **kwargs):
-
-        try:
-            #get the user id
-            user_id = get_token_user_id(request)
-
             user_profile = Profile.objects.get(user_id=user_id)
             
             serializer = self.get_serializer(user_profile)
