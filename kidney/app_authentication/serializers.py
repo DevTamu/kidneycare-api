@@ -343,10 +343,18 @@ class RegisterSerializer(serializers.Serializer):
     role = serializers.CharField(allow_blank=True)
 
     # UserInformation fields (optional)
-    birthdate = serializers.DateField(required=False)
+    birthdate = serializers.DateField(required=False, format='%m/%d/%Y', input_formats=['%m/%d/%Y'])
     gender = serializers.CharField(required=False)
     contact = serializers.CharField(required=False)
     age = serializers.CharField(required=False)
+
+
+    def to_internal_value(self, data):
+        data = super().to_internal_value(data)
+
+        if data["birthdate"] is None:
+            raise serializers.ValidationError({"message": "Birthdate is required"})
+        return data
 
     # Profile field (optional)
     picture = serializers.ImageField(required=False)
@@ -393,6 +401,8 @@ class RegisterSerializer(serializers.Serializer):
         if role == "Patient":
             #check if patient required fields is empty
             for field in patient_required_fields:
+                if attrs.get(field) == "middlename":
+                    continue
                 if is_field_empty(attrs.get(field)):
                     raise serializers.ValidationError({"message": "This fields is required for patients"})
         elif role == 'Admin':
@@ -403,6 +413,8 @@ class RegisterSerializer(serializers.Serializer):
         
         #check the username (username as email) if exists only if the role is 'Admin'
         if User.objects.filter(username=attrs["username"]).exists() and role == 'Admin':
+            raise serializers.ValidationError({"message": "Email already used"})
+        else:
             raise serializers.ValidationError({"message": "Email already used"})
 
         return attrs
