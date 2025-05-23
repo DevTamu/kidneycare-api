@@ -380,7 +380,7 @@ class RegisterSerializer(serializers.Serializer):
     last_name = serializers.CharField(allow_blank=True, allow_null=True)
     role = serializers.CharField(allow_blank=True, allow_null=True)
 
-    birthdate = serializers.DateField(format='%m-%d-%Y', input_formats=['%m-%d-%y'])
+    birthdate = serializers.DateField(format='%m/%d/%Y', input_formats=['%m/%d/%Y'])
     gender = serializers.CharField(allow_blank=True, allow_null=True)
     contact = serializers.CharField(allow_blank=True, allow_null=True)
     age = serializers.CharField(allow_blank=True, allow_null=True)
@@ -434,12 +434,10 @@ class RegisterSerializer(serializers.Serializer):
         # Create or update User information
         UserInformation.objects.create(
             user=user,
-            defaults={
-                "birthdate": validated_data.get("birthdate", None),
-                "gender": validated_data.get("gender"),
-                "contact": validated_data.get("contact"),
-                "age": validated_data.get('age')
-            }
+            birthdate=validated_data["birthdate"],
+            gender=validated_data["gender"],
+            contact=validated_data["contact"],
+            age=validated_data["age"]
         )
         
         #create the profile (optional) for uploading the picture
@@ -530,7 +528,7 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
                 "user_email": user.username,
                 "user_image": picture,  
                 "user_role": user.role,
-                "birth_date": user_information.birthdate,
+                "birth_date": user_information.birthdate.strftime('%m/%d/%Y'),
                 "gender": user_information.gender,
                 "contact_number": user_information.contact,
                 "user_status": user.status.capitalize()
