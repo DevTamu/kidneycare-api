@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import (
     RegisterView,
+    RegisterAdminView,
     LoginView,
     RefreshTokenView,
     LogoutView,
@@ -19,10 +20,11 @@ from .views import (
 )
 
 urlpatterns = [
-    path('register/send-otp/', SendOTPView.as_view(), name='send-otp'),
-    path('register/verify-otp/', VerifyOTPView.as_view(), name='send-otp'),
-    path('register/resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
+    path('send-otp/', SendOTPView.as_view(), name='send-otp'),
+    path('verify-otp/', VerifyOTPView.as_view(), name='send-otp'),
+    path('resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
     path('register/', RegisterView.as_view(), name='register'),
+    path('account/register/', RegisterAdminView.as_view(), name='account-register'),
     path('login/', LoginView.as_view(), name='login'),
     path('refresh-token/', RefreshTokenView.as_view(), name='refresh-token'),
     path('logout/', LogoutView.as_view(), name='logout'),
