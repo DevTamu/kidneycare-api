@@ -973,4 +973,24 @@ class GetProfileProfileInPatientSerializer(serializers.ModelSerializer):
         return data
     
 
+class GetAllRegisteredProvidersSerializer(serializers.ModelSerializer):
 
+    user_image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'user_image']
+
+    def get_user_image(self, obj):
+
+        #get the request object from the serializer context
+        request = self.context.get('request')
+
+        try:
+            user_profile = Profile.objects.get(user=obj)
+        except Profile.DoesNotExist:
+            pass
+
+        return request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+
+    
