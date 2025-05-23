@@ -10,6 +10,7 @@ import secrets
 import string
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
 from rest_framework import status
+import base64
 
 def ResponseMessageUtils(
     message:str=None,
@@ -194,10 +195,7 @@ def ucfirst(field_name):
 
 def extract_first_error_message(errors):
     for k, v in errors.items():
-        if k == "message":
-            return v
-        else:
-            return v[0]
+        return v[0]
         
 
 def get_token_user_id(request):
@@ -215,3 +213,4 @@ def get_token_user_id(request):
         return str(access_token["user_id"]).replace("-", "")
     except TokenError as e:
         return ResponseMessageUtils(message="Expired or invalid token", status_code=status.HTTP_401_UNAUTHORIZED)
+    
