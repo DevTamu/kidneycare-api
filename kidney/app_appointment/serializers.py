@@ -196,6 +196,9 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
         #extract the assigned provider data
         assigned_provider_data = attrs.get('assigned_provider', [])
 
+        if is_field_empty(attrs.get('status')):
+            raise serializers.ValidationError({"message": "Status is required"})
+
         if is_field_empty(assigned_machine_data):
             raise serializers.ValidationError({"message": "Please assign a machine"})
         
