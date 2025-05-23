@@ -268,66 +268,72 @@ class GetAssignedAppointmentSerializer(serializers.ModelSerializer):
         fields = ['assigned_machine', 'assigned_provider']
 
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        #flatten the response by extracting 'assigned_provider' and 'assigned_machine'
+        assigned_provider = data.pop('assigned_provider', {})
+        assigned_machine = data.pop('assigned_machine', {})
+
+        #merge 'assigned_provider' and 'assigned_machine' into the main data dictionary
+        data.update(assigned_machine)
+        data.update(assigned_provider)
+
+        return data
+
+
 #DONE
 class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
-
-    assigned_appointments = GetAssignedAppointmentSerializer(many=True)
-    date = serializers.SerializerMethodField()
-    time = serializers.SerializerMethodField()
     first_name = serializers.SerializerMethodField()
     last_name = serializers.SerializerMethodField()
     user_id = serializers.SerializerMethodField()
+    date = serializers.SerializerMethodField()
+    time = serializers.SerializerMethodField()
 
     class Meta:
-        model = Appointment
-        fields = ['first_name', 'last_name', 'user_id', 'date', 'time', 'status', 'assigned_appointments']
+        model = AssignedProvider
+        fields = ['first_name', 'last_name', 'user_id', 'date', 'time']
 
 
     def to_representation(self, instance):
 
+        #get the request from the serializer context
+        request = self.context.get('request')
+
         #get the default serialized data from the parent class
         data = super().to_representation(instance)
 
-        #rename keys
-        data["patient_name"] = f'{data.pop('first_name').capitalize()} {data.pop('last_name').capitalize()}'
-        data["appointment_date_time"] = f'{data.pop('date')} - {data.pop('time')}'
+        user_id = data.get('user_id')
 
-        data["assigned_appointments"] = data.pop('assigned_appointments')
+
+        try:
+            user_profile = Profile.objects.get(user=user_id)
+        except Exception as e:
+            user_profile = None
+
+        data["user_image"] = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
 
         return data
     
-    #transforming date to readable format
-    def get_date(self, obj):
-
-        date = obj.date
-        if date:
-            return date.strftime("%b %d, %Y")
-        return None
-    
-    #transforming time to readable format
-    def get_time(self, obj):
-
-        time = obj.time
-        if time:
-            return time.strftime("%I:%M %p")
-        return None
-    
-    #get the actual first name value from the related user object
+    #get the firstname of the patient from the related appointment
     def get_first_name(self, obj):
-        firstname_value = getattr(obj.user, 'first_name')
-        return firstname_value
-    
-    #get the actual last name value from the related user object
+        return obj.assigned_patient_appointment.user.first_name
+
+    #get the lastname of the patient from the related appointment
     def get_last_name(self, obj):
+        return obj.assigned_patient_appointment.user.last_name
 
-        lastname_value = getattr(obj.user, 'last_name')
-        return lastname_value
-    
-    #get the actual user id value from the related user object
+    #get the id of the patient from the related appointment
     def get_user_id(self, obj):
+        return str(obj.assigned_patient_appointment.user.id)
+       
+    #format the appointment date in a readable format (e.g., May 25, 2025
+    def get_date(self, obj):
+        return obj.assigned_patient_appointment.date.strftime('%B %d, %Y')
 
-        user_id = getattr(obj.user, 'id')
-        return user_id
+    #format the appointment time in a readable format (e.g., May 25, 2025
+    def get_time(self, obj):
+        return obj.assigned_patient_appointment.time.strftime('%I:%M %p')
     
     
 
@@ -397,17 +403,19 @@ class GetPatientAppointmentHistorySerializer(serializers.ModelSerializer):
         try:
             assigned_appointments = AssignedAppointment.objects  \
             .prefetch_related('assigned_machine', 'assigned_provider')  \
-            .get(appointment=appointment_id)
+            .filter(appointment=appointment_id).first()
         except AssignedAppointment.DoesNotExist:
-            pass
+            assigned_appointments = None
+        
+        data["first_name"] = assigned_appointments.assigned_provider.assigned_provider.first_name
+        data["last_name"] = assigned_appointments.assigned_provider.assigned_provider.last_name
 
-        data["provider_full_name"] = f'{assigned_appointments.assigned_provider.assigned_provider.first_name.capitalize()} {assigned_appointments.assigned_provider.assigned_provider.last_name.capitalize()}'
-        data["provider_role"] = assigned_appointments.assigned_provider.assigned_provider.role
+        data["role"] = assigned_appointments.assigned_provider.assigned_provider.role
 
-        user_profile = Profile.objects.get(user=assigned_appointments.assigned_provider.assigned_provider)
+        user_profile = Profile.objects.filter(user=assigned_appointments.assigned_provider.assigned_provider).first()
 
         #add profile picture URL (absolute URI) to the response if available
-        data["provider_profile"] = (
+        data["user_image"] = (
             request.build_absolute_uri(user_profile.picture.url)
             if user_profile.picture else None
         )
@@ -453,11 +461,11 @@ class GetPendingAppointsmentsInAdminSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"message": "User profile not found"})
         
         #rename keys
-        data["patient_first_name"] = user.first_name
-        data["patient_last_name"] = user.last_name
+        data["first_name"] = user.first_name
+        data["last_name"] = user.last_name
 
         #add profile picture URL (absolute URI) to the response if available
-        data["patient_profile"] = (
+        data["user_image"] = (
             request.build_absolute_uri(user_profile.picture.url)
             if user_profile.picture else None
         )

@@ -14,7 +14,7 @@ from .serializers import (
     # ReschedulePatientAppointmentSerializer
 )
 from app_authentication.models import User
-from .models import Appointment
+from .models import Appointment, AssignedProvider
 from rest_framework import generics, status
 from kidney.utils import (
     ResponseMessageUtils,
@@ -22,10 +22,8 @@ from kidney.utils import (
     get_token_user_id
 )
 from rest_framework.permissions import IsAuthenticated
-import logging
 from .models import AssignedAppointment
 from rest_framework.pagination import PageNumberPagination
-from datetime import datetime, timedelta
 
 class AppointmentPagination(PageNumberPagination):
     page_size = 10  #define how many appointments to show per page
@@ -127,24 +125,17 @@ class GetAppointmentInProviderView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):  
         try:
             
-            #get all AssignedAppointment entries where current user is a provider
-            assigned_appointments = AssignedAppointment.objects.filter(
-                assigned_provider__assigned_provider=request.user,
-                appointment__status__in=['Approved', 'In-Progress']
+            assigned_appointments = AssignedProvider.objects.filter(
+                assigned_provider=request.user,
+                assigned_patient_appointment__status__in=['Approved', 'In-Progress']
             )
-            
-            #get the related appointment IDS
-            appointment_ids = assigned_appointments.values_list('appointment_id', flat=True)
-
-            #fetch the appointments
-            appointments = Appointment.objects.filter(id__in=appointment_ids).distinct()
-
+            #create an instance of the paginator
             paginator = self.pagination_class()
-            paginated_appointments = paginator.paginate_queryset(appointments, request)
-            serializer = self.get_serializer(paginated_appointments, many=True)
-
+            #assign the assigned appointments in paginate queryset
+            paginated_data = paginator.paginate_queryset(assigned_appointments, request)
+            serializer = self.get_serializer(paginated_data, many=True)
             paginated_response = paginator.get_paginated_response(serializer.data)
-
+            
             return ResponseMessageUtils(message="List of Appointments", data=paginated_response.data, status_code=status.HTTP_200_OK)
         except Exception as e:
             return ResponseMessageUtils(
@@ -189,6 +180,7 @@ class GetPatientAppointmentHistoryView(generics.ListAPIView):
             serializer = self.get_serializer(self.get_queryset(), many=True)
             return ResponseMessageUtils(message="List of Appointment history", data=serializer.data, status_code=status.HTTP_200_OK)
         except Exception as e:
+            print(f'SOMETHING WENT WRONG? :{str(e)}')
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
