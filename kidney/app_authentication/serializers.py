@@ -329,13 +329,62 @@ class AddAccountHealthCareProviderSerializer(serializers.Serializer):
         return user_profile
         
 
+class RegisterAdminSerializer(serializers.Serializer):
 
-class RegisterSerializer(serializers.Serializer):
-    
     #user fields (optional)
     username = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     password = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
+    first_name = serializers.CharField(allow_blank=True)
+    last_name = serializers.CharField(allow_blank=True)
+    role = serializers.CharField(allow_blank=True)
+    picture = serializers.ImageField(required=False)
+
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+
+        required_fields = ['username', 'password', 'first_name', 'last_name', 'role']
+
+        if User.objects.filter(username=attrs.get('usernamae')).exists():
+            raise serializers.ValidationError({"message": "Email already used"})
+
+        for field in required_fields:
+            if is_field_empty(attrs.get(field)):
+                raise serializers.ValidationError({"message": f'{field.capitalize()} is required'})
+            
+        return attrs
+    
+    @transaction.atomic
+    def create(self, validated_data):
+
+        #extract the picture
+        picture = validated_data.pop('picture', None)
+        
+        user = User.objects.create_user(**validated_data)
+
+        #create the profile (optional) for uploading the picture
+        profile = Profile.objects.create(
+            user=user,
+            picture=picture
+        )
+
+        return profile
+
+class RegisterSerializer(serializers.Serializer):
+    
+    username = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
     middlename = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
+
+    first_name = serializers.CharField(allow_blank=True, allow_null=True)
+    last_name = serializers.CharField(allow_blank=True, allow_null=True)
+    role = serializers.CharField(allow_blank=True, allow_null=True)
+
+    birthdate = serializers.DateField(format='%m/%d/%Y', input_formats=['%m/%d/%Y'])
+    gender = serializers.CharField(allow_blank=True, allow_null=True)
+    contact = serializers.CharField(allow_blank=True, allow_null=True)
+    age = serializers.CharField(allow_blank=True, allow_null=True)
 
     #user fields (required)
     first_name = serializers.CharField(allow_blank=True)
@@ -363,19 +412,10 @@ class RegisterSerializer(serializers.Serializer):
 
         #get the request from the context
         request = self.context.get('request')
-        #retrieve the role field in the attrs
-        role = attrs["role"]
-        
-        if role != "Patient":
 
-            #check if username(email) empty
-            if is_field_empty(attrs["username"]):
-                raise serializers.ValidationError({"message": "Email is required"})
-            
-            #check if password empty
-            if is_field_empty(attrs["password"]):
-                raise serializers.ValidationError({"message": "Password is required"})
+        required_fields = ['first_name', 'last_name', 'role', 'birthdate', 'gender', 'contact', 'age']
 
+        if User.objects.filter(username=attrs["username"]).exists():
             #check the length of the password
             if len(attrs["password"]) < 8:
                 raise serializers.ValidationError({"message": "Password must be atleast 8 characters long"})
@@ -416,31 +456,48 @@ class RegisterSerializer(serializers.Serializer):
             raise serializers.ValidationError({"message": "Email already used"})
         else:
             raise serializers.ValidationError({"message": "Email already used"})
+        
+        for field in required_fields:
+            if is_field_empty(attrs.get(field)):
+                raise serializers({"message": f'{field.capitalize()} is required'})
 
         return attrs
     
     @transaction.atomic
     def create(self, validated_data):
-        #retrieve the request from the context
+
+        #get the request object from the request
         request = self.context.get('request')
-        #check if the role is "Patient"
-        is_patient = validated_data["role"] == "Patient"
+
         
         user = None
 
-        if is_patient:
-            #retrieve the id param from the request
-            id_param = request.query_params.get('id') 
-            #check if the id param is empty
-            if is_field_empty(id_param):
-                raise serializers.ValidationError({"message": "id query parameter is required for Patients"})
+        #get the id param
+        id_param = request.query_params.get('id') 
+ 
+        if is_field_empty(id_param):
+            raise serializers.ValidationError({"message": "no id param found"})
             
-            #filter user by id (which is set to id_param) and get the first result
-            try:
-                user = User.objects.filter(id=id_param).first()
-            except User.DoesNotExist:
-                raise serializers.ValidationError({"message": "User with this id does not exist"})
-            
+        #filter user by id and get the first result
+        try:
+            user = User.objects.filter(id=id_param).first()
+        except User.DoesNotExist:
+            raise serializers.ValidationError({"message": "User not found"})
+        
+        user.first_name = validated_data["first_name"]
+        user.middlename = validated_data["middlename"]
+        user.last_name = validated_data["last_name"]
+        user.status = 'Online'
+        user.save()
+    
+        # Create or update User information
+        UserInformation.objects.create(
+            user=user,
+            birthdate=validated_data["birthdate"],
+            gender=validated_data["gender"],
+            contact=validated_data["contact"],
+            age=validated_data["age"]
+        )
             user.first_name = validated_data["first_name"]
             user.middlename = validated_data["middlename"]
             user.last_name = validated_data["last_name"]
@@ -475,7 +532,7 @@ class RegisterSerializer(serializers.Serializer):
         #create the profile (optional) for uploading the picture
         profile = Profile.objects.create(
             user=user,
-            picture=validated_data.get("picture")
+            picture=validated_data.get("picture", None)
         )
 
         return profile
@@ -560,7 +617,7 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
                 "user_email": user.username,
                 "user_image": picture,  
                 "user_role": user.role,
-                "birth_date": user_information.birthdate,
+                "birth_date": user_information.birthdate.strftime('%m/%d/%Y'),
                 "gender": user_information.gender,
                 "contact_number": user_information.contact,
                 "user_status": user.status.capitalize()
@@ -936,6 +993,26 @@ class EditProfileInPatientSerializer(serializers.Serializer):
 
     def update(self, instance, validated_data):
         
+        if 'picture' in self.initial_data:
+            new_picture = validated_data.get('picture')
+            if new_picture:
+                if not instance.picture:
+                    # No existing picture, so save the new one
+                    instance.picture = new_picture
+                else:
+                    #compare file content
+                    existing_file = instance.picture.read()
+                    new_picture.file.seek(0) #reset the pointer
+                    new_file = new_picture.read()
+                    if existing_file != new_file:
+                        instance.picture = new_picture
+            
+        #user instance object
+        user = instance.user
+        user.first_name = validated_data.get('first_name', None)
+        user.middlename = validated_data.get('middle_name', None)
+        user.last_name = validated_data.get('last_name', None)
+        user.save() #save the user object
 
         picture = validated_data.get('picture', None)
         if picture:
@@ -956,9 +1033,9 @@ class EditProfileInPatientSerializer(serializers.Serializer):
         user_information.birthdate = validated_data.get('birth_date', None)
         user_information.gender = validated_data.get('gender', None)
         user_information.contact = validated_data.get('contact_number', None)
+        user_information.save() #save the user information object
 
-        #save the user information object
-        user_information.save()
+
         
         #save the profile object
         instance.save()

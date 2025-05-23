@@ -289,10 +289,12 @@ class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
     user_id = serializers.SerializerMethodField()
     date = serializers.SerializerMethodField()
     time = serializers.SerializerMethodField()
+    machine = serializers.SerializerMethodField()
+    provider = serializers.SerializerMethodField()
 
     class Meta:
-        model = AssignedProvider
-        fields = ['first_name', 'last_name', 'user_id', 'date', 'time']
+        model = AssignedAppointment
+        fields = ['first_name', 'last_name', 'user_id', 'date', 'time', 'machine', 'provider']
 
 
     def to_representation(self, instance):
@@ -315,25 +317,33 @@ class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
 
         return data
     
+    #get the assigned provider of the patient from the related appointment
+    def get_provider(self, obj):
+        return str(obj.assigned_provider.assigned_provider)
+    
+    #get the assigned machine of the patient from the related appointment
+    def get_machine(self, obj):
+        return int(obj.assigned_machine.assigned_machine)
+    
     #get the firstname of the patient from the related appointment
     def get_first_name(self, obj):
-        return obj.assigned_patient_appointment.user.first_name
+        return obj.appointment.user.first_name
 
     #get the lastname of the patient from the related appointment
     def get_last_name(self, obj):
-        return obj.assigned_patient_appointment.user.last_name
+        return obj.appointment.user.last_name
 
     #get the id of the patient from the related appointment
     def get_user_id(self, obj):
-        return str(obj.assigned_patient_appointment.user.id)
+        return str(obj.appointment.user.id)
        
     #format the appointment date in a readable format (e.g., May 25, 2025
     def get_date(self, obj):
-        return obj.assigned_patient_appointment.date.strftime('%B %d, %Y')
+        return obj.appointment.date.strftime('%B %d, %Y')
 
     #format the appointment time in a readable format (e.g., May 25, 2025
     def get_time(self, obj):
-        return obj.assigned_patient_appointment.time.strftime('%I:%M %p')
+        return obj.appointment.time.strftime('%I:%M %p')
     
     
 
@@ -387,9 +397,10 @@ class GetPatientAppointmentHistorySerializer(serializers.ModelSerializer):
         
         #get the request object from the serializer context
         request = self.context.get('request')
-
         #get the default serialized data from the parent class
         data = super().to_representation(instance)
+
+        assigned_provider = None
 
         #remove the user, id from the response
         user_id = data.pop('user')
@@ -405,14 +416,26 @@ class GetPatientAppointmentHistorySerializer(serializers.ModelSerializer):
             .prefetch_related('assigned_machine', 'assigned_provider')  \
             .filter(appointment=appointment_id).first()
         except AssignedAppointment.DoesNotExist:
-            assigned_appointments = None
-        
-        data["first_name"] = assigned_appointments.assigned_provider.assigned_provider.first_name
-        data["last_name"] = assigned_appointments.assigned_provider.assigned_provider.last_name
+            pass
 
-        data["role"] = assigned_appointments.assigned_provider.assigned_provider.role
+        if assigned_appointments and assigned_appointments.assigned_provider.assigned_provider:
+            assigned_provider = assigned_appointments.assigned_provider.assigned_provider
+            data["first_name"] = assigned_appointments.assigned_provider.assigned_provider.first_name
+            data["last_name"] = assigned_appointments.assigned_provider.assigned_provider.last_name
+            data["role"] = assigned_appointments.assigned_provider.assigned_provider.role
+        else:
+            data["first_name"] = None
+            data["last_name"] = None
+            data["role"] = None
+       
+        if assigned_provider:
 
-        user_profile = Profile.objects.filter(user=assigned_appointments.assigned_provider.assigned_provider).first()
+            try:
+                user_profile = Profile.objects.filter(user=assigned_provider).first()
+                print(f'qweqe: {user_profile.picture.url}')
+            except Profile.DoesNotExist:
+                print(f'qweqe: {user_profile.picture.url}')
+                pass
 
         #add profile picture URL (absolute URI) to the response if available
         data["user_image"] = (
