@@ -15,7 +15,6 @@ from .serializers import (
     GetHealthCareProvidersSerializer,
     EditProfileInPatientSerializer,
     GetProfileProfileInPatientSerializer,
-    AutomaticDeleteUnverifiedUserSerializer
 )
 from django.db.models.functions import TruncDate
 from rest_framework.exceptions import AuthenticationFailed
@@ -28,7 +27,7 @@ from rest_framework_simplejwt.tokens import TokenError, AccessToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth import logout
 import logging
-from .models import OTP, User, Profile
+from .models import OTP, User, Profile, UserInformation
 from datetime import timedelta
 from django.utils import timezone
 
@@ -102,13 +101,17 @@ class RegisterView(generics.CreateAPIView):
     def post(self, request):
 
         try:
+            user_information = None
             serializer = self.get_serializer(data=request.data)
 
             if serializer.is_valid():
                 #save the data
                 user_profile = serializer.save()
                 user = user_profile.user
-
+                try:
+                    user_information = UserInformation.objects.get(user=user)
+                except UserInformation.DoesNotExist:
+                    pass
                 token = get_tokens_for_user(user)
 
                 return ResponseMessageUtils(
@@ -116,8 +119,17 @@ class RegisterView(generics.CreateAPIView):
                     data={
                         "access_token": token["access_token"],
                         "refresh_token": token["refresh_token"],
-                        # "email": user.username,
-                        # "picture": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None 
+                        "user_id": str(user.id).replace("-", ""),
+                        "user_email": user.username,
+                        "first_name": user.first_name,
+                        "middle_name": user.middlename if user.middlename else None,
+                        "last_name": user.last_name,
+                        "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None,
+                        "user_role": user.role,
+                        "birth_date": user_information.birthdate,
+                        "gender": user_information.gender,
+                        "contact_number":  user_information.contact,
+                        "user_status": user.status.capitalize()
                     },
                     status_code=status.HTTP_201_CREATED
                 )
@@ -381,35 +393,7 @@ class GetUserProfileInformationView(generics.ListAPIView):
             )
         
 
-class AutomaticDeleteUnverifiedUserView(generics.DestroyAPIView):
 
-    serializer_class = AutomaticDeleteUnverifiedUserSerializer
-
-    def get_queryset(self):
-        #older than 3 minutes
-        cutoff = timezone.now() - timedelta(minutes=3)
-        #only delete users that has not verified and older than 3 minutes
-        user_ids = OTP.objects.select_related('user').filter(
-            created_at__lt=cutoff,
-            is_verified=False
-        ).values_list('user_id', flat=True).distinct()
-
-        return user_ids
-
-    def delete(self, request, *args, **kwargs):
-        
-        try:
-            instance = self.get_queryset()
-            if not instance:
-                return ResponseMessageUtils(message="No account can be deleted", status_code=status.HTTP_404_NOT_FOUND)
-            User.objects.filter(id__in=self.get_queryset()).delete()
-            return ResponseMessageUtils(message="Successfully deleted an account", status_code=status.HTTP_200_OK)
-        except Exception as e:
-            print(f'qwewqe: {str(e)}')
-            return ResponseMessageUtils(
-                message="Something went wrong while processing your request.",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
 
         
     
