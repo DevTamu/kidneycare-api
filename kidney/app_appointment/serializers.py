@@ -33,7 +33,7 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
         time = attrs.get('time', None)
     #     date = attrs.get('date', None)
 
-        schedule_data = Schedule.objects.get(id=3)
+        schedule_data = Schedule.objects.get(id=1)
 
         #convert time into datetime objects
         start_time = datetime.strptime(schedule_data.start_time.strftime('%I:%M %p'), '%I:%M %p')
@@ -656,63 +656,11 @@ class GetPatientUpcomingAppointmentSerializer(serializers.ModelSerializer):
         return data
     
 
-# class GetAllPatientUpcomingAppointmentInAppointmentPageSerializer(serializers.ModelSerializer):
+class GetPatientAppointmentDetailsInAdminSerializer(serializers.ModelSerializer):
 
-#     date = serializers.DateField(format='%m/%d/%Y', input_formats=['%m/%d/%Y'])
-#     time = serializers.TimeField(format='%I:%M %p', input_formats=['%I:%M %p'])
-    
-    
-#     class Meta:
-#         model = Appointment
-#         fields = ['date', 'time', 'user', 'status', 'id']
-
-#     def to_representation(self, instance):
-
-#         #get the request object from the serializer context
-#         request = self.context.get('request')
-
-#         #get the default serialized data from the parent class
-#         data = super().to_representation(instance)
-
-#         data["user_id"] = str(data.pop('user')).replace("-", "")
-#         data["appointment_id"] = data.pop('id')
-
-#         #get the assigned machined to the related appointment of the patient upcoming appointment
-#         try:
-#             assigned_machine_upcoming_appointment = AssignedMachine.objects.get(
-#                 assigned_machine_appointment=data.get('appointment_id', None)
-#             )
-#         except AssignedMachine.DoesNotExist:
-#             pass
-
-        
-#         data["machine"] = f'Machine #{assigned_machine_upcoming_appointment.assigned_machine}' \
-#         if assigned_machine_upcoming_appointment and assigned_machine_upcoming_appointment.assigned_machine else None
-
-#         #get the assigned provider to the related appointment of the patient upcoming appointment
-#         try:
-#             assigned_provider_upcoming_appointment = AssignedProvider.objects.get(
-#                 assigned_patient_appointment=data.get('appointment_id', None)
-#             )
-#         except AssignedProvider.DoesNotExist:
-#             pass
-        
-#         data["assigned_provider_name"] = f'{assigned_provider_upcoming_appointment.assigned_provider.role.capitalize()} {assigned_provider_upcoming_appointment.assigned_provider.first_name.capitalize()}' \
-#         if assigned_provider_upcoming_appointment and assigned_provider_upcoming_appointment.assigned_provider else None
-
-#         #get the provider's profile safely
-#         try:
-#             provider_profile = Profile.objects.filter(user=assigned_provider_upcoming_appointment.assigned_provider.id).first()
-#         except Profile.DoesNotExist:
-#             pass
-
-#         #get the profile of the assigned provider
-#         provider_profile = Profile.objects.get(user=assigned_provider_upcoming_appointment.assigned_provider.id)
-
-#         data["picture"] = request.build_absolute_uri(provider_profile.picture.url) if provider_profile.picture else None
-
-#         return data
-
+    class Meta:
+        model = AssignedAppointment
+        fields = '__all__'
 
 class CancelPatientUpcomingAppointmentInAppointmentPageSerializer(serializers.ModelSerializer):
 
@@ -726,77 +674,6 @@ class CancelPatientUpcomingAppointmentInAppointmentPageSerializer(serializers.Mo
         for field in self.fields.values():
             field.required = False
 
-
-# class ReschedulePatientAppointmentSerializer(serializers.ModelSerializer):
-
-#     time = serializers.TimeField(format='%I:%M %p', input_formats=['%I:%M %p'])
-#     date = serializers.DateField(format='%m/%d/%Y', input_formats=['%m/%d/%Y'])
-
-#     class Meta:
-#         model = Appointment
-#         fields = ['id', 'time', 'date']
-
-#     def to_internal_value(self, data):
-        
-#         if data["date"] in (None, ""):
-#             raise serializers.ValidationError({"message": "Date is required to book an appointment"})
-
-#         if data["time"] in (None, ""):
-#             raise serializers.ValidationError({"message": "Time is required to book an appointment"})
-        
-#         return super().to_internal_value(data)
-
-#     def validate(self, attrs):
-
-#         time = attrs.get('time', None)
-#     #     date = attrs.get('date', None)
-
-#         schedule_data = Schedule.objects.get(id=3)
-
-#         #convert time into datetime objects
-#         start_time = datetime.strptime(schedule_data.start_time.strftime('%I:%M %p'), '%I:%M %p')
-#         end_time = datetime.strptime(schedule_data.end_time.strftime('%I:%M %p'), '%I:%M %p')
-
-#         #generate interval every 1 hour
-#         interval = timedelta(hours=1)
-#         current_time = start_time
-
-#         #store all the available time in 'time slots'
-#         time_slots = []
-
-#         while current_time <= end_time:
-#             #append the current_time to time slots
-#             time_slots.append(current_time)
-#             #adding 1hr interval to the current_time
-#             current_time += interval
-
-
-#         #format the time to 12-hour strings
-#         formatted_time_slots = [datetime.strftime(slot, '%I:%M:%S') for slot in time_slots]
-
-#         #format the input time to readable format
-#         formatted_time_input = time.strftime('%I:%M:%S')
-
-#         #if the time slots not exist
-#         if formatted_time_input not in formatted_time_slots:
-#             raise serializers.ValidationError({"message": "This time is not available"})
-        
-#         #check for every taken slots
-#         #taken_slots = [time_slot for time_slot in formatted_time_slots if Appointment.objects.filter(time=time_slot).exists()]
-
-#     #     #check if the slots already in taken slots means someone already booked that time
-#     #     if formatted_time_input in taken_slots and date == schedule_data.date_created:
-#     #         raise serializers.ValidationError({"message": "This time slot is already booked. Please choose different time."})
-
-
-#     def update(self, instance, validated_data):
-
-#         instance.time = validated_data["time"]
-#         instance.date = validated_data["date"]
-
-#         instance.save()
-
-#         return instance
 
 
 
