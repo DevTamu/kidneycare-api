@@ -376,7 +376,6 @@ class RegisterSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, required=False, allow_blank=True, allow_null=True)
     middlename = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
-
     first_name = serializers.CharField(allow_blank=True, allow_null=True)
     last_name = serializers.CharField(allow_blank=True, allow_null=True)
     role = serializers.CharField(allow_blank=True, allow_null=True)
@@ -386,26 +385,7 @@ class RegisterSerializer(serializers.Serializer):
     contact = serializers.CharField(allow_blank=True, allow_null=True)
     age = serializers.CharField(allow_blank=True, allow_null=True)
 
-    #user fields (required)
-    first_name = serializers.CharField(allow_blank=True)
-    last_name = serializers.CharField(allow_blank=True)
-    role = serializers.CharField(allow_blank=True)
-
-    # UserInformation fields (optional)
-    birthdate = serializers.DateField(required=False, format='%m/%d/%Y', input_formats=['%m/%d/%Y'])
-    gender = serializers.CharField(required=False)
-    contact = serializers.CharField(required=False)
-    age = serializers.CharField(required=False)
-
-
-    def to_internal_value(self, data):
-        data = super().to_internal_value(data)
-
-        if data["birthdate"] is None:
-            raise serializers.ValidationError({"message": "Birthdate is required"})
-        return data
-
-    # Profile field (optional)
+    #profile field (optional)
     picture = serializers.ImageField(required=False)
 
     def validate(self, attrs):
@@ -416,45 +396,6 @@ class RegisterSerializer(serializers.Serializer):
         required_fields = ['first_name', 'last_name', 'role', 'birthdate', 'gender', 'contact', 'age']
 
         if User.objects.filter(username=attrs["username"]).exists():
-            #check the length of the password
-            if len(attrs["password"]) < 8:
-                raise serializers.ValidationError({"message": "Password must be atleast 8 characters long"})
-            
-            #check if the email is not a valid email
-            if not validate_email(attrs["username"]):
-                raise serializers.ValidationError({"message": "Must be a valid email address"})
-            
-            if is_field_empty(attrs["role"]):
-                raise serializers.ValidationError({"message": "Role is required"})
-
-        if is_field_empty(attrs["first_name"]):
-            raise serializers.ValidationError({"message": "Firstname is required"})
-        if is_field_empty(attrs["last_name"]):
-            raise serializers.ValidationError({"message": "Lastname is required"})
-
-        if is_field_empty(attrs["role"]):
-            raise serializers.ValidationError({"message": "Role is required"})
-
-        #patient required fields
-        patient_required_fields = ['middlename', 'birthdate', 'gender', 'contact', 'age']
-
-        if role == "Patient":
-            #check if patient required fields is empty
-            for field in patient_required_fields:
-                if attrs.get(field) == "middlename":
-                    continue
-                if is_field_empty(attrs.get(field)):
-                    raise serializers.ValidationError({"message": "This fields is required for patients"})
-        elif role == 'Admin':
-            #remove patient specific fields
-            for field in patient_required_fields:
-                if field in attrs:
-                    attrs.pop(field)
-        
-        #check the username (username as email) if exists only if the role is 'Admin'
-        if User.objects.filter(username=attrs["username"]).exists() and role == 'Admin':
-            raise serializers.ValidationError({"message": "Email already used"})
-        else:
             raise serializers.ValidationError({"message": "Email already used"})
         
         for field in required_fields:
@@ -498,36 +439,6 @@ class RegisterSerializer(serializers.Serializer):
             contact=validated_data["contact"],
             age=validated_data["age"]
         )
-            user.first_name = validated_data["first_name"]
-            user.middlename = validated_data["middlename"]
-            user.last_name = validated_data["last_name"]
-            user.status = 'Online'
-            user.save()
-     
-            # Create or update User information
-            UserInformation.objects.update_or_create(
-                user=user,
-                defaults={
-                    # "suffix_name": validated_data.get("suffix_name", False),
-                    "birthdate": validated_data.get("birthdate"),
-                    "gender": validated_data.get("gender"),
-                    "contact": validated_data.get("contact"),
-                    "age": validated_data.get('age')
-                }
-            )
-
-        else:
-            #Admin or [Nurse, Head Nurse], create the user based on validated data
-            user = User(
-                username=validated_data["username"], 
-                first_name=validated_data["first_name"],
-                last_name=validated_data["last_name"],
-                role=validated_data["role"]
-            )
-
-            user.set_password(validated_data["password"])
-            user.save()
-
         
         #create the profile (optional) for uploading the picture
         profile = Profile.objects.create(
