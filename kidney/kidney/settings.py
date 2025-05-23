@@ -1,7 +1,6 @@
 import cloudinary
 from datetime import timedelta
 from pathlib import Path
-import dj_database_url
 from dotenv import load_dotenv
 import os
 from django.core.files.storage import default_storage
@@ -21,7 +20,7 @@ DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 cloudinary.config( 
     cloud_name = os.environ.get('CLOUD_NAME'), 
     api_key = os.environ.get('API_KEY'), 
-    api_secret = os.environ.get('API_SECRET'), # Click 'View API Keys' above to copy your API secret
+    api_secret = os.environ.get('API_SECRET'),
     secure=True
 )
 
