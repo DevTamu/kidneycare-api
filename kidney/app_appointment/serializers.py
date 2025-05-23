@@ -113,9 +113,9 @@ class UpdateAppointmentInPatientSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
 
         time = attrs.get('time', None)
-    #     date = attrs.get('date', None)
+        # date = attrs.get('date', None)
 
-        schedule_data = Schedule.objects.get(id=3)
+        schedule_data = Schedule.objects.get(id=1)
 
         #convert time into datetime objects
         start_time = datetime.strptime(schedule_data.start_time.strftime('%I:%M %p'), '%I:%M %p')
@@ -676,19 +676,21 @@ class GetPatientAppointmentDetailsInAdminSerializer(serializers.ModelSerializer)
     date_time = serializers.SerializerMethodField()
 
     class Meta:
-        model = AssignedAppointment
-        fields = ['id', 'appointment','first_name', 'last_name', 'status', 'date_time', 'user_image']
+        model = Appointment
+        fields = ['id','first_name', 'last_name', 'status', 'date_time', 'user_image', 'user']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
 
-        data["appointment_id"] = data.pop('appointment')
+        data["appointment_id"] = data.pop('id')
+
+        data["user_id"] = str(data.pop('user')).replace("-", "")
 
         return data
 
     def get_user_image(self, obj):
 
-        user_profile = Profile.objects.get(user=obj.appointment.user)
+        user_profile = Profile.objects.get(user=obj.user)
 
         #get the request object from the serializer context
         request = self.context.get('request')
@@ -696,16 +698,16 @@ class GetPatientAppointmentDetailsInAdminSerializer(serializers.ModelSerializer)
         return request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
     
     def get_date_time(self, obj):
-        return f'{obj.appointment.date.strftime('%b %d, %Y')} - {obj.appointment.time.strftime('%I:%M %p')}'
+        return f'{obj.date.strftime('%b %d, %Y')} - {obj.time.strftime('%I:%M %p')}'
 
     def get_first_name(self, obj):
-        return obj.appointment.user.first_name
+        return obj.user.first_name
     
     def get_last_name(self, obj):
-        return obj.appointment.user.last_name
+        return obj.user.last_name
         
     def get_status(self, obj):
-        return obj.appointment.status
+        return obj.status
 
 
 class CancelPatientUpcomingAppointmentInAppointmentPageSerializer(serializers.ModelSerializer):
