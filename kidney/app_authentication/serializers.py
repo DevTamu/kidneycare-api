@@ -80,7 +80,6 @@ class SendOTPSerializer(serializers.Serializer):
       
             #check if theres an exisiting unverified otp
             cached_data = cache.get(user_cache_key)
-            print(f'CACHED DATA: {cached_data}')
             if cached_data:
                 otp_obj = OTP.objects.filter(otp_token=cached_data["otp_token"], is_verified=False).first()
                 if otp_obj:
@@ -344,10 +343,18 @@ class RegisterSerializer(serializers.Serializer):
     role = serializers.CharField(allow_blank=True)
 
     # UserInformation fields (optional)
-    birthdate = serializers.DateField(required=False)
+    birthdate = serializers.DateField(required=False, format='%m/%d/%Y', input_formats=['%m/%d/%Y'])
     gender = serializers.CharField(required=False)
     contact = serializers.CharField(required=False)
     age = serializers.CharField(required=False)
+
+
+    def to_internal_value(self, data):
+        data = super().to_internal_value(data)
+
+        if data["birthdate"] is None:
+            raise serializers.ValidationError({"message": "Birthdate is required"})
+        return data
 
     # Profile field (optional)
     picture = serializers.ImageField(required=False)
@@ -394,6 +401,8 @@ class RegisterSerializer(serializers.Serializer):
         if role == "Patient":
             #check if patient required fields is empty
             for field in patient_required_fields:
+                if attrs.get(field) == "middlename":
+                    continue
                 if is_field_empty(attrs.get(field)):
                     raise serializers.ValidationError({"message": "This fields is required for patients"})
         elif role == 'Admin':
@@ -404,6 +413,8 @@ class RegisterSerializer(serializers.Serializer):
         
         #check the username (username as email) if exists only if the role is 'Admin'
         if User.objects.filter(username=attrs["username"]).exists() and role == 'Admin':
+            raise serializers.ValidationError({"message": "Email already used"})
+        else:
             raise serializers.ValidationError({"message": "Email already used"})
 
         return attrs
@@ -433,6 +444,7 @@ class RegisterSerializer(serializers.Serializer):
             user.first_name = validated_data["first_name"]
             user.middlename = validated_data["middlename"]
             user.last_name = validated_data["last_name"]
+            user.status = 'Online'
             user.save()
      
             # Create or update User information
@@ -472,6 +484,7 @@ class RegisterSerializer(serializers.Serializer):
 class LoginObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
+        user_information = None
         #set the is_verified default to None
         self.is_verified = None
         #get the request object from the serializer context
@@ -517,6 +530,12 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
         except Profile.DoesNotExist:
             picture = None
 
+
+        try:
+            user_information = UserInformation.objects.get(user=user)
+        except UserInformation.DoesNotExist:
+            pass
+
         user.status = 'Online'
         user.save()
 
@@ -536,10 +555,14 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
                 "refresh_token": str(refresh),
                 "user_id": str(user.id).replace("-", ""),
                 "first_name": user.first_name,
+                "middle_name": user.middlename if user.middlename else None,
                 "last_name": user.last_name,
                 "user_email": user.username,
                 "user_image": picture,  
                 "user_role": user.role,
+                "birth_date": user_information.birthdate,
+                "gender": user_information.gender,
+                "contact_number": user_information.contact,
                 "user_status": user.status.capitalize()
             },
         }
@@ -969,8 +992,4 @@ class GetProfileProfileInPatientSerializer(serializers.ModelSerializer):
         return data
     
 
-class AutomaticDeleteUnverifiedUserSerializer(serializers.ModelSerializer):
 
-    class Meta:
-        model = User
-        fields = ['id', 'email', 'is_verified', 'created_at']
