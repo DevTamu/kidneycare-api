@@ -32,7 +32,7 @@ class CreateScheduleSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
 
         return Schedule.objects.update_or_create(
-            id=1,
+            id=3,
             defaults={
                 "available_days": validated_data.get('available_days', []),
                 "start_time": validated_data.get('start_time', None),
