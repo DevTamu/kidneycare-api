@@ -17,7 +17,7 @@ from .views import (
 urlpatterns = [
     path('patient/create-appointment/', CreateAppointmentView.as_view(), name='create-appointment'),
     path('patient/update-appointment/<int:pk>/', UpdateAppointmentInPatientView.as_view(), name='update-appointment'),
-    path('add/appointment-details/<int:pk>/', AddAppointmentDetailsInAdminView.as_view(), name='add-appointment-details'),
+    path('appointment-details/<int:pk>/', AddAppointmentDetailsInAdminView.as_view(), name='add-appointment-details'),
     path('patient/appointment-details/<int:pk>/', GetPatientAppointmentDetailsInAdminView.as_view(), name='get-appointment-details'),
     path('patient/appointments/', GetAppointmentInProviderView.as_view(), name='all-patient-appointments'),
     path('patient-information/<str:pk>/', GetPatientInformationView.as_view(), name='patient-information'),

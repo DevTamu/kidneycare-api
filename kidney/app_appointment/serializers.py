@@ -182,10 +182,11 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
     
     assigned_machine = AddAssignedMachineSerializer()
     assigned_provider = AddAssignedProviderSerializer()
+    status = serializers.CharField(allow_null=True, allow_blank=True)
 
     class Meta:
         model = AssignedAppointment
-        fields = ['assigned_provider', 'assigned_machine']
+        fields = ['assigned_provider', 'assigned_machine', 'status']
 
     def validate(self, attrs):
         
@@ -221,7 +222,7 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
         assigned_machine_obj = AssignedMachine.objects.create(
             assigned_machine_appointment=appointment,
             assigned_machine=assigned_machines_data["assigned_machine"],
-            status='Pending'
+            status='In use'
         )
 
         #create assigned provider object instance linked to the appointment
@@ -235,6 +236,13 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
             appointment=appointment,
             assigned_machine=assigned_machine_obj,
             assigned_provider=assigned_provider_obj
+        )
+
+        Appointment.objects.update_or_create(
+            id=appointment.id,
+            defaults={
+                "status": validated_data.get('status', None)
+            }
         )
 
         return assigned_appointment_obj
