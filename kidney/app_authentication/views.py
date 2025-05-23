@@ -178,6 +178,8 @@ class RegisterAdminView(generics.CreateAPIView):
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             print(f'WHAT WENT WRONG?: {str(e)}')
+        except Exception as e:
+            print(f'qweqwewqe: {str(e)}')
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -411,6 +413,8 @@ class EditProfileInPatientView(generics.UpdateAPIView):
             except Profile.DoesNotExist:
                 pass
 
+            user_profile = Profile.objects.get(user_id=user_id)
+
             serializer = self.get_serializer(instance=user_profile, data=request.data, partial=True)
 
             if serializer.is_valid():
@@ -430,6 +434,7 @@ class EditProfileInPatientView(generics.UpdateAPIView):
                     "contact_number": user_info.contact,
                     "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
                 }, status_code=status.HTTP_200_OK)
+                return ResponseMessageUtils(message="Successfully updated your profile", status_code=status.HTTP_200_OK)
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return ResponseMessageUtils(
@@ -439,6 +444,16 @@ class EditProfileInPatientView(generics.UpdateAPIView):
 
 
 class GetUserProfileInformationView(generics.ListAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetProfileProfileInPatientSerializer
+
+    def get(self, request, *args, **kwargs):
+
+        try:
+            #get the user id
+            user_id = get_token_user_id(request)
+
 
     permission_classes = [IsAuthenticated]
     serializer_class = GetProfileProfileInPatientSerializer
