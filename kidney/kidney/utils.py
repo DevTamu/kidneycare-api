@@ -10,6 +10,8 @@ import secrets
 import string
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
 from rest_framework import status
+from rest_framework_simplejwt.tokens import AccessToken, TokenError
+from rest_framework import status
 
 def ResponseMessageUtils(
     message:str=None,
@@ -23,7 +25,7 @@ def ResponseMessageUtils(
 
         Args:
             message (str): Message to be included in the response.
-            data (dict): Additional data to be returned in the response.
+            data (dict): Optional Additional data to be returned in the response.
             status_code (int): HTTP status code for the response
             errors (dict): Optional errors to be included in the response
 
@@ -49,7 +51,7 @@ def allowed_file(filename) -> str:
     """Check if the file has a valid extension."""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
+#custom exception handler
 def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
 
@@ -57,11 +59,11 @@ def custom_exception_handler(exc, context):
         data = response.data
         # Prioritize non_field_errors if present
         if "non_field_errors" in data and isinstance(data["non_field_errors"], list):
-            response.data = {"message": data["non_field_errors"][0]}
+            response.data = {"message": data["non_field_errors"][0]} #flatten the error
         else:
             for key, value in data.items():
                 if isinstance(value, list) and len(value) == 1:
-                    response.data = {"message": value[0]}
+                    response.data = {"message": value[0]} #flatten the error
                     break  # stop after first useful messageatten list
             
          
@@ -72,8 +74,8 @@ def custom_exception_handler(exc, context):
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
-        'refresh': str(refresh),
-        'access': str(refresh.access_token),
+        'refresh_token': str(refresh),
+        'access_token': str(refresh.access_token),
     }
 
 
@@ -159,12 +161,12 @@ def send_password_to_email(
     email.send(fail_silently=False)
 
 
-#generate a random 6-digit number between 100000 and 999999
+#generate a random otp 6-digit number
 def generate_otp():
     return f"{random.randint(100000, 999999)}"
 
-#password generator that generate random password
-def generate_password(password_length=24):
+#password generator
+def generate_password(password_length=32):
 
     #define the possible characters for the password
     alphabet = string.ascii_letters + string.digits + string.punctuation.replace('/', '').replace('\\', '').replace('"', '')
@@ -174,7 +176,7 @@ def generate_password(password_length=24):
 
     return password
 
-
+#a helper function that validate the email
 def validate_email(email):
     #check if the email matches the regex pattern for a valid email format
     if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
@@ -183,6 +185,7 @@ def validate_email(email):
      #if the email matches the pattern, return True (indicating it's valid)
     return True
 
+#a helper function that validates empty fields
 def is_field_empty(field_name):
     if field_name is None:
         return True
@@ -192,10 +195,7 @@ def is_field_empty(field_name):
         return True
     return False
 
-#a helper method that helps us convert the first letter to uppercae then the rest lowercase
-def ucfirst(field_name):
-    return field_name[:1].upper() + field_name[1:]
-
+#a helper function that extracts the first error message
 def extract_first_error_message(errors):
     for k, v in errors.items():
         return v[0]

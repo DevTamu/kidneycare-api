@@ -125,9 +125,11 @@ class GetAppointmentInProviderView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):  
         try:
             
-            assigned_appointments = AssignedProvider.objects.filter(
-                assigned_provider=request.user,
-                assigned_patient_appointment__status__in=['Approved', 'In-Progress']
+            assigned_appointments = AssignedAppointment.objects.filter(
+                # appointment__user=request.user,
+                assigned_provider__assigned_provider=request.user,
+                appointment__status__in=['Approved', 'In-Progress']
+                # assigned_patient_appointment__status__in=['Approved', 'In-Progress']
             )
             #create an instance of the paginator
             paginator = self.pagination_class()
@@ -138,6 +140,7 @@ class GetAppointmentInProviderView(generics.ListAPIView):
             
             return ResponseMessageUtils(message="List of Appointments", data=paginated_response.data, status_code=status.HTTP_200_OK)
         except Exception as e:
+            print(f'SOMETHING WENT WRONG: {str(e)}')
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
