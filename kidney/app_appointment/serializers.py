@@ -658,9 +658,44 @@ class GetPatientUpcomingAppointmentSerializer(serializers.ModelSerializer):
 
 class GetPatientAppointmentDetailsInAdminSerializer(serializers.ModelSerializer):
 
+    first_name = serializers.SerializerMethodField()
+    last_name = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    user_image = serializers.SerializerMethodField()
+    date_time = serializers.SerializerMethodField()
+
     class Meta:
         model = AssignedAppointment
-        fields = '__all__'
+        fields = ['id', 'appointment','first_name', 'last_name', 'status', 'date_time', 'user_image']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        data["appointment_id"] = data.pop('appointment')
+
+        return data
+
+    def get_user_image(self, obj):
+
+        user_profile = Profile.objects.get(user=obj.appointment.user)
+
+        #get the request object from the serializer context
+        request = self.context.get('request')
+
+        return request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+    
+    def get_date_time(self, obj):
+        return f'{obj.appointment.date.strftime('%b %d, %Y')} - {obj.appointment.time.strftime('%I:%M %p')}'
+
+    def get_first_name(self, obj):
+        return obj.appointment.user.first_name
+    
+    def get_last_name(self, obj):
+        return obj.appointment.user.last_name
+        
+    def get_status(self, obj):
+        return obj.appointment.status
+
 
 class CancelPatientUpcomingAppointmentInAppointmentPageSerializer(serializers.ModelSerializer):
 
