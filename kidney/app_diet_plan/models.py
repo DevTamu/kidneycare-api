@@ -13,7 +13,7 @@ class DietPlan(TimestampModel):
 class SubDietPlan(models.Model):
     diet_plan = models.ForeignKey(DietPlan, on_delete=models.CASCADE, null=True, blank=True, related_name='diet_plan')
     meal_type = models.CharField(null=True, blank=True)
-    dish_image = models.ImageField(upload_to='dish_image/', blank=True, null=True)
+    dish_image = models.ImageField(storage=MediaCloudinaryStorage(), upload_to='dish_image/', blank=True, null=True)
     recipe_name = models.CharField(null=True, blank=True)
     recipe_tutorial_url = models.CharField(max_length=255, null=True, blank=True)
     recipe_description = models.TextField(max_length=2000, null=True, blank=True)
