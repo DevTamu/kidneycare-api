@@ -16,7 +16,9 @@ from .serializers import (
     GetHealthCareProvidersSerializer,
     EditProfileInPatientSerializer,
     GetProfileProfileInPatientSerializer,
+    GetAllRegisteredProvidersSerializer
 )
+from django.core.cache import cache
 from django.db.models.functions import TruncDate
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import generics
@@ -435,8 +437,10 @@ class EditProfileInPatientView(generics.UpdateAPIView):
                     "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
                 }, status_code=status.HTTP_200_OK)
                 return ResponseMessageUtils(message="Successfully updated your profile", status_code=status.HTTP_200_OK)
+            print(serializer.errors)
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            print(f'qwewqe: {e}')
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -467,8 +471,39 @@ class GetUserProfileInformationView(generics.ListAPIView):
             )
         
 
+class GetAllRegisteredProvidersView(generics.ListAPIView):
 
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetAllRegisteredProvidersSerializer
+    
+    def get(self, request, *args, **kwargs):
 
+        data_cache_key = 'all_registered_providers'
+
+        #check if data is already in cache
+        cached_data = cache.get(data_cache_key)
+        if cached_data is not None:
+            return ResponseMessageUtils(
+                message="List of registered providers",
+                data=cached_data,
+                status_code=status.HTTP_200_OK
+            )
+
+        try:
+            queryset = User.objects.filter(role__in=['Nurse', 'Head Nurse'])
+            serializer = self.get_serializer(queryset, many=True)
+
+            #cache the serialized data for 10 minutes (600 seconds)
+            cache.set(data_cache_key, serializer.data, timeout=600)
+
+            return ResponseMessageUtils(message="List of registered providers", data=serializer.data, status_code=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f'qweqwe: {str(e)}')
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
     
 

@@ -71,9 +71,10 @@ class SendOTPSerializer(serializers.Serializer):
     def create(self, validated_data):
         
         try:
-
             username = validated_data.get("username", None)
             password = validated_data.get("password", None)
+
+    
             #cache keys
             user_cache_key = f"otp_user_data_{username.lower()}"
             timer_key = f"otp_timer_{username.lower()}"
@@ -91,6 +92,7 @@ class SendOTPSerializer(serializers.Serializer):
                         "otp_token": str(otp_obj.otp_token).replace("-", ""),
                         "timer": remaining_time
                     }
+ 
 
             #generate OTP
             otp = generate_otp()
@@ -910,20 +912,33 @@ class EditProfileInPatientSerializer(serializers.Serializer):
         return attrs        
 
     def update(self, instance, validated_data):
-        
+        picture_updated = False
         if 'picture' in self.initial_data:
             new_picture = validated_data.get('picture')
             if new_picture:
                 if not instance.picture:
                     # No existing picture, so save the new one
                     instance.picture = new_picture
+                    picture_updated = True
                 else:
-                    #compare file content
-                    existing_file = instance.picture.read()
-                    new_picture.file.seek(0) #reset the pointer
-                    new_file = new_picture.read()
-                    if existing_file != new_file:
+                   # Read existing picture content
+                    instance.picture.open()
+                    existing_file_content = instance.picture.read()
+                    instance.picture.close()
+
+                    # Reset pointer and read new picture content
+                    new_picture.file.seek(0)
+                    new_file_content = new_picture.read()
+
+                    # Reset pointer again so Django can save it later
+                    new_picture.file.seek(0)
+
+                    if existing_file_content != new_file_content:
                         instance.picture = new_picture
+                        picture_updated = True
+            else:
+                #no new picture provided, so do NOT change instance picture
+                pass
             
         #user instance object
         user = instance.user
@@ -956,7 +971,8 @@ class EditProfileInPatientSerializer(serializers.Serializer):
 
         
         #save the profile object
-        instance.save()
+        if picture_updated:
+            instance.save()
 
         return instance
 
@@ -987,4 +1003,24 @@ class GetProfileProfileInPatientSerializer(serializers.ModelSerializer):
         return data
     
 
+class GetAllRegisteredProvidersSerializer(serializers.ModelSerializer):
 
+    user_image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'user_image']
+
+    def get_user_image(self, obj):
+
+        #get the request object from the serializer context
+        request = self.context.get('request')
+
+        try:
+            user_profile = Profile.objects.get(user=obj)
+        except Profile.DoesNotExist:
+            pass
+
+        return request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+
+    
