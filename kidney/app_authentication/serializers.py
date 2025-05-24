@@ -294,12 +294,14 @@ class AddAccountHealthCareProviderSerializer(serializers.Serializer):
     @transaction.atomic
     def create(self, validated_data):
         
+        username = validated_data.get('username')
+
         #generate password
         generated_password = generate_password()
 
         #create user
         user = User.objects.create_user(
-            username=validated_data["username"],
+            username=username,
             password=generated_password,
             first_name=validated_data["firstname"],
             last_name=validated_data["lastname"],
@@ -324,7 +326,7 @@ class AddAccountHealthCareProviderSerializer(serializers.Serializer):
         send_password_to_email(
             subject='Generated Password',
             message=f'Your Password is {generated_password}',
-            recipient_list=[f'{validated_data['username']}'],
+            recipient_list=[username],
             password=generated_password
         )
         
@@ -912,6 +914,7 @@ class EditProfileInPatientSerializer(serializers.Serializer):
         return attrs        
 
     def update(self, instance, validated_data):
+
         picture_updated = False
         if 'picture' in self.initial_data:
             new_picture = validated_data.get('picture')
