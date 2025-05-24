@@ -387,7 +387,10 @@ class GetPatientInformationSerializer(serializers.ModelSerializer):
         #remove id from the response
         data.pop('id')
 
-        data["patient_name"] = f'{data.pop('first_name').capitalize()} {data.pop('last_name').capitalize()}'
+        firstname = str(data.pop('first_name')).capitalize()
+        lastname = str(data.pop('last_name')).capitalize()
+
+        data["patient_name"] = f"{firstname} {lastname}"
         data["patient_age"] = user_information.age
         data["patient_birth_date"] = user_information.birthdate
         data["patient_contact_number"] = user_information.contact
@@ -716,7 +719,9 @@ class GetPatientAppointmentDetailsInAdminSerializer(serializers.ModelSerializer)
         return request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
     
     def get_date_time(self, obj):
-        return f'{obj.date.strftime('%b %d, %Y')} - {obj.time.strftime('%I:%M %p')}'
+        date = obj.date.strftime('%b %d, %Y')
+        time = obj.time.strftime('%I:%M %p')
+        return f"{date} - {time}"
 
     def get_first_name(self, obj):
         return obj.user.first_name
