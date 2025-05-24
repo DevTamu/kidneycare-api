@@ -719,7 +719,9 @@ class GetPatientAppointmentDetailsInAdminSerializer(serializers.ModelSerializer)
         return request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
     
     def get_date_time(self, obj):
-        return f'{obj.date.strftime('%b %d, %Y')} - {obj.time.strftime('%I:%M %p')}'
+        date = obj.date.strftime('%b %d, %Y')
+        time = obj.time.strftime('%I:%M %p')
+        return f"{date} - {time}"
 
     def get_first_name(self, obj):
         return obj.user.first_name
