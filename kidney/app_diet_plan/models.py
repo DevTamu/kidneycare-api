@@ -10,7 +10,6 @@ class DietPlan(TimestampModel):
     def __str__(self):
         return f'{self.patient.username} Diet Plan'
     
-
 class SubDietPlan(models.Model):
     diet_plan = models.ForeignKey(DietPlan, on_delete=models.CASCADE, null=True, blank=True, related_name='diet_plan')
     meal_type = models.CharField(null=True, blank=True)
