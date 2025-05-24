@@ -387,7 +387,10 @@ class GetPatientInformationSerializer(serializers.ModelSerializer):
         #remove id from the response
         data.pop('id')
 
-        data["patient_name"] = f'{data.pop('first_name').capitalize()} {data.pop('last_name').capitalize()}'
+        firstname = str(data.pop('first_name')).capitalize()
+        lastname = str(data.pop('last_name')).capitalize()
+
+        data["patient_name"] = f"{firstname} {lastname}"
         data["patient_age"] = user_information.age
         data["patient_birth_date"] = user_information.birthdate
         data["patient_contact_number"] = user_information.contact
