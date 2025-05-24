@@ -71,9 +71,10 @@ class SendOTPSerializer(serializers.Serializer):
     def create(self, validated_data):
         
         try:
-
             username = validated_data.get("username", None)
             password = validated_data.get("password", None)
+
+    
             #cache keys
             user_cache_key = f"otp_user_data_{username.lower()}"
             timer_key = f"otp_timer_{username.lower()}"
@@ -91,6 +92,7 @@ class SendOTPSerializer(serializers.Serializer):
                         "otp_token": str(otp_obj.otp_token).replace("-", ""),
                         "timer": remaining_time
                     }
+ 
 
             #generate OTP
             otp = generate_otp()
@@ -987,4 +989,24 @@ class GetProfileProfileInPatientSerializer(serializers.ModelSerializer):
         return data
     
 
+class GetAllRegisteredProvidersSerializer(serializers.ModelSerializer):
 
+    user_image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'user_image']
+
+    def get_user_image(self, obj):
+
+        #get the request object from the serializer context
+        request = self.context.get('request')
+
+        try:
+            user_profile = Profile.objects.get(user=obj)
+        except Profile.DoesNotExist:
+            pass
+
+        return request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+
+    
