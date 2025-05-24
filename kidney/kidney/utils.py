@@ -197,9 +197,7 @@ def is_field_empty(field_name):
 #a helper function that extracts the first error message
 def extract_first_error_message(errors):
     for k, v in errors.items():
-        return v[0]
-
-        
+        return v[0]   
 
 def get_token_user_id(request):
 
@@ -219,8 +217,6 @@ def get_token_user_id(request):
     except TokenError as e:
         return ResponseMessageUtils(message="Expired or invalid token", status_code=status.HTTP_401_UNAUTHORIZED)
     
-
-#helper to get a user by ID
 @sync_to_async
 def get_user_by_id(user_id):
     from django.contrib.auth import get_user_model
