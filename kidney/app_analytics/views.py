@@ -140,12 +140,12 @@ class GetAppointmentStatusBreakdownView(generics.ListAPIView):
             for item in status_counts.all():
                 status = item["status"]
                 percentage = round((item["count"] / total_appointments) * 100, 2)
-                data[f"percentage_{str(status.lower()).replace("-", "_")}_appointment"] = percentage
+                data[f"percentage_{str(status.lower()).replace('-', '_')}_appointment"] = percentage
         else:
             #no appointments: set all to 0%
             statuses = ['pending', 'approved', 'check_in', 'in_progress', 'completed', 'cancelled', 'no_show', 'rescheduled']
             for status in statuses:
-                data[f"percentage_{str(status).replace("-", "_")}_appointment"] = 0
+                data[f"percentage_{str(status).replace('-', '_')}_appointment"] = 0
         return ResponseMessageUtils(
             message="Analytics of Appointment status breakdown",
             data=data,
