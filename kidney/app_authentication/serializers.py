@@ -71,9 +71,10 @@ class SendOTPSerializer(serializers.Serializer):
     def create(self, validated_data):
         
         try:
-
             username = validated_data.get("username", None)
             password = validated_data.get("password", None)
+
+    
             #cache keys
             user_cache_key = f"otp_user_data_{username.lower()}"
             timer_key = f"otp_timer_{username.lower()}"
@@ -91,6 +92,7 @@ class SendOTPSerializer(serializers.Serializer):
                         "otp_token": str(otp_obj.otp_token).replace("-", ""),
                         "timer": remaining_time
                     }
+ 
 
             #generate OTP
             otp = generate_otp()
