@@ -914,6 +914,7 @@ class EditProfileInPatientSerializer(serializers.Serializer):
         return attrs        
 
     def update(self, instance, validated_data):
+
         picture_updated = False
         if 'picture' in self.initial_data:
             new_picture = validated_data.get('picture')
