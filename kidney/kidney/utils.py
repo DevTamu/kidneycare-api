@@ -10,7 +10,6 @@ import secrets
 import string
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
 from rest_framework import status
-from app_authentication.models import User
 from asgiref.sync import sync_to_async
 
 def ResponseMessageUtils(
@@ -198,11 +197,11 @@ def is_field_empty(field_name):
 #a helper function that extracts the first error message
 def extract_first_error_message(errors):
     for k, v in errors.items():
-        return v[0]
-        
+        return v[0]   
 
 def get_token_user_id(request):
 
+    #get the authorization from the headers
     auth_header = request.headers.get('Authorization', [])
 
     if not auth_header or not auth_header.startswith('Bearer '):
@@ -212,6 +211,7 @@ def get_token_user_id(request):
     auth_header_token = auth_header.split(' ')[1]
 
     try:
+        #parse the token
         access_token = AccessToken(auth_header_token)
         return str(access_token["user_id"]).replace("-", "")
     except TokenError as e:
@@ -219,7 +219,9 @@ def get_token_user_id(request):
     
 @sync_to_async
 def get_user_by_id(user_id):
+    from django.contrib.auth import get_user_model
     try:
+        User = get_user_model()
         return User.objects.get(id=user_id)
     except User.DoesNotExist:
         return None
