@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from kidney.models import TimestampModel
 from django.contrib.auth.models import AbstractUser
 import uuid
+from cloudinary_storage.storage import MediaCloudinaryStorage
 
 class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -26,7 +27,7 @@ class User(AbstractUser):
 
 class Profile(TimestampModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, related_name='user_profile')
-    picture = models.ImageField(upload_to=("profile_picture/"), blank=True, null=True)
+    picture = models.ImageField(storage=MediaCloudinaryStorage(), upload_to=("profile_picture/"), blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
