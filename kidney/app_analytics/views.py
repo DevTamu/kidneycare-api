@@ -33,7 +33,6 @@ class GetPatientAnalyticsView(generics.ListAPIView):
             created_date__range=[last_week_start, last_week_end]
         ).values('user_id').count()
 
-        print(f"LAST WEEK: {last_week_patients}")
 
         if last_week_patients > 0:
             calculate_diff_patients = this_week_patients - last_week_patients

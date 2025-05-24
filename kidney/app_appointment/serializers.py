@@ -443,9 +443,7 @@ class GetPatientAppointmentHistorySerializer(serializers.ModelSerializer):
 
             try:
                 user_profile = Profile.objects.filter(user=assigned_provider).first()
-                print(f'qweqe: {user_profile.picture.url}')
             except Profile.DoesNotExist:
-                print(f'qweqe: {user_profile.picture.url}')
                 pass
 
         #add profile picture URL (absolute URI) to the response if available

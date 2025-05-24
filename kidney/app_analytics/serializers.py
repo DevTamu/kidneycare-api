@@ -35,7 +35,6 @@ class GetPatientAnalyticsSerializer(serializers.Serializer):
 
         #calculate difference and percentage
         change = this_week_patients - last_week_patients
-        print(f"CHANGE: {change}")
         percent_change  = round((change / last_week_patients) * 100, 2) if last_week_patients > 0 else 100
 
         data = {
