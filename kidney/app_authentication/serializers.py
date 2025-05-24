@@ -914,7 +914,7 @@ class EditProfileInPatientSerializer(serializers.Serializer):
         return attrs        
 
     def update(self, instance, validated_data):
-        
+
         picture_updated = False
         if 'picture' in self.initial_data:
             new_picture = validated_data.get('picture')
@@ -950,12 +950,28 @@ class EditProfileInPatientSerializer(serializers.Serializer):
         user.last_name = validated_data.get('last_name', None)
         user.save() #save the user object
 
+        picture = validated_data.get('picture', None)
+        if picture:
+            instance.picture = picture
+        
+        #user instance object
+        user = instance.user
+
+        user.first_name = validated_data.get('first_name', None)
+        user.middlename = validated_data.get('middle_name', None)
+        user.last_name = validated_data.get('last_name', None)
+
+        #save the user object
+        user.save()
+
         #user information instance object
         user_information = instance.user.user_information
         user_information.birthdate = validated_data.get('birth_date', None)
         user_information.gender = validated_data.get('gender', None)
         user_information.contact = validated_data.get('contact_number', None)
         user_information.save() #save the user information object
+
+
         
         #save the profile object
         if picture_updated:
