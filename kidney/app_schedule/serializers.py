@@ -55,8 +55,10 @@ class GetScheduleSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
 
+        #removed from the response
         data.pop('created_at')
         data.pop('updated_at')
+        data.pop('date_created')
         data.pop('id')
 
         #convert to datetime objects
