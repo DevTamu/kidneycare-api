@@ -41,9 +41,9 @@ ALLOWED_HOSTS = ["kidneycare-api.onrender.com"]
 
 
 
-# CSRF_TRUSTED_ORIGINS = [
-#     'https://anxious-misti-devtamu-3916140d.koyeb.app',  # or your custom domain
-# ]
+CSRF_TRUSTED_ORIGINS = [
+    'https://kidneycare-api.onrender.com',  # or your custom domain
+]
 
 
 
