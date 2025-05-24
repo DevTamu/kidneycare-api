@@ -10,8 +10,7 @@ import secrets
 import string
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
 from rest_framework import status
-from rest_framework_simplejwt.tokens import AccessToken, TokenError
-from rest_framework import status
+from asgiref.sync import sync_to_async
 
 def ResponseMessageUtils(
     message:str=None,
@@ -198,8 +197,7 @@ def is_field_empty(field_name):
 #a helper function that extracts the first error message
 def extract_first_error_message(errors):
     for k, v in errors.items():
-        return v[0]
-        
+        return v[0]   
 
 def get_token_user_id(request):
 
@@ -218,3 +216,12 @@ def get_token_user_id(request):
         return str(access_token["user_id"]).replace("-", "")
     except TokenError as e:
         return ResponseMessageUtils(message="Expired or invalid token", status_code=status.HTTP_401_UNAUTHORIZED)
+    
+@sync_to_async
+def get_user_by_id(user_id):
+    from django.contrib.auth import get_user_model
+    try:
+        User = get_user_model()
+        return User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return None
