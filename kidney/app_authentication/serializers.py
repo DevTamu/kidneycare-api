@@ -1020,7 +1020,7 @@ class GetAllRegisteredProvidersSerializer(serializers.ModelSerializer):
 
         data["user_id"] = str(data.pop('id')).replace("-", "")
 
-        return
+        return data
 
     def get_user_image(self, obj):
 

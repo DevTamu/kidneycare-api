@@ -9,11 +9,6 @@ from django.core.files.storage import default_storage
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv()
 
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': os.environ.get('CLOUD_NAME'),
-    'API_KEY': os.environ.get('API_KEY'),
-    'API_SECRET': os.environ.get('API_SECRET'),
-}
 
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
@@ -35,17 +30,11 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG')    
 
-
 #ALLOWED_HOSTS = ["*"]
 
 ALLOWED_HOSTS = ["kidneycare-api.onrender.com"]
 
-
 CSRF_TRUSTED_ORIGINS = ['https://kidneycare-api.onrender.com']
-
-
-
-
 
 # Application definition
 INSTALLED_APPS = [
@@ -106,7 +95,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'kidney.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
@@ -135,8 +123,6 @@ DATABASES = {
 #         'OPTIONS': {'sslmode': 'require'},
 #     }
 # }
-
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -171,7 +157,6 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
-
 
 
 STATIC_URL = 'static/'
