@@ -9,11 +9,6 @@ from django.core.files.storage import default_storage
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv()
 
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': os.environ.get('CLOUD_NAME'),
-    'API_KEY': os.environ.get('API_KEY'),
-    'API_SECRET': os.environ.get('API_SECRET'),
-}
 
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
@@ -35,12 +30,15 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG')    
 
-# ALLOWED_HOSTS = ["*"]
+
+#ALLOWED_HOSTS = ["*"]
+
 ALLOWED_HOSTS = ['kidneycare-api.onrender.com', 'localhost', '127.0.0.1']
 
 
 
 CSRF_TRUSTED_ORIGINS = ['https://kidneycare-api.onrender.com']
+
 
 
 
