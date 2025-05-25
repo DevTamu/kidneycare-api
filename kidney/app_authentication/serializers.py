@@ -1014,6 +1014,14 @@ class GetAllRegisteredProvidersSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'first_name', 'last_name', 'user_image']
 
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        data["user_id"] = str(data.pop('id')).replace("-", "")
+
+        return
+
     def get_user_image(self, obj):
 
         #get the request object from the serializer context
