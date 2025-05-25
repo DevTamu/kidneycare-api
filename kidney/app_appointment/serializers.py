@@ -33,7 +33,7 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
         time = attrs.get('time', None)
     #     date = attrs.get('date', None)
 
-        schedule_data = Schedule.objects.get(id=1)
+        schedule_data = Schedule.objects.get(id=3)
 
         #convert time into datetime objects
         start_time = datetime.strptime(schedule_data.start_time.strftime('%I:%M %p'), '%I:%M %p')
@@ -222,23 +222,29 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
         appointment = self.context.get('appointment_pk')
 
         #create assigned machine object instance linked to the appointment
-        assigned_machine_obj = AssignedMachine.objects.create(
+        assigned_machine_obj, _ = AssignedMachine.objects.update_or_create(
             assigned_machine_appointment=appointment,
-            assigned_machine=assigned_machines_data["assigned_machine"],
-            status='In use'
+            defaults={
+                "assigned_machine":assigned_machines_data["assigned_machine"],
+                "status":'In use'
+            }
         )
 
         #create assigned provider object instance linked to the appointment
-        assigned_provider_obj = AssignedProvider.objects.create(
+        assigned_provider_obj, _ = AssignedProvider.objects.update_or_create(
             assigned_provider=assigned_providers_data["assigned_provider"],
-            assigned_patient_appointment=appointment
+            defaults={
+                "assigned_patient_appointment":appointment
+            }
         )
 
         #create assigned appointment object instance linked to the appointment
-        assigned_appointment_obj = AssignedAppointment.objects.create(
+        assigned_appointment_obj, _ = AssignedAppointment.objects.update_or_create(
             appointment=appointment,
-            assigned_machine=assigned_machine_obj,
-            assigned_provider=assigned_provider_obj
+            defaults={
+                "assigned_machine":assigned_machine_obj,
+                "assigned_provider":assigned_provider_obj
+            }
         )
 
         Appointment.objects.update_or_create(
@@ -387,7 +393,10 @@ class GetPatientInformationSerializer(serializers.ModelSerializer):
         #remove id from the response
         data.pop('id')
 
-        data["patient_name"] = f'{data.pop('first_name').capitalize()} {data.pop('last_name').capitalize()}'
+        firstname = str(data.pop('first_name')).capitalize()
+        lastname = str(data.pop('last_name')).capitalize()
+
+        data["patient_name"] = f"{firstname} {lastname}"
         data["patient_age"] = user_information.age
         data["patient_birth_date"] = user_information.birthdate
         data["patient_contact_number"] = user_information.contact
@@ -443,9 +452,7 @@ class GetPatientAppointmentHistorySerializer(serializers.ModelSerializer):
 
             try:
                 user_profile = Profile.objects.filter(user=assigned_provider).first()
-                print(f'qweqe: {user_profile.picture.url}')
             except Profile.DoesNotExist:
-                print(f'qweqe: {user_profile.picture.url}')
                 pass
 
         #add profile picture URL (absolute URI) to the response if available
@@ -718,7 +725,9 @@ class GetPatientAppointmentDetailsInAdminSerializer(serializers.ModelSerializer)
         return request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
     
     def get_date_time(self, obj):
-        return f'{obj.date.strftime('%b %d, %Y')} - {obj.time.strftime('%I:%M %p')}'
+        date = obj.date.strftime('%b %d, %Y')
+        time = obj.time.strftime('%I:%M %p')
+        return f"{date} - {time}"
 
     def get_first_name(self, obj):
         return obj.user.first_name

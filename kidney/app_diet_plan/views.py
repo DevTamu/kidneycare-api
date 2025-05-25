@@ -25,7 +25,6 @@ class AddDietPlanView(generics.CreateAPIView):
                 return ResponseMessageUtils(message="Successfully Added Diet Plan", status_code=status.HTTP_200_OK)
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            print(f'WHAT WENT WRONG?: {e}')
             return ResponseMessageUtils(message="Something went wrong", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class GetPatientHealthStatusView(generics.ListAPIView):
@@ -65,7 +64,6 @@ class GetPatientDietPlanView(generics.ListAPIView):
             #get the first diet plans of the authenticated user
             diet_plan = DietPlan.objects.filter(patient=user_id).order_by('created_at').first()
 
-            print(f'qwewqe: {diet_plan}')
 
             if not diet_plan:
                 return ResponseMessageUtils(message="No diet plan found", status_code=status.HTTP_404_NOT_FOUND)
