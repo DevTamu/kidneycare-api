@@ -9,6 +9,10 @@ from app_authentication.models import User
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
+        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
+        # pprint(f"connecting to room: {self.room_name}")
+        self.room_group_name = f"chat_{self.room_name}"
+
 
         user = self.scope.get("user")
         if user is None or user.is_anonymous:
@@ -21,6 +25,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
+        # pprint(f"connected to room: {self.room_group_name}")
+
+    async def disconnect(self, close_code):
+        # Leave room group
+        # pprint(f"Disconnecting from room: {self.room_group_name}")
 
         user_receiver = await get_user_by_id(self.room_name)
         await self.send_message_introduction(user, user_receiver)
@@ -30,7 +39,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         """Handles the WebSocket disconnection."""
         pprint(f"Disconnecting from room: {self.room_group_name}")    
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
-        pprint(f"disconnected from room: {self.room_group_name}")
+        # pprint(f"disconnected from room: {self.room_group_name}")
 
     async def receive(self, text_data):
         
