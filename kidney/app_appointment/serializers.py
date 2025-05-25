@@ -33,7 +33,7 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
         time = attrs.get('time', None)
     #     date = attrs.get('date', None)
 
-        schedule_data = Schedule.objects.get(id=3)
+        schedule_data = Schedule.objects.get(id=1)
 
         #convert time into datetime objects
         start_time = datetime.strptime(schedule_data.start_time.strftime('%I:%M %p'), '%I:%M %p')
@@ -222,23 +222,29 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
         appointment = self.context.get('appointment_pk')
 
         #create assigned machine object instance linked to the appointment
-        assigned_machine_obj = AssignedMachine.objects.create(
+        assigned_machine_obj, _ = AssignedMachine.objects.update_or_create(
             assigned_machine_appointment=appointment,
-            assigned_machine=assigned_machines_data["assigned_machine"],
-            status='In use'
+            defaults={
+                "assigned_machine":assigned_machines_data["assigned_machine"],
+                "status":'In use'
+            }
         )
 
         #create assigned provider object instance linked to the appointment
-        assigned_provider_obj = AssignedProvider.objects.create(
+        assigned_provider_obj, _ = AssignedProvider.objects.update_or_create(
             assigned_provider=assigned_providers_data["assigned_provider"],
-            assigned_patient_appointment=appointment
+            defaults={
+                "assigned_patient_appointment":appointment
+            }
         )
 
         #create assigned appointment object instance linked to the appointment
-        assigned_appointment_obj = AssignedAppointment.objects.create(
+        assigned_appointment_obj, _ = AssignedAppointment.objects.update_or_create(
             appointment=appointment,
-            assigned_machine=assigned_machine_obj,
-            assigned_provider=assigned_provider_obj
+            defaults={
+                "assigned_machine":assigned_machine_obj,
+                "assigned_provider":assigned_provider_obj
+            }
         )
 
         Appointment.objects.update_or_create(
