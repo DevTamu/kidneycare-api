@@ -38,12 +38,10 @@ DEBUG = os.environ.get('DEBUG')
 
 #ALLOWED_HOSTS = ["*"]
 
-ALLOWED_HOSTS = ["kidneycare-api.onrender.com"]
+ALLOWED_HOSTS = ["kidneycare-api.onrender.com", "localhost", "127.0.0.1"]
 
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://anxious-misti-devtamu-3916140d.koyeb.app',  # or your custom domain
-]
+CSRF_TRUSTED_ORIGINS = ['https://anxious-misti-devtamu-3916140d.koyeb.app']
 
 
 
