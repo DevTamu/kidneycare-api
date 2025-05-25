@@ -707,11 +707,29 @@ class GetPatientAppointmentDetailsInAdminSerializer(serializers.ModelSerializer)
         fields = ['id','first_name', 'last_name', 'status', 'date_time', 'user_image', 'user']
 
     def to_representation(self, instance):
+
+        #get the request object from the serializer context
+        request = self.context.get('request')
+
         data = super().to_representation(instance)
 
         data["appointment_id"] = data.pop('id')
 
         data["user_id"] = str(data.pop('user')).replace("-", "")
+
+        assigned_provider = AssignedProvider.objects.filter(assigned_patient_appointment=data.get('appointment_id')).first()
+
+        try:
+            user_profile = Profile.objects.filter(user=assigned_provider.assigned_provider).first()
+        except Profile.DoesNotExist:
+            pass
+
+        data["provider_details"] = {
+            "first_name": assigned_provider.assigned_provider.first_name,
+            "last_name": assigned_provider.assigned_provider.last_name,
+            "user_id": str(assigned_provider.assigned_provider.id).replace("-", ""),
+            "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+        }
 
         return data
 
@@ -737,6 +755,10 @@ class GetPatientAppointmentDetailsInAdminSerializer(serializers.ModelSerializer)
         
     def get_status(self, obj):
         return obj.status
+    
+
+    
+
 
 
 class CancelPatientUpcomingAppointmentInAppointmentPageSerializer(serializers.ModelSerializer):

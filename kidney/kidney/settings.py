@@ -35,6 +35,7 @@ ALLOWED_HOSTS = ["kidneycare-api.onrender.com", "localhost", "127.0.0.1"]
 
 CSRF_TRUSTED_ORIGINS = ['https://kidneycare-api.onrender.com']
 
+
 # Application definition
 INSTALLED_APPS = [
     'channels',
@@ -111,6 +112,8 @@ DATABASES = {
         ssl_require=True,
     )
 }
+
+
 
 # DATABASES = {
 #     'default': {
