@@ -18,6 +18,7 @@ from .serializers import (
     GetProfileProfileInPatientSerializer,
     GetAllRegisteredProvidersSerializer
 )
+from rest_framework import serializers
 from django.core.cache import cache
 from django.db.models.functions import TruncDate
 from rest_framework.exceptions import AuthenticationFailed
@@ -174,11 +175,8 @@ class RegisterAdminView(generics.CreateAPIView):
                     status_code=status.HTTP_201_CREATED
                 )
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
 
-            print(f'WHAT WENT WRONG?: {str(e)}')
         except Exception as e:
-            print(f'qweqwewqe: {str(e)}')
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -392,23 +390,43 @@ class EditProfileInPatientView(generics.UpdateAPIView):
     def patch(self, request, *args, **kwargs):
 
         try:
-            #get the user id
+            #get the current authenticated user id
             user_id = get_token_user_id(request)
-            
             try:
                 user = User.objects.get(id=user_id)
             except User.DoesNotExist:
-                pass
+                return ResponseMessageUtils(
+                    message="User not found.",
+                    status_code=status.HTTP_404_NOT_FOUND
+                )
 
-            try:
-                user_info = UserInformation.objects.get(user=user)
-            except UserInformation.DoesNotExist:
-                pass
+            # Get or create related objects
+            user_information, _ = UserInformation.objects.get_or_create(user=user)
+            user_profile, _ = Profile.objects.get_or_create(user=user)
+          
 
-            try:
-                user_profile = Profile.objects.get(user_id=user_id)
-            except Profile.DoesNotExist:
-                pass
+            # Update user fields if present in data
+            user.first_name = request.data.get('first_name', user.first_name)
+            user.middlename = request.data.get('middle_name', user.middlename)
+            user.last_name = request.data.get('last_name', user.last_name)
+            user.save()
+
+            birth_date = request.data.get('birth_date', None)
+            if birth_date:
+                date_field = serializers.DateField(input_formats=['%m/%d/%Y'])
+                try:
+                    birth_date_obj = date_field.to_internal_value(birth_date)
+                except serializers.ValidationError:
+                    birth_date_obj = None
+                if birth_date_obj:
+                    user_information.birthdate = birth_date_obj
+            else:
+                # If no birth_date provided in data, keep existing value
+                user_information.birthdate = user_information.birthdate
+
+            user_information.gender = request.data.get('gender', user_information.gender)
+            user_information.contact = request.data.get('contact_number', user_information.contact)
+            user_information.save()
 
             user_profile = Profile.objects.get(user_id=user_id)
 
@@ -419,23 +437,21 @@ class EditProfileInPatientView(generics.UpdateAPIView):
 
                 #refresh from the database to get updated values
                 user.refresh_from_db()
-                user_info.refresh_from_db()
+                user_information.refresh_from_db()
                 user_profile.refresh_from_db()
 
                 return ResponseMessageUtils(message="Successfully updated your profile", data={
                     "first_name": user.first_name,
                     "middle_name": user.middlename,
                     "last_name": user.last_name,
-                    "birth_date": user_info.birthdate.strftime('%m/%d/%Y'),
-                    "gender": user_info.gender,
-                    "contact_number": user_info.contact,
+                    "birth_date": user_information.birthdate.strftime('%m/%d/%Y'),
+                    "gender": user_information.gender,
+                    "contact_number": user_information.contact,
                     "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
                 }, status_code=status.HTTP_200_OK)
                 return ResponseMessageUtils(message="Successfully updated your profile", status_code=status.HTTP_200_OK)
-            print(serializer.errors)
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            print(f'qwewqe: {e}')
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -494,7 +510,6 @@ class GetAllRegisteredProvidersView(generics.ListAPIView):
             return ResponseMessageUtils(message="List of registered providers", data=serializer.data, status_code=status.HTTP_200_OK)
 
         except Exception as e:
-            print(f'qweqwe: {str(e)}')
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
