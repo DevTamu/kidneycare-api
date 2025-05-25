@@ -252,7 +252,7 @@ class GetPatientUpcomingAppointmentView(generics.RetrieveAPIView):
             user_appointment = Appointment.objects.filter(
                 user_id=user_id,
                 # date__range=(start, end),
-            ).order_by('-created_at').first()
+            ).order_by('created_at').first()
 
             if not user_appointment:
                 return ResponseMessageUtils(message="No upcoming apppointment found", status_code=status.HTTP_404_NOT_FOUND)
