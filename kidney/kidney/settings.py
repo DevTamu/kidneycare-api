@@ -36,23 +36,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 DEBUG = os.environ.get('DEBUG')    
 
 
-#ALLOWED_HOSTS = ["*"]
-# ALLOWED_HOSTS = ["kidneycare-api.onrender.com"]
-
-# ALLOWED_HOSTS = ["*"]
-ALLOWED_HOSTS = ['kidneycare-api.onrender.com', 'localhost', '127.0.0.1']
-
-
-
-
-CSRF_TRUSTED_ORIGINS = [
-    'https://anxious-misti-devtamu-3916140d.koyeb.app',  # or your custom domain
-]
-
-
-
-
-
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 INSTALLED_APPS = [
@@ -117,20 +101,14 @@ WSGI_APPLICATION = 'kidney.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True,
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
+
+
 
 # DATABASES = {
 #     'default': {
