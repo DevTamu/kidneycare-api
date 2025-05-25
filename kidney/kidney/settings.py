@@ -20,7 +20,6 @@ cloudinary.config(
     secure=True
 )
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -32,7 +31,7 @@ DEBUG = os.environ.get('DEBUG')
 
 #ALLOWED_HOSTS = ["*"]
 
-ALLOWED_HOSTS = ["kidneycare-api.onrender.com"]
+ALLOWED_HOSTS = ["kidneycare-api.onrender.com", "localhost", "127.0.0.1"]
 
 CSRF_TRUSTED_ORIGINS = ['https://kidneycare-api.onrender.com']
 
