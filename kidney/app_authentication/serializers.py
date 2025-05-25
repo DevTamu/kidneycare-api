@@ -1012,7 +1012,7 @@ class GetAllRegisteredProvidersSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'user_image']
+        fields = ['id', 'first_name', 'last_name', 'user_image']
 
     def get_user_image(self, obj):
 
