@@ -33,7 +33,7 @@ cloudinary.config(
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = os.environ.get('DEBUG')    
+DEBUG = os.environ.get('DEBUG')    
 
 ALLOWED_HOSTS = ["*"]
 # ALLOWED_HOSTS = ["kidneycare-api.onrender.com"]
