@@ -792,6 +792,57 @@ class CancelPatientUpcomingAppointmentInAppointmentPageSerializer(serializers.Mo
         for field in self.fields.values():
             field.required = False
 
+class GetUpcomingAppointmentDetailsInPatientSerializer(serializers.ModelSerializer):
+
+    date = serializers.SerializerMethodField()
+    time = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Appointment
+        fields = ['id', 'user', 'date', 'time', 'status']
+
+    def get_date(self, obj):
+        return obj.date.strftime('%m/%d/%Y')
+
+    def get_time(self, obj):
+        return obj.time.strftime('%I:%M %p')
+    
+    def to_representation(self, instance):
+
+        #get the request object from the serializer context
+        request = self.context.get('request')
+
+        #get the default serialized data from the parent class
+        data = super().to_representation(instance)
+
+        #rename key
+        data["user_id"] = str(data.pop("user")).replace("-", "")
+
+        assigned_appointment = AssignedAppointment.objects.select_related('appointment', 'assigned_machine', 'assigned_provider') \
+        .get(appointment=data.get('id'))
+
+        if assigned_appointment and assigned_appointment.assigned_provider:
+            data["assigned_provider_name"] = f"{assigned_appointment.assigned_provider.assigned_provider.role.capitalize()} {assigned_appointment.assigned_provider.assigned_provider.first_name.capitalize()}"
+        else:
+            data["assigned_provider_name"] = None
+
+        if assigned_appointment and assigned_appointment.assigned_machine:
+            data["assigned_machine"] = f"Machine #{assigned_appointment.assigned_machine.assigned_machine}"
+        else:
+            data["assigned_machine"] = None
+
+        if assigned_appointment:
+            try:
+                user_profile = Profile.objects.get(user=assigned_appointment.assigned_provider.assigned_provider)
+            except Profile.DoesNotExist:
+                pass
+        
+        data["user_image"] = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+
+        return data
+
+    
+
 
 
 
