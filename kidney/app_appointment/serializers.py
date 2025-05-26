@@ -554,7 +554,7 @@ class GetPatientUpcomingAppointmentsSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Appointment
-        fields = ['date', 'time', 'user', 'id']
+        fields = ['date', 'time', 'user', 'id', 'status']
 
     def to_representation(self, instance):
         
@@ -621,7 +621,7 @@ class GetPatientUpcomingAppointmentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Appointment
-        fields = ['date', 'time', 'user', 'id']
+        fields = ['date', 'time', 'user', 'id', 'status']
 
     def to_representation(self, instance):
         
