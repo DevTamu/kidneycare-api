@@ -1012,7 +1012,15 @@ class GetAllRegisteredProvidersSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'user_image']
+        fields = ['id', 'first_name', 'last_name', 'user_image']
+
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        data["user_id"] = str(data.pop('id')).replace("-", "")
+
+        return data
 
     def get_user_image(self, obj):
 
