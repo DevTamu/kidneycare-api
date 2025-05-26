@@ -216,7 +216,7 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
 
         #extract the assigned provider data
         assigned_providers_data = validated_data.pop('assigned_provider')
-
+        
         appointment = self.context.get('appointment_pk')
 
         #create assigned machine object instance linked to the appointment
