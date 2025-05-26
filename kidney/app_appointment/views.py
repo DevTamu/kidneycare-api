@@ -10,7 +10,8 @@ from .serializers import (
     GetPatientUpcomingAppointmentsSerializer,
     GetPatientUpcomingAppointmentSerializer,
     CancelPatientUpcomingAppointmentInAppointmentPageSerializer,
-    GetPatientAppointmentDetailsInAdminSerializer
+    GetPatientAppointmentDetailsInAdminSerializer,
+    GetUpcomingAppointmentDetailsInPatientSerializer
 )
 from app_authentication.models import User
 from .models import Appointment, AssignedProvider
@@ -336,6 +337,36 @@ class GetPatientAppointmentDetailsInAdminView(generics.RetrieveAPIView):
             return ResponseMessageUtils(message="Appointment details found", data=serializer.data, status_code=status.HTTP_200_OK)
 
         except Exception as e:
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+
+class GetUpcomingAppointmentDetailsInPatientView(generics.RetrieveAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetUpcomingAppointmentDetailsInPatientSerializer
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        return Appointment.objects.filter(id=self.kwargs.get('pk'), status='Approved').first()
+    
+    def get(self, request, *args, **kwargs):
+
+        try:
+
+            appointment = self.get_queryset()
+
+            if not appointment:
+                return ResponseMessageUtils(message="No appointment details found", status_code=status.HTTP_404_NOT_FOUND)
+            
+            serializer = self.get_serializer(appointment, many=False)
+
+            return ResponseMessageUtils(message="Appointment details found", data=serializer.data)
+
+        except Exception as e:
+            print(f"WHAT WENT WRONG?: {e}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
