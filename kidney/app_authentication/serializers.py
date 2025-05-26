@@ -14,7 +14,8 @@ from datetime import timedelta
 from django.core.cache import cache
 from django.contrib.auth.hashers import make_password
 
-OTP_VALIDITY_SECONDS = 180  # 3 minutes otp validity    
+OTP_VALIDITY_SECONDS = 180  # 3 minutes otp validity
+MAX_ATTEMPT = 5 #max attempt to send code
 
 class RefreshTokenSerializer(TokenRefreshSerializer):
 
@@ -78,7 +79,7 @@ class SendOTPSerializer(serializers.Serializer):
             #cache keys
             user_cache_key = f"otp_user_data_{username.lower()}"
             timer_key = f"otp_timer_{username.lower()}"
-      
+
             #check if theres an exisiting unverified otp
             cached_data = cache.get(user_cache_key)
             if cached_data:
@@ -99,11 +100,13 @@ class SendOTPSerializer(serializers.Serializer):
             otp_token = uuid.uuid4()
             
             #save otp no user assigned yet
-            otp_obj = OTP.objects.create(
+            otp_obj, _ = OTP.objects.update_or_create(
                 user=None,
-                otp_code=otp,
-                is_verified=False,
-                otp_token=otp_token
+                defaults={
+                    "otp_code":otp,
+                    "is_verified":False,
+                    "otp_token":otp_token
+                }
             )
 
             #send otp via email
@@ -643,22 +646,25 @@ class LogoutSerializer(serializers.Serializer):
             raise serializers.ValidationError({"message": "Invalid refresh token."})
 
         try:
-
+            
+            #parse the token
             access_token = AccessToken(self.access_token_str)
 
+            #retrive the user with the user_id from the token payload
             user = User.objects.get(id=access_token["user_id"])
 
             if not user:
                 raise serializers.ValidationError({"message": "No user found"})
-                            
+            
+            #update the status of the user once logged out
             user.status = 'Offline'
             user.save()
 
-            # Ensure datetime fields are correctly formatted as strings
+            #format datetime fields are correctly formatted as strings
             created_at_str = datetime.fromtimestamp(access_token['iat']).isoformat()
             expires_at_str = datetime.fromtimestamp(access_token['exp']).isoformat()
 
-            # Create OutstandingToken if not exists
+            # Create OutstandingToken if not exists, if exists return the existing object
             outstanding_token, _ = OutstandingToken.objects.get_or_create(
                 jti=access_token['jti'],
                 defaults={
@@ -669,7 +675,7 @@ class LogoutSerializer(serializers.Serializer):
                 }
             )
 
-            # Blacklist the access_token
+            # Blacklist the token
             BlacklistedToken.objects.get_or_create(token=outstanding_token)
         except TokenError as e:
             raise serializers.ValidationError({"message": "Invalid access token."})
