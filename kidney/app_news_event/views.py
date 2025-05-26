@@ -54,15 +54,16 @@ class GetNewsEventWithIDView(generics.RetrieveAPIView):
 
     permission_classes = [IsAuthenticated]
     serializer_class = GetNewsEventWithIDSerializer
-    lookup_field = 'pk'
+    lookup_field = 'pk' #capture primary key id news event
 
     def get_queryset(self):
-        return NewsEvent.objects.all()
+        return NewsEvent.objects.filter(id=self.kwargs.get('pk')).first()
 
     def get(self, request, *args, **kwargs):
 
         try:
-            news_event = self.get_queryset().filter(id=kwargs.get('pk')).first()
+
+            news_event = self.get_queryset()
 
             if not news_event:
                 return ResponseMessageUtils(message="No news event found", status_code=status.HTTP_404_NOT_FOUND)
