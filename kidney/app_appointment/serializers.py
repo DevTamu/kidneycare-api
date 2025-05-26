@@ -206,8 +206,7 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
         return attrs
     
 
-    #create assigned appointments along with their machines and providers.
-    #uses an atomic transaction to ensure rollback in case of any failure.
+    #use an atomic transaction to ensure rollback in case of any failure.
     @transaction.atomic
     def create(self, validated_data):
 
