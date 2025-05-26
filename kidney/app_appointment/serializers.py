@@ -65,7 +65,7 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
         #taken_slots = [time_slot for time_slot in formatted_time_slots if Appointment.objects.filter(time=time_slot).exists()]
 
     #     #check if the slots already in taken slots means someone already booked that time
-    #     if formatted_time_input in taken_slots and date == schedule_data.date_created:
+    #     if formatted_time_input in taken_slots:
     #         raise serializers.ValidationError({"message": "This time slot is already booked. Please choose different time."})
 
 
@@ -76,7 +76,7 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
         #get the request object from the serializer context
         request = self.context.get('request')
 
-        #create an appointment linked to the current authenticated user/patient
+        #create an appointment related to the current authenticated user/patient
         create_appointment = Appointment.objects.create(
             user=request.user,
             date=validated_data.get('date', None),
@@ -113,7 +113,7 @@ class UpdateAppointmentInPatientSerializer(serializers.ModelSerializer):
         time = attrs.get('time', None)
         # date = attrs.get('date', None)
 
-        schedule_data = Schedule.objects.get(id=1)
+        schedule_data = Schedule.objects.get(id=3)
 
         #convert time into datetime objects
         start_time = datetime.strptime(schedule_data.start_time.strftime('%I:%M %p'), '%I:%M %p')
@@ -206,8 +206,7 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
         return attrs
     
 
-    #create assigned appointments along with their machines and providers.
-    #uses an atomic transaction to ensure rollback in case of any failure.
+    #use an atomic transaction to ensure rollback in case of any failure.
     @transaction.atomic
     def create(self, validated_data):
 
@@ -352,11 +351,11 @@ class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
     def get_user_id(self, obj):
         return str(obj.appointment.user.id)
        
-    #format the appointment date in a readable format (e.g., May 25, 2025
+    #format the appointment date in a readable format (May 25, 2025
     def get_date(self, obj):
         return obj.appointment.date.strftime('%B %d, %Y')
 
-    #format the appointment time in a readable format (e.g., May 25, 2025
+    #format the appointment time in a readable format (May 25, 2025
     def get_time(self, obj):
         return obj.appointment.time.strftime('%I:%M %p')
     
@@ -427,7 +426,7 @@ class GetPatientAppointmentHistorySerializer(serializers.ModelSerializer):
         data["user_id"] = str(user_id).replace("-", "")
         data["appointment_id"] = appointment_id
 
-        #fetch all assigned appointments linked to the specific appointment
+        #fetch all assigned appointments related to the specific appointment
         #and get the related assigned machine, provider
         try:
             assigned_appointments = AssignedAppointment.objects  \
@@ -604,7 +603,7 @@ class GetPatientUpcomingAppointmentsSerializer(serializers.ModelSerializer):
             except Profile.DoesNotExist:
                 provider_profile = None
 
-
+        #safe access to profile data
         if provider_profile and provider_profile.picture:
             data["picture"] = request.build_absolute_uri(provider_profile.picture.url)
         else:
