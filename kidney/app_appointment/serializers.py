@@ -699,6 +699,8 @@ class GetPatientAppointmentDetailsInAdminSerializer(serializers.ModelSerializer)
 
     def to_representation(self, instance):
 
+        assigned_appointment = None
+
         #get the request object from the serializer context
         request = self.context.get('request')
 
@@ -712,21 +714,35 @@ class GetPatientAppointmentDetailsInAdminSerializer(serializers.ModelSerializer)
         try:
             assigned_appointment = AssignedAppointment.objects.select_related('appointment').filter(appointment=data.get('appointment_id')).first()
         except AssignedAppointment.DoesNotExist:
-            pass
+            assigned_appointment = None
 
-        try:
-            user_profile = Profile.objects.select_related('user').filter(user=assigned_appointment.assigned_provider.assigned_provider.id).first()
-        except Profile.DoesNotExist:
-            pass
 
-        data["assigned_machine"] = int(assigned_appointment.assigned_machine.assigned_machine) if assigned_appointment.assigned_machine and assigned_appointment.assigned_machine.assigned_machine else None
+        if assigned_appointment:
+            try:
+                user_profile = Profile.objects.select_related('user').filter(user=assigned_appointment.assigned_provider.assigned_provider.id).first()
+            except Profile.DoesNotExist:
+                pass
 
-        data["provider_details"] = {
-            "provider_first_name": assigned_appointment.assigned_provider.assigned_provider.first_name if assigned_appointment.assigned_provider and assigned_appointment.assigned_provider.assigned_provider.first_name else None,
-            "provider_last_name": assigned_appointment.assigned_provider.assigned_provider.last_name if assigned_appointment.assigned_provider and assigned_appointment.assigned_provider.assigned_provider.last_name else None,
-            "provider_user_id": str(assigned_appointment.assigned_provider.assigned_provider.id).replace("-", ""),
-            "provider_user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
-        }
+        if assigned_appointment and assigned_appointment.assigned_provider:
+            data["provider_details"] = {
+                "provider_first_name": assigned_appointment.assigned_provider.assigned_provider.first_name,
+                "provider_last_name": assigned_appointment.assigned_provider.assigned_provider.last_name,
+                "provider_user_id": str(assigned_appointment.assigned_provider.assigned_provider.id).replace("-", ""),
+                "provider_user_image": request.build_absolute_uri(user_profile.picture.url)
+            }
+        else:
+            data["provider_details"] = {
+                "provider_first_name": None,
+                "provider_last_name": None,
+                "provider_user_id": None,
+                "provider_user_image": None
+            }
+
+        
+        if assigned_appointment and assigned_appointment.assigned_machine:
+            data["assigned_machine"] = int(assigned_appointment.assigned_machine.assigned_machine)
+        else:
+            data["assigned_machine"] = None
 
         #extract the provider details
         provider_details = data.pop('provider_details', {})

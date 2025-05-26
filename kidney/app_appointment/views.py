@@ -25,7 +25,7 @@ from .models import AssignedAppointment
 from rest_framework.pagination import PageNumberPagination
 
 class AppointmentPagination(PageNumberPagination):
-    page_size = 10  #define how many appointments to show per page
+    page_size = 20  #define how many appointments to show per page
     page_size_query_param = 'page'  # Allow custom page size via query params
     max_page_size = 25  # Maximum allowed page size
 
@@ -336,7 +336,6 @@ class GetPatientAppointmentDetailsInAdminView(generics.RetrieveAPIView):
             return ResponseMessageUtils(message="Appointment details found", data=serializer.data, status_code=status.HTTP_200_OK)
 
         except Exception as e:
-            print(f"WHAT WENT WRONG?: {e}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
