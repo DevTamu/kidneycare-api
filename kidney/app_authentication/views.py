@@ -20,7 +20,6 @@ from .serializers import (
 )
 from rest_framework import serializers
 from django.core.cache import cache
-from django.db.models.functions import TruncDate
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import generics
 from kidney.utils import ResponseMessageUtils, get_tokens_for_user, extract_first_error_message, get_token_user_id
@@ -30,12 +29,8 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import TokenError, AccessToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth import logout
-import logging
 from .models import OTP, User, Profile, UserInformation
-from datetime import timedelta
-from django.utils import timezone
 
-logger = logging.getLogger(__name__)
 
 class SendOTPView(generics.CreateAPIView):
 
@@ -505,8 +500,8 @@ class GetAllRegisteredProvidersView(generics.ListAPIView):
             queryset = User.objects.filter(role__in=['Nurse', 'Head Nurse'])
             serializer = self.get_serializer(queryset, many=True)
 
-            #cache the serialized data for 10 minutes (600 seconds)
-            # cache.set(data_cache_key, serializer.data, timeout=600)
+            # cache the serialized data for 10 minutes (600 seconds)
+            cache.set(data_cache_key, serializer.data, timeout=600)
 
             return ResponseMessageUtils(message="List of registered providers", data=serializer.data, status_code=status.HTTP_200_OK)
 

@@ -14,7 +14,8 @@ from datetime import timedelta
 from django.core.cache import cache
 from django.contrib.auth.hashers import make_password
 
-OTP_VALIDITY_SECONDS = 180  # 3 minutes otp validity    
+OTP_VALIDITY_SECONDS = 180  # 3 minutes otp validity
+MAX_ATTEMPT = 5 #max attempt to send code
 
 class RefreshTokenSerializer(TokenRefreshSerializer):
 
@@ -78,7 +79,7 @@ class SendOTPSerializer(serializers.Serializer):
             #cache keys
             user_cache_key = f"otp_user_data_{username.lower()}"
             timer_key = f"otp_timer_{username.lower()}"
-      
+
             #check if theres an exisiting unverified otp
             cached_data = cache.get(user_cache_key)
             if cached_data:
@@ -99,11 +100,13 @@ class SendOTPSerializer(serializers.Serializer):
             otp_token = uuid.uuid4()
             
             #save otp no user assigned yet
-            otp_obj = OTP.objects.create(
+            otp_obj, _ = OTP.objects.update_or_create(
                 user=None,
-                otp_code=otp,
-                is_verified=False,
-                otp_token=otp_token
+                defaults={
+                    "otp_code":otp,
+                    "is_verified":False,
+                    "otp_token":otp_token
+                }
             )
 
             #send otp via email
