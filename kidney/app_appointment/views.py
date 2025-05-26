@@ -5,7 +5,7 @@ from .serializers import (
     UpdateAppointmentInPatientSerializer,
     AddAppointmentDetailsInAdminSerializer,
     GetPatientAppointmentHistorySerializer,
-    GetPendingAppointsmentsInAdminSerializer,
+    GetAllAppointsmentsInAdminSerializer,
     CancelAppointmentSerializer,
     GetPatientUpcomingAppointmentsSerializer,
     GetPatientUpcomingAppointmentSerializer,
@@ -183,26 +183,36 @@ class GetPatientAppointmentHistoryView(generics.ListAPIView):
             )
       
 
-class GetPendingAppointsmentsInAdminView(generics.ListAPIView):
+class GetAllAppointsmentsInAdminView(generics.ListAPIView):
 
     permission_classes = [IsAuthenticated]
-    serializer_class = GetPendingAppointsmentsInAdminSerializer
+    serializer_class = GetAllAppointsmentsInAdminSerializer
     pagination_class = AppointmentPagination
-
+    lookup_field = 'status'
 
     def get(self, request, *args, **kwargs):
-
+        appointment_status = kwargs.get('status')
         try:
 
-            appointment = Appointment.objects.filter(status='Pending')
+            #if no status path parameter is provided, display all appointments
+            if appointment_status in (None, ""):
+                appointment = Appointment.objects.all()
+            else:
+                #filter appointments based on the status path parameter value
+                appointment = Appointment.objects.filter(status=appointment_status)
 
             paginator = self.pagination_class()
             paginated_data = paginator.paginate_queryset(appointment, request)
             serializer = self.get_serializer(paginated_data, many=True)
             paginated_response = paginator.get_paginated_response(serializer.data)
             
-            return ResponseMessageUtils(message="List of Pending Appointments   ", data=paginated_response.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(
+                message="List of Pending Appointments",
+                data=paginated_response.data,
+                status_code=status.HTTP_200_OK
+            )
         except Exception as e:
+            print(f"qwewqe: {str(e)}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
