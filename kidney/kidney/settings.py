@@ -3,7 +3,6 @@ from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 import os
-import dj_database_url
 from django.core.files.storage import default_storage
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -34,7 +33,6 @@ DEBUG = os.environ.get('DEBUG')
 ALLOWED_HOSTS = ["kidneycare-api.onrender.com"]
 
 CSRF_TRUSTED_ORIGINS = ['https://kidneycare-api.onrender.com']
-
 
 # Application definition
 INSTALLED_APPS = [
@@ -97,6 +95,7 @@ WSGI_APPLICATION = 'kidney.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
 
 # DATABASES = {
 #     'default': {
