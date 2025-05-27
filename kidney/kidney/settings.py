@@ -7,7 +7,7 @@ from django.core.files.storage import default_storage
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv()
-
+import dj_database_url
 
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
@@ -28,11 +28,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG')    
 
-# ALLOWED_HOSTS = ["*"]
-
-ALLOWED_HOSTS = ["kidneycare-api.onrender.com"]
-
-CSRF_TRUSTED_ORIGINS = ['https://kidneycare-api.onrender.com']
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 INSTALLED_APPS = [
@@ -97,20 +93,13 @@ WSGI_APPLICATION = 'kidney.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True,
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -149,15 +138,11 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+MEDIA_URL = "media/"
+
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-MEDIA_URL = "media/"
-# MEDIA_ROOT = BASE_DIR / MEDIA_URL
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # or your preferred path
 STATICFILES_STORAGE = 'cloudinary_storage.storage.StaticCloudinaryStorage'
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -170,7 +155,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1), #5 minute access tokens
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1), #1 hour access tokens
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1), # 1 day refresh tokens
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
