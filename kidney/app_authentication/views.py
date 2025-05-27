@@ -49,6 +49,7 @@ class SendOTPView(generics.CreateAPIView):
                 )
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            print(f'qwewqe: {e}')
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
