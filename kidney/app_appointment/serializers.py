@@ -29,7 +29,6 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
 
         time = attrs.get('time', None)
-    #     date = attrs.get('date', None)
 
         schedule_data = Schedule.objects.get(id=3)
 
@@ -37,8 +36,9 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
         start_time = datetime.strptime(schedule_data.start_time.strftime('%I:%M %p'), '%I:%M %p')
         end_time = datetime.strptime(schedule_data.end_time.strftime('%I:%M %p'), '%I:%M %p')
 
-        #generate interval every 1 hour
+        #set the interval to 1 hour
         interval = timedelta(hours=1)
+        #set the start time to the current_time
         current_time = start_time
 
         #store all the available time in 'time slots'
@@ -449,16 +449,13 @@ class GetPatientAppointmentHistorySerializer(serializers.ModelSerializer):
 
             try:
                 user_profile = Profile.objects.filter(user=assigned_provider).first()
+                data["user_image"] = (
+                    request.build_absolute_uri(user_profile.picture.url)
+                    if user_profile.picture else None
+                )
             except Profile.DoesNotExist:
                 pass
-
-        #add profile picture URL (absolute URI) to the response if available
-        data["user_image"] = (
-            request.build_absolute_uri(user_profile.picture.url)
-            if user_profile.picture else None
-        )
-
-
+            
         return data
 
 
