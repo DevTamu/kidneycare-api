@@ -5,11 +5,11 @@ from app_appointment.models import Appointment
 class Notification(TimestampModel):
 
     STATUS_CHOICES = [
-        ('pending', 'Pending'),       # Created but not yet sent
-        ('approved', 'Approved'),       # Created but not yet sent
-        ('scheduled', 'Scheduled'),   # Scheduled to be sent later
-        ('maintenance', 'Maintenance'),   # Scheduled to be sent later
-        ('declined', 'Declined'),   # Cancelled before sending
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('scheduled', 'Scheduled'),
+        ('maintenance', 'Maintenance'),
+        ('declined', 'Declined'), 
     ]
 
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name='notifications')
