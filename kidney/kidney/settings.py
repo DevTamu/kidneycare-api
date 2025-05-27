@@ -28,7 +28,13 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG')    
 
-ALLOWED_HOSTS = ["*"]
+
+# ALLOWED_HOSTS = ["*"]
+
+ALLOWED_HOSTS = ["kidneycare-api.onrender.com"]
+
+CSRF_TRUSTED_ORIGINS = ['https://kidneycare-api.onrender.com']
+
 
 # Application definition
 INSTALLED_APPS = [
@@ -93,11 +99,20 @@ WSGI_APPLICATION = 'kidney.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=True,
+    )
 }
 
 
@@ -155,7 +170,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1), #1 hour access tokens
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=30), #30 days access tokens
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1), # 1 day refresh tokens
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
