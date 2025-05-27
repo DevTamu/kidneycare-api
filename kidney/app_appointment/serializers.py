@@ -6,7 +6,6 @@ from app_authentication.models import User, Profile, UserInformation
 from app_schedule.models import Schedule 
 from datetime import datetime, timedelta
 
-
 class CreateAppointmentSerializer(serializers.ModelSerializer):
 
     date = serializers.DateField(format='%m/%d/%Y',input_formats=['%m/%d/%Y'])
@@ -30,7 +29,7 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
 
         time = attrs.get('time', None)
 
-        schedule_data = Schedule.objects.get(id=3)
+        schedule_data = Schedule.objects.get(id=1)
 
         #convert time into datetime objects
         start_time = datetime.strptime(schedule_data.start_time.strftime('%I:%M %p'), '%I:%M %p')
@@ -836,6 +835,10 @@ class GetUpcomingAppointmentDetailsInPatientSerializer(serializers.ModelSerializ
         data["user_image"] = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
 
         return data
+    
+
+
+
 
     
 
