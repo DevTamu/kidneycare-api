@@ -21,6 +21,8 @@ from kidney.utils import (
     extract_first_error_message,
     get_token_user_id
 )
+from django.db.models import Q
+from datetime import timedelta, datetime
 from rest_framework.permissions import IsAuthenticated
 from .models import AssignedAppointment
 from rest_framework.pagination import PageNumberPagination
@@ -162,7 +164,7 @@ class GetPatientInformationView(generics.RetrieveAPIView):
             )
    
     
-class GetPatientAppointmentHistoryView(generics.ListAPIView):
+class GetPatientAppointmentHistoryView(generics.RetrieveAPIView):
 
     permission_classes = [IsAuthenticated]
     serializer_class = GetPatientAppointmentHistorySerializer
@@ -177,6 +179,7 @@ class GetPatientAppointmentHistoryView(generics.ListAPIView):
             serializer = self.get_serializer(self.get_queryset(), many=True)
             return ResponseMessageUtils(message="List of Appointment history", data=serializer.data, status_code=status.HTTP_200_OK)
         except Exception as e:
+            print(f"QWEWQEWQEWQ: {e}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -254,19 +257,13 @@ class GetPatientUpcomingAppointmentView(generics.RetrieveAPIView):
         user_id = get_token_user_id(request)
         
         try:
-
-            # today = datetime.today().date()
-            # #starting 1 day before the upcoming appointment
-            # start = datetime.combine(today + timedelta(days=1), datetime.min.time())
-            # #ending 1 day before the upcoming appointment
-            # end = datetime.combine(today + timedelta(days=1), datetime.max.time())
-            
-            #get the most recently created appointment for the patient/user
+            next_day = datetime.now() + timedelta(days=1)
+                        
             user_appointment = Appointment.objects.filter(
                 user_id=user_id,
-                # date__range=(start, end),
-            ).order_by('created_at').first()
-
+                date__lte=next_day
+            ).first()
+   
             if not user_appointment:
                 return ResponseMessageUtils(message="No upcoming apppointment found", status_code=status.HTTP_404_NOT_FOUND)
 
