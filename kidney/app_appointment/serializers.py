@@ -5,6 +5,7 @@ from django.db import transaction
 from app_authentication.models import User, Profile, UserInformation
 from app_schedule.models import Schedule 
 from datetime import datetime, timedelta
+from app_notification.models import Notification
 
 class CreateAppointmentSerializer(serializers.ModelSerializer):
 
@@ -81,6 +82,8 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
             date=validated_data.get('date', None),
             time=validated_data.get('time', None).strftime('%I:%M:%S'),
         )
+
+        Notification.objects.create(appointment=create_appointment)
 
         #return the created appointment
         return create_appointment
