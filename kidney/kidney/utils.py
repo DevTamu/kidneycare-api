@@ -203,7 +203,7 @@ def get_token_user_id(request):
 
     #get the authorization from the headers
     auth_header = request.headers.get('Authorization', [])
-
+    
     if not auth_header or not auth_header.startswith('Bearer '):
         return ResponseMessageUtils(message="Invalid Authorization header", status_code=status.HTTP_401_UNAUTHORIZED)
     
