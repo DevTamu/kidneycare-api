@@ -30,7 +30,7 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
 
         time = attrs.get('time', None)
 
-        schedule_data = Schedule.objects.get(id=1)
+        schedule_data = Schedule.objects.get(id=3)
 
         #convert time into datetime objects
         start_time = datetime.strptime(schedule_data.start_time.strftime('%I:%M %p'), '%I:%M %p')
@@ -83,7 +83,7 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
             time=validated_data.get('time', None).strftime('%I:%M:%S'),
         )
 
-        # Notification.objects.create(appointment=create_appointment)
+        Notification.objects.create(appointment=create_appointment)
 
         #return the created appointment
         return create_appointment
