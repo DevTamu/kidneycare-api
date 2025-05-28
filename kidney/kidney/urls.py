@@ -13,6 +13,7 @@ urlpatterns = [
     path('', include('app_analytics.urls')),
     path('', include('app_schedule.urls')),
     path('', include('app_diet_plan.urls')),
+    path('', include('app_notification.urls'))
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
