@@ -26,6 +26,9 @@ from datetime import timedelta, datetime
 from rest_framework.permissions import IsAuthenticated
 from .models import AssignedAppointment
 from rest_framework.pagination import PageNumberPagination
+import logging
+
+logger = logging.getLogger(__name__)
 
 class AppointmentPagination(PageNumberPagination):
     page_size = 20  #define how many appointments to show per page
@@ -43,10 +46,11 @@ class CreateAppointmentView(generics.CreateAPIView):
             if serializer.is_valid():
                 serializer.save()
                 return ResponseMessageUtils(message="Successfully created an appointment", status_code=status.HTTP_201_CREATED)
+            logger.error(f"WHAT WENT WRONG?: {extract_first_error_message(serializer.errors)}")
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
             
         except Exception as e:
-            print(f"WHAT WENT WRONG?: {e}")
+            logger.error(f"WHAT WENT WRONG?: {e}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
