@@ -83,7 +83,7 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
             time=validated_data.get('time', None).strftime('%I:%M:%S'),
         )
 
-        Notification.objects.create(appointment=create_appointment)
+        # Notification.objects.create(appointment=create_appointment)
 
         #return the created appointment
         return create_appointment
