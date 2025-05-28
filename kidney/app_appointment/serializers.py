@@ -5,7 +5,7 @@ from django.db import transaction
 from app_authentication.models import User, Profile, UserInformation
 from app_schedule.models import Schedule 
 from datetime import datetime, timedelta
-
+from app_notification.models import Notification
 
 class CreateAppointmentSerializer(serializers.ModelSerializer):
 
@@ -30,7 +30,7 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
 
         time = attrs.get('time', None)
 
-        schedule_data = Schedule.objects.get(id=3)
+        schedule_data = Schedule.objects.get(id=1)
 
         #convert time into datetime objects
         start_time = datetime.strptime(schedule_data.start_time.strftime('%I:%M %p'), '%I:%M %p')
@@ -82,6 +82,8 @@ class CreateAppointmentSerializer(serializers.ModelSerializer):
             date=validated_data.get('date', None),
             time=validated_data.get('time', None).strftime('%I:%M:%S'),
         )
+
+        Notification.objects.create(appointment=create_appointment)
 
         #return the created appointment
         return create_appointment
@@ -446,15 +448,15 @@ class GetPatientAppointmentHistorySerializer(serializers.ModelSerializer):
             data["role"] = None
        
         if assigned_provider:
-
             try:
                 user_profile = Profile.objects.filter(user=assigned_provider).first()
-                data["user_image"] = (
-                    request.build_absolute_uri(user_profile.picture.url)
-                    if user_profile.picture else None
-                )
             except Profile.DoesNotExist:
                 pass
+            
+        if assigned_provider:
+            data["user_image"] = request.build_absolute_uri(user_profile.picture.url)
+        else:
+            data["user_image"] = None
             
         return data
 
@@ -836,6 +838,10 @@ class GetUpcomingAppointmentDetailsInPatientSerializer(serializers.ModelSerializ
         data["user_image"] = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
 
         return data
+    
+
+
+
 
     
 

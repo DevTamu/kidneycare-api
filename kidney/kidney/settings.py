@@ -60,7 +60,8 @@ INSTALLED_APPS = [
     'app_treatment',
     'app_schedule',
     'app_diet_plan',
-    'app_chat'
+    'app_chat',
+    'app_notification'
 ]
 
 MIDDLEWARE = [
