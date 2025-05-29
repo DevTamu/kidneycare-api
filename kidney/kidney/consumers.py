@@ -190,3 +190,4 @@ class ChatConsumer(AsyncWebsocketConsumer):
             user_id = access_token["user_id"]
             return await self.get_user(user_id)
         except TokenError:
+            return None
