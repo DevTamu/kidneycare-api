@@ -64,16 +64,32 @@ class CreateTreatmentFormSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Treatment
-        fields = ['user', 'diagnosis', 'nephrologist', 'last_treatment_date', 'treatment_prescription', 'treatment_access_type', 'treatment_details', 'treatment_pre_dialysis', 'treatment_post_dialysis']
+        fields = ['diagnosis', 'nephrologist', 'last_treatment_date', 'treatment_prescription', 'treatment_access_type', 'treatment_details', 'treatment_pre_dialysis', 'treatment_post_dialysis']
 
     def validate(self, attrs):
         
-        required_fields = ['diagnosis', 'nephrologist', 'last_treatment_date', 'treatment_prescription', 'treatment_access_type', 'treatment_details', 'treatment_pre_dialysis', 'treatment_post_dialysis']
+        required_fields = [
+            'diagnosis', 'nephrologist', 'last_treatment_date',
+            'treatment_prescription', 'treatment_access_type',
+            'treatment_details', 'treatment_pre_dialysis', 'treatment_post_dialysis'
+        ]
         
         missing_fields = [field for field in required_fields if is_field_empty(attrs.get(field))]
 
         if missing_fields:
-            raise serializers.ValidationError({"message": "All fields are required"})
+            errors = {"message": f"{field} is required" for field in missing_fields}
+            raise serializers.ValidationError(errors)
+        
+        #nested serializer validation
+        for field_name in [
+            'treatment_prescription', 'treatment_access_type',
+            'treatment_details', 'treatment_pre_dialysis', 'treatment_post_dialysis'
+        ]:
+            nested_data = attrs.get(field_name)
+            serializer_class = self.fields[field_name].__class__
+            nested_serializer = serializer_class(data=nested_data)
+            if not nested_serializer.is_valid():
+                raise serializers.ValidationError({"message": f"{field_name}: {nested_serializer.errors}"})
         
         return attrs
 
@@ -81,7 +97,10 @@ class CreateTreatmentFormSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         
-        #extracted nested data
+        #get the pk from the context
+        pk = self.context.get('pk')
+
+        #extract the nested data
         treatment_prescription_data = validated_data.pop('treatment_prescription')
         treatment_access_type_data = validated_data.pop('treatment_access_type')
         treatment_details_data = validated_data.pop('treatment_details')
@@ -89,26 +108,31 @@ class CreateTreatmentFormSerializer(serializers.ModelSerializer):
         treatment_post_dialysis_data = validated_data.pop('treatment_post_dialysis')
 
         #create the main treatment instance
-        treatment = Treatment.objects.create(**validated_data)
+        treatment = Treatment.objects.create(
+            user=pk,
+            diagnosis=validated_data.get('diagnosis'),
+            nephrologist=validated_data.get('nephrologist'),
+            last_treatment_date=validated_data.get('last_treatment_date')
+        )
 
         #create the related objects
-        prescription = Prescription.objects.create(
+        Prescription.objects.create(
             treatment=treatment,
             **treatment_prescription_data
         )
-        access_type = AccessType.objects.create(
+        AccessType.objects.create(
             treatment=treatment,
             **treatment_access_type_data
         )
-        treatment_details = TreatmentDetail.objects.create(
+        TreatmentDetail.objects.create(
             treatment=treatment,
             **treatment_details_data
         )
-        pre_dialysis = PreDialysis.objects.create(
+        PreDialysis.objects.create(
             treatment=treatment,
             **treatment_pre_dialysis_data
         )
-        post_dialysis = PostDialysis.objects.create(
+        PostDialysis.objects.create(
             treatment=treatment,
             **treatment_post_dialysis_data
         )

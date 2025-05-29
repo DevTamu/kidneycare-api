@@ -31,6 +31,7 @@ DEBUG = os.environ.get('DEBUG')
 
 # ALLOWED_HOSTS = ["*"]
 
+
 ALLOWED_HOSTS = ["kidneycare-api.onrender.com"]
 
 CSRF_TRUSTED_ORIGINS = ['https://kidneycare-api.onrender.com']
@@ -107,6 +108,7 @@ WSGI_APPLICATION = 'kidney.wsgi.application'
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
+
 
 DATABASES = {
     'default': dj_database_url.config(
