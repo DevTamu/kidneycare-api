@@ -9,8 +9,6 @@ from app_authentication.models import User
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
-
-   
         """Handles the WebSocket connection."""
         self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
         print(f"ROOM NAME: {self.room_name}")
@@ -27,7 +25,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         #verify the token if its still valid
         try:
             access_token = AccessToken(token)   
-            print(f"ACCESS TOKEN: {access_token["user_id"]}")
             self.sender_id = str(access_token["user_id"]).replace("-", "")
             self.token = token  # Cache token for use in receive()
         except TokenError:
@@ -43,7 +40,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.accept()
         pprint(f"connected to room: {self.room_group_name}")
 
-        user_sender = await get_user_by_id(self.sender_id)
+        user_sender = await get_user_by_id(access_token["user_id"])
         user_receiver = await get_user_by_id(self.room_name)
 
         await self.send_message_introduction(user_sender, user_receiver)
@@ -105,8 +102,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def send_message_introduction(self, sender, receiver):
-        print(f"SENDER: {sender}")
-        print(f"RECEIVER: {receiver}")
         await self.channel_layer.group_send(
             self.room_group_name,
             {
