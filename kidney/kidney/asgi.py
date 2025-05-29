@@ -10,7 +10,7 @@ from .middleware.token_auth_middleware import JWTAuthMiddleware
 
 application = ProtocolTypeRouter(
     {
-        "http": get_asgi_application(),
+        "http": get_asgi_application(), 
         "websocket": AllowedHostsOriginValidator(
             JWTAuthMiddleware(URLRouter(websocket_urlpatterns))
         )

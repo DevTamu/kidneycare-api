@@ -2,14 +2,14 @@
 import logging
 from urllib.parse import parse_qs
 from rest_framework_simplejwt.tokens import AccessToken
-
+from django.contrib.auth import get_user_model
 from channels.db import database_sync_to_async
 
 logger = logging.getLogger(__name__)
 
 class JWTAuthMiddleware:
-    def __init__(self, app):
-        self.app = app
+    def __init__(self, inner):
+        self.inner = inner
 
     async def __call__(self, scope, receive, send):
         try:
@@ -19,20 +19,20 @@ class JWTAuthMiddleware:
             token = query_params.get("token", [None])[0]
             
             if not token:
-                logger.warning("No token provided in WebSocket connection")
+                logger.error("No token provided in WebSocket connection")
                 await send({"type": "websocket.close", "code": 4001})
                 return
 
             # Authenticate user
             user = await self.authenticate_token(token)
             if not user:
-                logger.warning(f"Invalid token: {token}")
+                logger.error(f"Invalid token: {token}")
                 await send({"type": "websocket.close", "code": 4003})
                 return
 
             scope["user"] = user
             logger.info(f"Authenticated user: {user.id}")
-            return await self.app(scope, receive, send)
+            return await self.inner(scope, receive, send)
 
         except Exception as e:
             logger.error(f"Authentication error: {str(e)}")
@@ -40,7 +40,6 @@ class JWTAuthMiddleware:
 
     @database_sync_to_async
     def authenticate_token(self, token):
-        from django.contrib.auth import get_user_model
         try:
             access_token = AccessToken(token)
             user_id = access_token["user_id"]

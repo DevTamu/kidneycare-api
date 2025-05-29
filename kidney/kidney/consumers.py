@@ -16,37 +16,27 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         """Handles the WebSocket connection."""
+        try:
+            # User is already authenticated by middleware
+            user = self.scope["user"]
+            if not user:
+                await self.close(code=4003)
+                return
 
-        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
+            self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
+            self.sender_id = str(user.id).replace("-", "")
+            
+            self.room_group_name = f"chat_{min(self.room_name, self.sender_id)}_{max(self.room_name, self.sender_id)}"
 
-        query_string = self.scope.get("query_string", b"").decode()
-        query_params = parse_qs(query_string)
-        token_list = query_params.get("token")
-        token = token_list[0] if token_list else None
+            await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+            await self.accept()
 
-        if not token:
-            await self.close(code=4001)  # No token, reject connection
-            return
-
-        user = await self.authenticate_token(token)
-
-        if not user:
-            await self.close(code=4003)  # Invalid token, reject connection
-            return
-
-        self.scope["user"] = user
-        self.sender_id = str(user.id).replace("-", "")
-
-        self.room_group_name = f"chat_{min(self.room_name, self.sender_id)}_{max(self.room_name, self.sender_id)}"
-
-        logger.debug("Token received:", token)
-        logger.debug("User authenticated:", user)
-
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-        await self.accept()
-
-        user_receiver = await get_user_by_id(self.room_name)
-        await self.send_message_introduction(self.scope["user"], user_receiver)
+            user_receiver = await get_user_by_id(self.room_name)
+            await self.send_message_introduction(user, user_receiver)
+            
+        except Exception as e:
+            logger.error(f"Connection error: {str(e)}")
+            await self.close(code=4003)
         
 
     async def disconnect(self, close_code):
