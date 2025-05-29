@@ -34,15 +34,12 @@ class JWTAuthMiddleware(BaseMiddleware):
         return await self.inner(scope, receive, send)
     
     def get_token_from_scope(self, scope):
-
-        #get the headers from the scope
         headers = dict(scope.get("headers", []))
 
+        # 1. Try Authorization header
         auth_header = headers.get(b'authorization', b'').decode('utf-8')
-
         if auth_header and auth_header.startswith('Bearer '):
-            return auth_header.split(' ')[1] #get the token part
-        return None    
+            return auth_header.split(' ')[1]
     
     @database_sync_to_async
     def get_user_from_token(self, token):
