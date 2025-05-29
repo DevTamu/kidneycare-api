@@ -17,7 +17,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         """Handles the WebSocket connection."""
         try:
-            # User is already authenticated by middleware
+            #user is already authenticated by middleware
             user = self.scope["user"]
             if not user:
                 await self.close(code=4003)
@@ -36,6 +36,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             
         except Exception as e:
             logger.error(f"Connection error: {str(e)}")
+            logger.info(f"Connection error: {str(e)}")
             await self.close(code=4003)
         
 

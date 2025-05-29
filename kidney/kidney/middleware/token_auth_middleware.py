@@ -8,22 +8,30 @@ from channels.db import database_sync_to_async
 logger = logging.getLogger(__name__)
 
 class JWTAuthMiddleware:
-    def __init__(self, inner):
-        self.inner = inner
+    def __init__(self, app):
+        self.app = app
 
     async def __call__(self, scope, receive, send):
-        try:
-            # Extract token from query string
-            query_string = scope.get("query_string", b"").decode()
-            query_params = parse_qs(query_string)
-            token = query_params.get("token", [None])[0]
-            
-            if not token:
-                logger.error("No token provided in WebSocket connection")
-                await send({"type": "websocket.close", "code": 4001})
-                return
+        # Log the entire query string for debugging
+        query_string = scope.get("query_string", b"").decode()
+        logger.debug(f"Raw query string: {query_string}")
+        logger.info(f"Raw query string: {query_string}")
+        
+        query_params = parse_qs(query_string)
+        logger.debug(f"Parsed query params: {query_params}")
+        logger.info(f"Parsed query params: {query_params}")
+        
+        token_list = query_params.get("token", [None])
+        token = token_list[0] if token_list else None
+        logger.debug(f"Extracted token: {token}")
+        logger.info(f"Extracted token: {token}")
 
-            # Authenticate user
+        if not token:
+            logger.error("No token provided in WebSocket connection")
+            await send({"type": "websocket.close", "code": 4001})
+            return
+
+        try:
             user = await self.authenticate_token(token)
             if not user:
                 logger.error(f"Invalid token: {token}")
@@ -32,7 +40,7 @@ class JWTAuthMiddleware:
 
             scope["user"] = user
             logger.info(f"Authenticated user: {user.id}")
-            return await self.inner(scope, receive, send)
+            return await self.app(scope, receive, send)
 
         except Exception as e:
             logger.error(f"Authentication error: {str(e)}")
