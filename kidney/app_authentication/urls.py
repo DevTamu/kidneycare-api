@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import (
     RegisterView,
+    RegisterAdminView,
     LoginView,
     RefreshTokenView,
     LogoutView,
@@ -16,14 +17,15 @@ from .views import (
     GetHealthCareProvidersView,
     EditProfileInPatientView,
     GetUserProfileInformationView,
-    AutomaticDeleteUnverifiedUserView
+    GetAllRegisteredProvidersView
 )
 
 urlpatterns = [
-    path('register/send-otp/', SendOTPView.as_view(), name='send-otp'),
-    path('register/verify-otp/', VerifyOTPView.as_view(), name='send-otp'),
-    path('register/resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
+    path('send-otp/', SendOTPView.as_view(), name='send-otp'),
+    path('verify-otp/', VerifyOTPView.as_view(), name='send-otp'),
+    path('resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
     path('register/', RegisterView.as_view(), name='register'),
+    path('account/register/', RegisterAdminView.as_view(), name='account-register'),
     path('login/', LoginView.as_view(), name='login'),
     path('refresh-token/', RefreshTokenView.as_view(), name='refresh-token'),
     path('logout/', LogoutView.as_view(), name='logout'),
@@ -32,9 +34,9 @@ urlpatterns = [
     path('profile/', GetUserProfileInformationView.as_view(), name='profile'),
     path('provider/add-account/', AddAccountHealthCareProviderView.as_view(), name='provider-add-account'),
     path('provider/change-password/', ChangePasswordHealthCareProviderView.as_view(), name='provider-change-password'),
-    path('get/patients/', GetUsersView.as_view(), name='get-users'),
+    path('get/patients/', GetUsersView.as_view(), name='get-patients'),
     path('get/patient/<str:pk>/', GetUserView.as_view(), name='get-user'),
     path('user/role/', GetUserRoleView.as_view(), name='get-user-role'),
     path('get/providers/', GetHealthCareProvidersView.as_view(), name='get-providers'),
-    path('user/unverify/', AutomaticDeleteUnverifiedUserView.as_view(), name='delete-unverify-user'),
+    path('registered-providers/', GetAllRegisteredProvidersView.as_view(), name='get-registered-providers'),
 ]
