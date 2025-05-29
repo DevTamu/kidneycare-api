@@ -10,7 +10,6 @@ import secrets
 import string
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
 from rest_framework import status
-from app_authentication.models import User
 from asgiref.sync import sync_to_async
 
 def ResponseMessageUtils(
@@ -198,30 +197,49 @@ def is_field_empty(field_name):
 #a helper function that extracts the first error message
 def extract_first_error_message(errors):
     for k, v in errors.items():
-            return v[0]
-        
+        return v[0]  
+
 
 def get_token_user_id(request):
 
-    auth_header = request.headers.get('Authorization', [])
+    #get the 'Authorization' header from the request, or return an empty list if not found
+    auth_header = request.headers.get('Authorization', '')
 
+    #check if the 'Authorization' header is missing or doesn't start with Bearer
     if not auth_header or not auth_header.startswith('Bearer '):
-        return ResponseMessageUtils(message="Invalid Authorization header", status_code=status.HTTP_401_UNAUTHORIZED)
-    
-    #get the token part
-    auth_header_token = auth_header.split(' ')[1]
+        return ResponseMessageUtils(
+            message="Missing or invalid Authorization header",
+            status_code=status.HTTP_401_UNAUTHORIZED
+        )
 
     try:
+        # Extract the token part from the Authorization header
+        auth_header_token = auth_header.split(' ')[1]
+    except IndexError:
+        return ResponseMessageUtils(
+            message="Malformed Authorization header",
+            status_code=status.HTTP_401_UNAUTHORIZED
+        )
+
+    try:
+        #parse the token using AccessToken
         access_token = AccessToken(auth_header_token)
+
+        #extract the user_id claim, convert to string and remove hyphens
         return str(access_token["user_id"]).replace("-", "")
     except TokenError as e:
-        return ResponseMessageUtils(message="Expired or invalid token", status_code=status.HTTP_401_UNAUTHORIZED)
+        #handle invalid or expired tokens by returning a 401 Unauthorized
+        return ResponseMessageUtils(
+            message="Expired or invalid token",
+            status_code=status.HTTP_401_UNAUTHORIZED
+        )
+            
     
-
-#helper to get a user by ID
 @sync_to_async
 def get_user_by_id(user_id):
+    from django.contrib.auth import get_user_model
     try:
+        User = get_user_model()
         return User.objects.get(id=user_id)
     except User.DoesNotExist:
         return None
