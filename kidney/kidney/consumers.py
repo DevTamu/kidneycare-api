@@ -30,7 +30,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close(code=4001)  # No token, reject connection
             return
 
-        user = self.authenticate_token(token)
+        user = await self.authenticate_token(token)
 
         if not user:
             await self.close(code=4003)  # Invalid token, reject connection
@@ -185,11 +185,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "error": error_message
         }))
 
-    @database_sync_to_async
-    def authenticate_token(self, token):
+    async def authenticate_token(self, token):
         try:
-            auth = JWTAuthentication()
-            validated_token = auth.get_validated_token(token)
-            return auth.get_user(validated_token)
-        except Exception:
+            access_token = AccessToken(token)
+            user_id = access_token["user_id"]
+            return await self.get_user(user_id)
+        except TokenError:
             return None

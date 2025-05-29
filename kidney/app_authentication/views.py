@@ -18,6 +18,7 @@ from .serializers import (
     GetProfileProfileInPatientSerializer,
     GetAllRegisteredProvidersSerializer
 )
+from django.conf import settings
 from rest_framework import serializers
 from django.core.cache import cache
 from rest_framework.exceptions import AuthenticationFailed
@@ -223,9 +224,10 @@ class LoginView(TokenObtainPairView):
                     key='access_token',
                     value=access_token,
                     httponly=True,
-                    secure=True,
+                    secure=not settings.DEBUG,
                     samesite='None',
-                    max_age=86400  # 1 day in seconds, adjust as needed
+                    max_age=86400,
+                    path='/'
                 )
 
         return response

@@ -34,24 +34,22 @@ class JWTAuthMiddleware(BaseMiddleware):
         return await self.inner(scope, receive, send)
     
     def get_token_from_scope(self, scope):
-
-        #get the headers from the scope
         headers = dict(scope.get("headers", []))
-        #get the cookie from the headers
-        cookie_header = headers.get(b'cookie', b'').decode()
 
-        #empty dict
+        # 1. Try Authorization header
+        auth_header = headers.get(b'authorization', b'').decode('utf-8')
+        if auth_header.startswith('Bearer '):
+            return auth_header.split(' ')[1]
+
+        # 2. Try Cookie header
+        cookie_header = headers.get(b'cookie', b'').decode('utf-8')
         cookies = {}
-
         for cookie in cookie_header.split(';'):
             if '=' in cookie:
-                k, v = cookie.strip().split('=', 1),
+                k, v = cookie.strip().split('=', 1)
                 cookies[k] = v
-        
-        token = cookies.get('access_token')
 
-        if token:
-            return token
+        return cookies.get('access_token')  # Or your actual cookie name
     
     @database_sync_to_async
     def get_user_from_token(self, token):
