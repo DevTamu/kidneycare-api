@@ -211,7 +211,6 @@ def extract_first_error_message(errors):
     elif isinstance(errors, list) and errors:
         return errors[0] #flatten the error
     return None
-        
 
 def get_token_user_id(request):
 
