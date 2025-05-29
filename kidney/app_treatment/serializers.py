@@ -111,7 +111,7 @@ class PostDialysisSerializer(serializers.ModelSerializer):
 
 
 class CreateTreatmentFormSerializer(serializers.ModelSerializer):
-    last_treatment_date = serializers.DateField(input_formats=['%m-%d-%Y'], allow_null=True)
+    # last_treatment_date = serializers.DateField(allow_null=True)
     treatment_prescription = PrescriptionSerializer()
     treatment_access_type = AccessTypeSerializer()
     treatment_details = TreatmentDetailsSerializer()
@@ -134,7 +134,7 @@ class CreateTreatmentFormSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"message": "Diagnosis is required"})
 
         if is_field_empty(attrs.get("nephrologist")):
-            raise serializers.ValidationError({"message": "Diagnosis is required"})
+            raise serializers.ValidationError({"message": "Nephrologist is required"})
 
         nested_serializer = [
             'treatment_prescription', 'treatment_access_type',
@@ -149,26 +149,9 @@ class CreateTreatmentFormSerializer(serializers.ModelSerializer):
         for key, data in nested_input_data["data"].items():
             for field_key, value in data.items():
                 if is_field_empty(str(value)):
-                    raise serializers.ValidationError({"message": f"{str(field_key).capitalize().replace("_", " ")} is required"})
+                    raise serializers.ValidationError({"message": f"{str(field_key).capitalize().replace('_', ' ')} is required"})
 
-
-
-        
-
-
-
-        # for field in nested_input_data["data"]:
-        #     if is_field_empty(attrs.get(field)):
-        #         raise serializers.ValidationError({"message": f"{field} is required"})
-                
-
-        
-  
-        
-   
         return attrs
-
-
 
     def create(self, validated_data):
         
