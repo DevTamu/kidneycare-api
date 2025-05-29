@@ -203,6 +203,29 @@ class AddAccountHealthCareProviderView(generics.CreateAPIView):
 class LoginView(TokenObtainPairView):
     serializer_class = LoginObtainPairSerializer
 
+    
+    def post(self, request, *args, **kwargs):
+
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+
+            #access the access token from the response
+            access_token = response.data.get('data', {}).get('access_token')
+
+            #if access token exist
+            if access_token:
+                #set the cookie
+                response.set_cookie(
+                    key='access_token',
+                    value=access_token,
+                    httponly=True,
+                    secure=True,
+                    samesite='Lax',
+                    max_age=86400  # 1 day in seconds, adjust as needed
+                )
+
+        return response
+
 
 class RefreshTokenView(TokenRefreshView):
 
