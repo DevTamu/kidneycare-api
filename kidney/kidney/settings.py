@@ -213,16 +213,9 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [
-                {
-                    "address": os.environ.get('REDIS_URL'),
-                }
-            ],
-            # Optional additional configuration:
-            "symmetric_encryption_keys": [SECRET_KEY],  # Use your Django secret key
-            "capacity": 1500,  # Default 100
-            "expiry": 60,  # Default 60
-            "prefix": "kidneycare",  # Optional namespace
+            "hosts": [("redis-12945.c299.asia-northeast1-1.gce.redns.redis-cloud.com", 12945)],
+            "password": "gCFK8c8QYhGmGssIqfFXDqaqybD6f6uR",
+            "prefix": "kidneycare",
         },
     },
 }
