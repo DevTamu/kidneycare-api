@@ -173,7 +173,7 @@ class GetPatientAppointmentHistoryView(generics.RetrieveAPIView):
     def get_queryset(self):
         return Appointment.objects.select_related('user').filter(
             user_id=self.kwargs.get('pk'),
-            status='Completed' or 'completed'
+            status='Completed'
         )
 
     def get(self, request, *args, **kwargs):
