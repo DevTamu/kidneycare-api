@@ -17,15 +17,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         #get the headers from the scope
         headers = dict(self.scope["headers"])
 
-        cookie_header = headers.get(b'cookie', b'').decode('utf-8')
-        cookies = {}
-        for cookie in cookie_header.split(';'):
-            if '=' in cookie:
-                k, v = cookie.strip().split('=', 1)
-                cookies[k] = v
+        auth_header_token = headers.get(b'authorization', b'').decode('utf-8')
 
-        # Get token from cookie named 'access_token' (adjust if your cookie name differs)
-        token = cookies.get('access_token')
+        if not auth_header_token or not auth_header_token.startswith('Bearer '):
+            await self.close(code=4001)  # No token, reject connection
+            return
+        
+        token = auth_header_token.split(' ')[1]
+
         if not token:
             await self.close(code=4001)  # No token, reject connection
             return

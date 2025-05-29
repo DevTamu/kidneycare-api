@@ -217,6 +217,7 @@ class LoginView(TokenObtainPairView):
             #access the access token from the response
             access_token = response.data.get('data', {}).get('access_token')
 
+
             #if access token exist
             if access_token:
                 #set the cookie
@@ -229,6 +230,7 @@ class LoginView(TokenObtainPairView):
                     max_age=86400,
                     path='/'
                 )
+
 
         return response
 
