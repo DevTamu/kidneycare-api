@@ -5,29 +5,41 @@ from channels.db import database_sync_to_async
 from .utils import get_user_by_id
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
 from app_authentication.models import User
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         """Handles the WebSocket connection."""
+
         self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
         
         #get the headers from the scope
-        headers = dict(self.scope.get('headers', []))
+        headers = dict(self.scope["headers"])
 
-        #get the authorization token
-        auth_header = headers.get(b'authorization', b'').decode('utf-8')
+        cookie_header = headers.get(b'cookie', b'').decode('utf-8')
+        cookies = {}
+        for cookie in cookie_header.split(';'):
+            if '=' in cookie:
+                k, v = cookie.strip().split('=', 1)
+                cookies[k] = v
 
-        #check if the auth header doesnt start with Bearer immediately return
-        if not auth_header.startswith("Bearer "):
-            await self.close(code=4001)  # Custom "invalid auth" code
+        # Get token from cookie named 'access_token' (adjust if your cookie name differs)
+        token = cookies.get('access_token')
+        if not token:
+            await self.close(code=4001)  # No token, reject connection
             return
 
-        #get the token part
+        user = self.authenticate_token(token)
+
+        if not user:
+            await self.close(code=4003)  # Invalid token, reject connection
+            return
+        
+        self.scope["user"] = user
 
         #verify the token if its still valid
         try:
-            token = auth_header.split(' ')[1]
             access_token = AccessToken(token)   
             self.sender_id = str(access_token["user_id"]).replace("-", "")
             self.scope["user"] = await self.get_user(access_token["user_id"])  # Attach user
@@ -57,15 +69,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         
-        #re-validate token on every message
-        try:
-            token = AccessToken(self.token)
-            sender_id = str(token["user_id"]).replace("-", "")
-        except TokenError:
-            await self.send_error_to_websocket("Invalid or expired token. Please log in again.")
-            await self.close(code=4002)
-            return
-
         """Handles incoming messages from the WebSocket."""
         try:
             data = json.loads(text_data)
@@ -181,3 +184,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "error": error_message
         }))
+
+    @database_sync_to_async
+    def authenticate_token(self, token):
+        try:
+            auth = JWTAuthentication()
+            validated_token = auth.get_validated_token(token)
+            return auth.get_user(validated_token)
+        except Exception:
+            return None
