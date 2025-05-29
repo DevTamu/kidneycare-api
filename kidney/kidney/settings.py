@@ -3,12 +3,11 @@ from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 import os
-import dj_database_url
 from django.core.files.storage import default_storage
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv()
-
+import dj_database_url
 
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
@@ -20,7 +19,6 @@ cloudinary.config(
     secure=True
 )
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -30,7 +28,12 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG')    
 
-ALLOWED_HOSTS = ["*"]
+#ALLOWED_HOSTS = ["*"]
+
+ALLOWED_HOSTS = ["kidneycare-api.onrender.com"]
+
+CSRF_TRUSTED_ORIGINS = ['https://kidneycare-api.onrender.com', 'wss://kidneycare-api.onrender.com']
+
 
 # Application definition
 INSTALLED_APPS = [
@@ -56,7 +59,8 @@ INSTALLED_APPS = [
     'app_treatment',
     'app_schedule',
     'app_diet_plan',
-    'app_chat'
+    'app_chat',
+    'app_notification'
 ]
 
 MIDDLEWARE = [
@@ -94,12 +98,13 @@ WSGI_APPLICATION = 'kidney.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 
 
 # Password validation
@@ -139,15 +144,11 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+MEDIA_URL = "media/"
+
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-MEDIA_URL = "media/"
-# MEDIA_ROOT = BASE_DIR / MEDIA_URL
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # or your preferred path
 STATICFILES_STORAGE = 'cloudinary_storage.storage.StaticCloudinaryStorage'
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -160,7 +161,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1), #5 minute access tokens
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=30), #30 days access tokens
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1), # 1 day refresh tokens
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,

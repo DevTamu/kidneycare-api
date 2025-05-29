@@ -47,7 +47,6 @@ class AssignedAppointment(models.Model):
   
     def __str__(self):
         return f'Assigned Appointment: {self.appointment.user.username}'
-
-
+    
 
 

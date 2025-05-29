@@ -17,5 +17,7 @@ class SubDietPlan(models.Model):
     recipe_name = models.CharField(null=True, blank=True)
     recipe_tutorial_url = models.CharField(max_length=255, null=True, blank=True)
     recipe_description = models.TextField(max_length=2000, null=True, blank=True)
+    start_time = models.TimeField(null=True)   
+    end_time = models.TimeField(null=True)   
 
 
