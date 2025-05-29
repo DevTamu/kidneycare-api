@@ -11,39 +11,41 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         """Handles the WebSocket connection."""
         self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
-        print(f"ROOM NAME: {self.room_name}")
         
         #get the headers from the scope
         headers = dict(self.scope.get('headers', []))
 
-        #get the authorization token value
+        #get the authorization token
         auth_header = headers.get(b'authorization', b'').decode('utf-8')
 
+        if not auth_header.startswith("Bearer "):
+            await self.close(code=4001)  # Custom "invalid auth" code
+            return
+
         #get the token part
-        token = auth_header.split(' ')[1]
 
         #verify the token if its still valid
         try:
+            token = auth_header.split(' ')[1]
             access_token = AccessToken(token)   
             self.sender_id = str(access_token["user_id"]).replace("-", "")
-            self.token = token  # Cache token for use in receive()
+            self.scope["user"] = await self.get_user(access_token["user_id"])  # Attach user
         except TokenError:
             await self.send_error_to_websocket("Invalid or expired, Please login again")
             await self.close(code=4002)
             return
         
+        #create room name
         self.room_group_name = f"chat_{min(self.room_name, self.sender_id)}_{max(self.room_name, self.sender_id)}"
 
-        # Join room group
+        #join group and accept
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-
         await self.accept()
-        pprint(f"connected to room: {self.room_group_name}")
 
-        user_sender = await get_user_by_id(access_token["user_id"])
         user_receiver = await get_user_by_id(self.room_name)
-
-        await self.send_message_introduction(user_sender, user_receiver)
+        
+        #send introduction message to the client
+        await self.send_message_introduction(self.scope["user"], user_receiver)
         
 
     async def disconnect(self, close_code):
