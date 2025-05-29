@@ -53,6 +53,10 @@ class JWTAuthMiddleware(BaseMiddleware):
         #if the authorization header exists and starts with 'Bearer ' return the token part
         if auth_header and auth_header.startswith('Bearer '):
             return auth_header.split(' ')[1]
+        
+        query_string = scope.get("query_string", b"").decode()
+        query_params = dict(qc.split("=") for qc in query_string.split("&") if "=" in qc)
+        return query_params.get("token")
 
     
     @database_sync_to_async
