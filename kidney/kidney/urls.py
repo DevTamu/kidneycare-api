@@ -6,7 +6,7 @@ from app_authentication.views import ping
 
 urlpatterns = [ 
     path('admin/', admin.site.urls),
-    path('ping/', ping),
+    path('', ping),
     path('', include('app_authentication.urls')),
     path('', include('app_news_event.urls')),
     path('', include('app_chat.urls')),
