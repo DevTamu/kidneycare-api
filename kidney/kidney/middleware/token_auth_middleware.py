@@ -47,6 +47,7 @@ class JWTAuthMiddleware(BaseMiddleware):
         #if the authorization header exists and starts with 'Bearer ' return the token part
         if auth_header and auth_header.startswith('Bearer '):
             return auth_header.split(' ')[1]
+
     
     @database_sync_to_async
     def get_user_from_token(self, token):
