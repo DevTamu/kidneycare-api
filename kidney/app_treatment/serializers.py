@@ -111,7 +111,7 @@ class PostDialysisSerializer(serializers.ModelSerializer):
 
 
 class CreateTreatmentFormSerializer(serializers.ModelSerializer):
-    last_treatment_date = serializers.DateField(input_formats=['%m-%d-%Y'], allow_null=True)
+    # last_treatment_date = serializers.DateField(allow_null=True)
     treatment_prescription = PrescriptionSerializer()
     treatment_access_type = AccessTypeSerializer()
     treatment_details = TreatmentDetailsSerializer()
