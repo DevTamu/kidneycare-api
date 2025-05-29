@@ -186,7 +186,7 @@ def validate_email(email):
 
 #a helper function that validates empty fields
 def is_field_empty(field_name):
-    if field_name is None:
+    if field_name is None:  
         return True
     if isinstance(field_name, str) and field_name.strip() == "":
         return True
@@ -196,9 +196,21 @@ def is_field_empty(field_name):
 
 #a helper function that extracts the first error message
 def extract_first_error_message(errors):
-    for k, v in errors.items():
-        return v[0]  
-
+    if isinstance(errors, dict):
+        for k, v in errors.items():
+            #if value is a list return the first message
+            if isinstance(v, list) and v:
+                return v[0] #flatten the error message
+            #if value is a dict, recurse
+            elif isinstance(v, dict):
+                message = extract_first_error_message(v)
+                if message:
+                    return message
+            else:
+                return v
+    elif isinstance(errors, list) and errors:
+        return errors[0] #flatten the error
+    return None
 
 def get_token_user_id(request):
 
