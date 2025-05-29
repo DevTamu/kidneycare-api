@@ -224,7 +224,7 @@ class LoginView(TokenObtainPairView):
                     value=access_token,
                     httponly=True,
                     secure=True,
-                    samesite='Lax',
+                    samesite='None',
                     max_age=86400  # 1 day in seconds, adjust as needed
                 )
 
