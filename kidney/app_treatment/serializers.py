@@ -134,7 +134,7 @@ class CreateTreatmentFormSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"message": "Diagnosis is required"})
 
         if is_field_empty(attrs.get("nephrologist")):
-            raise serializers.ValidationError({"message": "Diagnosis is required"})
+            raise serializers.ValidationError({"message": "Nephrologist is required"})
 
         nested_serializer = [
             'treatment_prescription', 'treatment_access_type',
