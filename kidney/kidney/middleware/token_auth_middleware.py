@@ -21,7 +21,13 @@ class JWTAuthMiddleware(BaseMiddleware):
     async def __call__(self, scope, receive, send):
         
         try:
+
+            headers = dict(scope.get("headers", []))
+            print(f"HEADERS: {headers}")  # Add this
+
             token = self.get_token_from_scope(scope)
+
+            print(f"TOKEN: {token}")  # Add this
 
             if not token:
                 raise TokenError("Authorization token not provided")
