@@ -29,7 +29,11 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 DEBUG = os.environ.get('DEBUG')    
 
 
-ALLOWED_HOSTS = ["*"]
+#ALLOWED_HOSTS = ["*"]
+
+ALLOWED_HOSTS = ["kidneycare-api.onrender.com"]
+
+CSRF_TRUSTED_ORIGINS = ['https://kidneycare-api.onrender.com']
 
 # Application definition
 INSTALLED_APPS = [
@@ -96,21 +100,21 @@ WSGI_APPLICATION = 'kidney.wsgi.application'
 
 
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
-
 # DATABASES = {
-#     'default': dj_database_url.config(
-#         default=os.environ.get('DATABASE_URL'),
-#         conn_max_age=600,
-#         ssl_require=True,
-#     )
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
 # }
+
+
+DATABASES = {
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=True,
+    )
+}
 
 
 # Password validation
@@ -176,7 +180,6 @@ SIMPLE_JWT = {
 }
 
 ASGI_APPLICATION = 'kidney.asgi.application'
-
 
 CHANNEL_LAYERS = {
     "default": {
