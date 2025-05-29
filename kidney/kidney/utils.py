@@ -186,7 +186,7 @@ def validate_email(email):
 
 #a helper function that validates empty fields
 def is_field_empty(field_name):
-    if field_name is None:
+    if field_name is None:  
         return True
     if isinstance(field_name, str) and field_name.strip() == "":
         return True
@@ -196,26 +196,56 @@ def is_field_empty(field_name):
 
 #a helper function that extracts the first error message
 def extract_first_error_message(errors):
-    for k, v in errors.items():
-        return v[0]   
+    if isinstance(errors, dict):
+        for k, v in errors.items():
+            #if value is a list return the first message
+            if isinstance(v, list) and v:
+                return v[0] #flatten the error message
+            #if value is a dict, recurse
+            elif isinstance(v, dict):
+                message = extract_first_error_message(v)
+                if message:
+                    return message
+            else:
+                return v
+    elif isinstance(errors, list) and errors:
+        return errors[0] #flatten the error
+    return None
 
 def get_token_user_id(request):
 
-    #get the authorization from the headers
-    auth_header = request.headers.get('Authorization', [])
+    #get the 'Authorization' header from the request, or return an empty list if not found
+    auth_header = request.headers.get('Authorization', '')
 
+    #check if the 'Authorization' header is missing or doesn't start with Bearer
     if not auth_header or not auth_header.startswith('Bearer '):
-        return ResponseMessageUtils(message="Invalid Authorization header", status_code=status.HTTP_401_UNAUTHORIZED)
-    
-    #get the token part
-    auth_header_token = auth_header.split(' ')[1]
+        return ResponseMessageUtils(
+            message="Missing or invalid Authorization header",
+            status_code=status.HTTP_401_UNAUTHORIZED
+        )
 
     try:
-        #parse the token
+        # Extract the token part from the Authorization header
+        auth_header_token = auth_header.split(' ')[1]
+    except IndexError:
+        return ResponseMessageUtils(
+            message="Malformed Authorization header",
+            status_code=status.HTTP_401_UNAUTHORIZED
+        )
+
+    try:
+        #parse the token using AccessToken
         access_token = AccessToken(auth_header_token)
+
+        #extract the user_id claim, convert to string and remove hyphens
         return str(access_token["user_id"]).replace("-", "")
     except TokenError as e:
-        return ResponseMessageUtils(message="Expired or invalid token", status_code=status.HTTP_401_UNAUTHORIZED)
+        #handle invalid or expired tokens by returning a 401 Unauthorized
+        return ResponseMessageUtils(
+            message="Expired or invalid token",
+            status_code=status.HTTP_401_UNAUTHORIZED
+        )
+            
     
 @sync_to_async
 def get_user_by_id(user_id):
