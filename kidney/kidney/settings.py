@@ -34,6 +34,7 @@ ALLOWED_HOSTS = ["kidneycare-api.onrender.com"]
 
 CSRF_TRUSTED_ORIGINS = ['https://kidneycare-api.onrender.com', 'wss://kidneycare-api.onrender.com']
 
+
 # Application definition
 INSTALLED_APPS = [
     'channels',
@@ -98,22 +99,12 @@ WSGI_APPLICATION = 'kidney.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 
-
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.sqlite3',
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
-
-
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True,
-    )
-}
 
 
 # Password validation
@@ -179,6 +170,7 @@ SIMPLE_JWT = {
 }
 
 ASGI_APPLICATION = 'kidney.asgi.application'
+
 
 CHANNEL_LAYERS = {
     "default": {
