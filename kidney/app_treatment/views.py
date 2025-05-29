@@ -12,12 +12,12 @@ class CreateTreatmentFormView(generics.CreateAPIView):
     
     permission_classes = [IsAuthenticated]
     serializer_class = CreateTreatmentFormSerializer
-
+    lookup_field = 'pk'
 
     def post(self, request, *args, **kwargs):
 
         try:
-            serializer = self.get_serializer(data=request.data)
+            serializer = self.get_serializer(data=request.data, context={'pk': self.kwargs.get('pk')})
 
             if serializer.is_valid():
                 serializer.save()
