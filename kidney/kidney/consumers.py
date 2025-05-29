@@ -18,6 +18,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         #get the authorization token
         auth_header = headers.get(b'authorization', b'').decode('utf-8')
 
+        #check if the auth header doesnt start with Bearer immediately return
         if not auth_header.startswith("Bearer "):
             await self.close(code=4001)  # Custom "invalid auth" code
             return
@@ -59,7 +60,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         #re-validate token on every message
         try:
             token = AccessToken(self.token)
-            self.sender_id = str(token["user_id"]).replace("-", "")
+            sender_id = str(token["user_id"]).replace("-", "")
         except TokenError:
             await self.send_error_to_websocket("Invalid or expired token. Please log in again.")
             await self.close(code=4002)
