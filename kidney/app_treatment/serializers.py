@@ -151,24 +151,7 @@ class CreateTreatmentFormSerializer(serializers.ModelSerializer):
                 if is_field_empty(str(value)):
                     raise serializers.ValidationError({"message": f"{str(field_key).capitalize().replace('_', ' ')} is required"})
 
-
-
-        
-
-
-
-        # for field in nested_input_data["data"]:
-        #     if is_field_empty(attrs.get(field)):
-        #         raise serializers.ValidationError({"message": f"{field} is required"})
-                
-
-        
-  
-        
-   
         return attrs
-
-
 
     def create(self, validated_data):
         

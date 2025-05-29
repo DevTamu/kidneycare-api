@@ -30,7 +30,10 @@ from rest_framework_simplejwt.tokens import TokenError, AccessToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth import logout
 from .models import OTP, User, Profile, UserInformation
+from django.http import JsonResponse
 
+def ping(request):
+    return JsonResponse({"status": "ok"})
 
 class SendOTPView(generics.CreateAPIView):
 
