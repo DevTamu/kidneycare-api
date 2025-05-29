@@ -100,9 +100,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             {
                 'type': 'chat_message',  #this will call the 'chat_message' method on the receiver's side
                 'message': message.content,
-                'sender_id': message.sender.id,
-                'message_id': message.id,
-                'date_sent': message.created_at
+                'sender_id': str(message.sender.id),
+                'message_id': str(message.id),
+                'date_sent': message.created_at.isoformat()
             }
         )
 
@@ -112,8 +112,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             {
                 'type': 'chat_message_introduction',
                 'message': f"Hi {sender.first_name.capitalize()} {receiver.last_name.capitalize()}, this is {receiver.first_name.capitalize()} from Boho Renal Care. I'd be happy to assist you",
-                "sender_id": sender.id,
-                "receiver_id": receiver.id  
+                "sender_id": str(sender.id),
+                "receiver_id": str(receiver.id)  
             }
         )
 
