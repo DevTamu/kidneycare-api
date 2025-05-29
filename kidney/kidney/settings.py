@@ -31,7 +31,7 @@ DEBUG = os.environ.get('DEBUG')
 
 # ALLOWED_HOSTS = ["*"]
 
-ALLOWED_HOSTS = ["kidneycare-api.onrender.com", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["kidneycare-api.onrender.com", "www.kidneycare-api.onrender.com", "localhost", "127.0.0.1"]
 
 CSRF_TRUSTED_ORIGINS = [
     'https://kidneycare-api.onrender.com',

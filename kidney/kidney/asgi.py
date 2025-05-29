@@ -10,22 +10,22 @@ from .routing import websocket_urlpatterns
 from .middleware.token_auth_middleware import JWTAuthMiddleware
 
 
-application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
-    "websocket": JWTAuthMiddleware(
-        AuthMiddlewareStack(
-            URLRouter(websocket_urlpatterns)
-        )
-    )
-})
-
 # application = ProtocolTypeRouter({
 #     "http": get_asgi_application(),
-#     "websocket": AllowedHostsOriginValidator(
-#         JWTAuthMiddleware(
-#             AuthMiddlewareStack(
-#                 URLRouter(websocket_urlpatterns)
-#             )
+#     "websocket": JWTAuthMiddleware(
+#         AuthMiddlewareStack(
+#             URLRouter(websocket_urlpatterns)
 #         )
 #     )
 # })
+
+application = ProtocolTypeRouter({
+    "http": get_asgi_application(),
+    "websocket": AllowedHostsOriginValidator(
+        JWTAuthMiddleware(
+            AuthMiddlewareStack(
+                URLRouter(websocket_urlpatterns)
+            )
+        )
+    )
+})
