@@ -217,10 +217,6 @@ CHANNEL_LAYERS = {
                 "redis://:gCFK8c8QYhGmGssIqfFXDqaqybD6f6uR@redis-12945.c299.asia-northeast1-1.gce.redns.redis-cloud.com:12945"
             ],
             "prefix": "kidneycare",
-            "ssl": {
-                "ssl_cert_reqs": None,
-                "ssl_check_hostname": False
-            }
         },
     },
 }
