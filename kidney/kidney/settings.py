@@ -29,7 +29,8 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 DEBUG = os.environ.get('DEBUG')    
 
 
-# ALLOWED_HOSTS = ["*"]
+
+#ALLOWED_HOSTS = ["*"]
 
 ALLOWED_HOSTS = ["kidneycare-api.onrender.com"]
 
@@ -180,7 +181,6 @@ SIMPLE_JWT = {
 }
 
 ASGI_APPLICATION = 'kidney.asgi.application'
-
 
 CHANNEL_LAYERS = {
     "default": {
