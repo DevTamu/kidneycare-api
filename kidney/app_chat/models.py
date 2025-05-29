@@ -11,9 +11,7 @@ class Message(TimestampModel):
         ('read', 'Read')
     ]
 
-    #sender message user relationship
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sender_messages')
-    #receiver message user relationship
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='receiver_messages')
     content = models.TextField(max_length=255, null=True)
     read = models.BooleanField(default=False)

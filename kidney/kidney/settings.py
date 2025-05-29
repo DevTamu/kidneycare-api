@@ -29,13 +29,11 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 DEBUG = os.environ.get('DEBUG')    
 
 
-# ALLOWED_HOSTS = ["*"]
-
+#ALLOWED_HOSTS = ["*"]
 
 ALLOWED_HOSTS = ["kidneycare-api.onrender.com"]
 
 CSRF_TRUSTED_ORIGINS = ['https://kidneycare-api.onrender.com']
-
 
 # Application definition
 INSTALLED_APPS = [
@@ -182,7 +180,6 @@ SIMPLE_JWT = {
 }
 
 ASGI_APPLICATION = 'kidney.asgi.application'
-
 
 CHANNEL_LAYERS = {
     "default": {
