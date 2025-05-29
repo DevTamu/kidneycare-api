@@ -38,6 +38,10 @@ CSRF_TRUSTED_ORIGINS = [
     'wss://kidneycare-api.onrender.com'
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    'https://kidneycare-api.onrender.com',
+]
+
 
 redis_url = os.environ.get('REDIS_URL')
 

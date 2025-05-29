@@ -7,7 +7,8 @@ from . import consumers
 from .middleware.token_auth_middleware import JWTAuthMiddleware
 
 websocket_urlpatterns = [
-    re_path(r"ws/chat/(?P<room_name>[a-f0-9]{32})/$", consumers.ChatConsumer.as_asgi()),
+    re_path(r"ws/chat/<str:room_name>/", consumers.ChatConsumer.as_asgi()),
+    # re_path(r"ws/chat/(?P<room_name>[a-f0-9]{32})/$", consumers.ChatConsumer.as_asgi()),
 ]
 
 application = ProtocolTypeRouter({
