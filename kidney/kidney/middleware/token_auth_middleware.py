@@ -3,7 +3,9 @@ from django.contrib.auth.models import AnonymousUser
 from channels.db import database_sync_to_async
 from channels.middleware import BaseMiddleware
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
+import logging
 
+logger = logging.getLogger(__name__)
 
 @database_sync_to_async
 def get_user(user_id):
@@ -23,11 +25,11 @@ class JWTAuthMiddleware(BaseMiddleware):
         try:
 
             headers = dict(scope.get("headers", []))
-            print(f"HEADERS: {headers}")  # Add this
+            logger.debug(f"HEADERS: {headers}")  # Add this
 
             token = self.get_token_from_scope(scope)
 
-            print(f"TOKEN: {token}")  # Add this
+            logger.debug(f"TOKEN: {token}")  # Add this
 
             if not token:
                 raise TokenError("Authorization token not provided")

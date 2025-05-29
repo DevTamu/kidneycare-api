@@ -8,6 +8,10 @@ from app_authentication.models import User
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from urllib.parse import parse_qs
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
@@ -35,8 +39,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         self.room_group_name = f"chat_{min(self.room_name, self.sender_id)}_{max(self.room_name, self.sender_id)}"
 
-        print("Token received:", token)
-        print("User authenticated:", user)
+        logger.debug("Token received:", token)
+        logger.debug("User authenticated:", user)
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
