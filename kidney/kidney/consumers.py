@@ -17,20 +17,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
         #get the headers from the scope
         headers = dict(self.scope["headers"])
 
-        cookie_header = headers.get(b'cookie', b'').decode('utf-8')
-        cookies = {}
-        for cookie in cookie_header.split(';'):
-            if '=' in cookie:
-                k, v = cookie.strip().split('=', 1)
-                cookies[k] = v
+        auth_header_token = headers.get(b'authorization', b'').decode('utf-8')
 
-        # Get token from cookie named 'access_token' (adjust if your cookie name differs)
-        token = cookies.get('access_token')
+        if not auth_header_token or not auth_header_token.startswith('Bearer '):
+            await self.close(code=4001)  # No token, reject connection
+            return
+        
+        token = auth_header_token.split(' ')[1]
+
         if not token:
             await self.close(code=4001)  # No token, reject connection
             return
 
-        user = self.authenticate_token(token)
+        user = await self.authenticate_token(token)
 
         if not user:
             await self.close(code=4003)  # Invalid token, reject connection
@@ -185,11 +184,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "error": error_message
         }))
 
-    @database_sync_to_async
-    def authenticate_token(self, token):
+    async def authenticate_token(self, token):
         try:
-            auth = JWTAuthentication()
-            validated_token = auth.get_validated_token(token)
-            return auth.get_user(validated_token)
-        except Exception:
-            return None
+            access_token = AccessToken(token)
+            user_id = access_token["user_id"]
+            return await self.get_user(user_id)
+        except TokenError:
