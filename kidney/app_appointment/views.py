@@ -13,6 +13,7 @@ from .serializers import (
     GetPatientAppointmentDetailsInAdminSerializer,
     GetUpcomingAppointmentDetailsInPatientSerializer,
 )
+from django.db.models import F, DateTimeField, ExpressionWrapper
 from django.utils import timezone
 from app_authentication.models import User
 from .models import Appointment, AssignedProvider
@@ -283,16 +284,18 @@ class GetPatientUpcomingAppointmentView(generics.RetrieveAPIView):
             now = timezone.now()
             past_24hrs = now - timedelta(hours=24)
                         
-            user_appointment = Appointment.objects.filter(
+            appointments = Appointment.objects.annotate(
+                valid_time=ExpressionWrapper(F('date') + timedelta(hours=24), output_field=DateTimeField())
+            ).filter(
                 user_id=user_id,
-                date__gte=past_24hrs,   
+                valid_time__gte=now,   
                 status='Approved'
-            ).order_by('date').first()
+            ).order_by('date', 'id').first()
    
-            if not user_appointment:
+            if not appointments:
                 return ResponseMessageUtils(message="No upcoming apppointment found", status_code=status.HTTP_404_NOT_FOUND)
 
-            serializer = self.get_serializer(user_appointment)
+            serializer = self.get_serializer(appointments)
             return ResponseMessageUtils(message="Upcoming appointment", data=serializer.data, status_code=status.HTTP_200_OK)    
         except Exception as e:
             return ResponseMessageUtils(
