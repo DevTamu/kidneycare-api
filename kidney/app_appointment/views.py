@@ -13,7 +13,7 @@ from .serializers import (
     GetPatientAppointmentDetailsInAdminSerializer,
     GetUpcomingAppointmentDetailsInPatientSerializer,
 )
-from django.db.models import F, ExpressionWrapper, DateTimeField
+from django.db.models import F, DateTimeField, ExpressionWrapper
 from django.utils import timezone
 from app_authentication.models import User
 from .models import Appointment, AssignedProvider
