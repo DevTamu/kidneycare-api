@@ -532,16 +532,18 @@ class GetAllAppointsmentsInAdminSerializer(serializers.ModelSerializer):
 
 
 class CancelAppointmentSerializer(serializers.ModelSerializer):
-
+    
     class Meta:
         model = Appointment
-        fields = '__all__'
+        fields = ['status']
+        extra_kwargs = {
+            'status': {'write_only': True, 'required': False}
+        }
 
-    def __init__(self, *args, **kwargs):
-        super(CancelAppointmentSerializer, self).__init__(*args, **kwargs)
-        #make all the fields not required
-        for field in self.fields.values():
-            field.required = False
+    def update(self, instance, validated_data):
+        instance.status = 'Cancelled'
+        instance.save()
+        return instance
 
 
 class GetPatientUpcomingAppointmentsSerializer(serializers.ModelSerializer):
