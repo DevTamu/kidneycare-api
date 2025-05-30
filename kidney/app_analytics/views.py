@@ -59,7 +59,7 @@ class GetPatientAnalyticsView(generics.ListAPIView):
             'total_patient': this_week_patients,
             'change': float(calculate_diff_patients),
             'percent_change': int(percent_change) if percent_change else 0,
-            'growth': growth_multiplier,  # New: Added multiplier,
+            'growth': growth_multiplier,
             "summary": message
         }
 

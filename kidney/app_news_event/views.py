@@ -4,8 +4,10 @@ from rest_framework.permissions import IsAuthenticated
 from kidney.utils import ResponseMessageUtils
 from .serializers import (
     AddNewsEventSerializer,
-    GetNewsEventSerializer
+    GetNewsEventSerializer,
+    GetNewsEventWithIDSerializer
 )
+
 from .models import NewsEvent
 import logging
 
@@ -23,28 +25,70 @@ class AddNewsEventView(generics.CreateAPIView):
             if serializer.is_valid():
                 serializer.save()
                 return ResponseMessageUtils(message="Successfully Added News Event", status_code=status.HTTP_201_CREATED)
-            logger.error(f"Logger Error: {str(serializer.errors)}")
-            logger.debug(f"Logger Debug: {str(serializer.errors)}")
-            
             return ResponseMessageUtils(message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
                 
         except Exception as e:
-            logger.error(f"Error occurred: {e}")
-            return ResponseMessageUtils(message=f"Error occured during creation: {e}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        
+            return ResponseMessageUtils(
+                message=f"Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            
 
 class GetNewsEventView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
-
+    serializer_class = GetNewsEventSerializer
     
     def get(self, request, *args, **kwargs):
         try:     
             events = NewsEvent.objects.all()       
-            serializer = GetNewsEventSerializer(events, many=True, context={'request': request})
+            serializer = self.get_serializer(events, many=True, context={'request': request})
             return ResponseMessageUtils(message="List of News Event Data",data=serializer.data, status_code=status.HTTP_200_OK)
         except NewsEvent.DoesNotExist:
-            return ResponseMessageUtils(message="Event not found", status_code=status.HTTP_404_NOT_FOUND)    
+            return ResponseMessageUtils(
+                message=f"Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
+class GetNewsEventWithIDView(generics.RetrieveAPIView):
 
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetNewsEventWithIDSerializer
+    lookup_field = 'pk' #capture primary key id news event
+
+    def get_queryset(self):
+        return NewsEvent.objects.filter(id=self.kwargs.get('pk')).first()
+
+    def get(self, request, *args, **kwargs):
+
+        try:
+
+            news_event = self.get_queryset()
+
+            if not news_event:
+                return ResponseMessageUtils(message="No news event found", status_code=status.HTTP_404_NOT_FOUND)
+
+            serializer = self.get_serializer(news_event)
+
+            return ResponseMessageUtils(message="News Event", data=serializer.data, status_code=status.HTTP_200_OK)
+
+        except Exception as e:
+            return ResponseMessageUtils(
+                message=f"Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class GetNewsEventLimitByTwoView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetNewsEventSerializer
+    def get(self, request, *args, **kwargs):
+        try:     
+            #limit the display of the events
+            events = NewsEvent.objects.all().order_by('created_at')[0:2]
+            serializer = self.get_serializer(events, many=True, context={'request': request})
+            return ResponseMessageUtils(message="List of News Event Data",data=serializer.data, status_code=status.HTTP_200_OK)
+        except NewsEvent.DoesNotExist:
+            return ResponseMessageUtils(
+                message=f"Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
