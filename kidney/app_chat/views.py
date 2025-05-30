@@ -1,17 +1,19 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
 from rest_framework import status
+from app_authentication.models import User
 from kidney.utils import ResponseMessageUtils, get_token_user_id
 from django.db.models import Q
-import logging
-logger = logging.getLogger(__name__)
 from .serializers import (
     GetUsersMessageSerializer,
     GetNotificationChatsToProviderSerializer,
-    GetUsersChatSerializer
+    GetUsersChatSerializer,
+    GetProvidersChatSerializer
 )
 from django.shortcuts import get_object_or_404
 from .models import Message
+import logging
+logger = logging.getLogger(__name__)
 
 class GetUsersMessageView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -107,6 +109,44 @@ class GetUsersChatView(generics.ListAPIView):
             return ResponseMessageUtils(message="List of users chat", data=serializer.data, status_code=status.HTTP_200_OK)
 
         except Exception as e:
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+
+class GetProvidersChatView(generics.ListAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetProvidersChatSerializer
+
+    def get(self, request, *args, **kwargs):
+        
+        try:
+
+            #get the user_id from the token
+            user_id = get_token_user_id(request)
+
+
+
+            message = Message.objects.select_related('sender', 'receiver').filter(
+                (
+                    Q(sender=user_id) & Q(receiver__role__in=['Nurse', 'Head Nurse'])
+                ) | 
+                (
+                    Q(receiver=user_id) & Q(sender__role__in=['Nurse', 'Head Nurse'])
+                )
+            ).order_by('id')
+
+            if not message:
+                return ResponseMessageUtils(message="No messages found", status_code=status.HTTP_404_NOT_FOUND)
+
+            serializer = self.get_serializer(message, many=True)
+
+            return ResponseMessageUtils(message="Lists of users", data=serializer.data, status_code=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f"WHAT WENT WRONG?: {e}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Message
-from app_authentication.models import Profile
+from app_authentication.models import Profile, User
+from django.db.models import Q
 
 class GetUsersMessageSerializer(serializers.ModelSerializer):
     
@@ -97,6 +98,25 @@ class GetUsersChatSerializer(serializers.ModelSerializer):
         data["chat_id"] = data.pop('id  ')
 
         return data
+    
+
+class GetProvidersChatSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Message
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        
+        #get the request object from the serializer context
+        request = self.context.get('request')
+
+        data = super().to_representation(instance)
+
+
+        return data
+    
+
 
 
     
