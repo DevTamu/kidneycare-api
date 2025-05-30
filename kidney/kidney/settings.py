@@ -31,11 +31,14 @@ DEBUG = os.environ.get('DEBUG')
 
 # ALLOWED_HOSTS = ["*"]
 
-ALLOWED_HOSTS = ["kidneycare-api.onrender.com", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["kidneycare-api.onrender.com", "www.kidneycare-api.onrender.com", "localhost", "127.0.0.1"]
 
 CSRF_TRUSTED_ORIGINS = [
     'https://kidneycare-api.onrender.com',
-    'wss://kidneycare-api.onrender.com'
+]
+
+CORS_ALLOWED_ORIGINS = [
+    'https://kidneycare-api.onrender.com',
 ]
 
 
@@ -144,7 +147,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'Asia/Hong_Kong'
+TIME_ZONE = 'Asia/Manila'
 
 USE_I18N = True
 
@@ -200,11 +203,23 @@ SESSION_CACHE_ALIAS = "default"
 #     },
 # }
 
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels_redis.core.RedisChannelLayer",
+#         "CONFIG": {
+#             "hosts": [redis_url],
+#         },
+#     },
+# }
+
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [redis_url],
+            "hosts": [
+                "redis://:gCFK8c8QYhGmGssIqfFXDqaqybD6f6uR@redis-12945.c299.asia-northeast1-1.gce.redns.redis-cloud.com:12945"
+            ],
+            "prefix": "kidneycare",
         },
     },
 }

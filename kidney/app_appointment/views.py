@@ -282,7 +282,6 @@ class GetPatientUpcomingAppointmentView(generics.RetrieveAPIView):
         
         try:
             now = timezone.now()
-            past_24hrs = now - timedelta(hours=24)
                         
             appointments = Appointment.objects.annotate(
                 valid_time=ExpressionWrapper(F('date') + timedelta(hours=24), output_field=DateTimeField())
