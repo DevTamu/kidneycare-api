@@ -676,8 +676,9 @@ class GetPatientUpcomingAppointmentSerializer(serializers.ModelSerializer):
                 pass
 
         if provider_profile and provider_profile.picture:
-            data["picture"] = request.build_absolute_uri(provider_profile.picture.url) \
-            if provider_profile.picture else None
+            data["user_image"] = request.build_absolute_uri(provider_profile.picture.url)
+        else:
+            data["user_image"] = None  
 
 
         return data
