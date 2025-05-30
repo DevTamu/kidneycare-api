@@ -51,7 +51,7 @@ class GetPatientAnalyticsView(generics.ListAPIView):
                 message = f"Patients decreased by {abs(percent_change)}% in 7 days"
 
         else:
-            percent_change = None  # or "N/A" if no baseline data
+            percent_change = 0  # or "N/A" if no baseline data
             growth_multiplier = 1.0
 
 
@@ -107,14 +107,14 @@ class GetAppointmentAnalyticsView(generics.ListAPIView):
             else:
                 message = f"Appointment decreased by {abs(percent_change)}% in 7 days."
         else:
-            percent_change = "N/A"
+            percent_change = 0
             growth_multiplier = 1.0
 
 
         data = {
             'total_appointments': this_week_appointments,
             'change': float(calculate_diff_patients),
-            'percent_change': int(percent_change),
+            'percent_change': percent_change if percent_change else 0,
             "growth": growth_multiplier,
             "summary": message
         }
