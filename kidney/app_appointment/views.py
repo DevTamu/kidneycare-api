@@ -264,11 +264,12 @@ class GetPatientUpcomingAppointmentView(generics.RetrieveAPIView):
         user_id = get_token_user_id(request)
         
         try:
-            next_day = datetime.now() + timedelta(days=1)
+            now = datetime.now()
+            next_24hr = datetime.now() + timedelta(hours=24)
                         
             user_appointment = Appointment.objects.filter(
                 user_id=user_id,
-                date__lte=next_day
+                date__range=[now, next_24hr]
             ).first()
    
             if not user_appointment:
