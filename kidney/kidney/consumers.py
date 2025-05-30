@@ -6,58 +6,38 @@ from .utils import get_user_by_id
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
 from app_authentication.models import User
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from urllib.parse import parse_qs
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         """Handles the WebSocket connection."""
-
-        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
-        
-        #get the headers from the scope
-        headers = dict(self.scope["headers"])
-
-        auth_header_token = headers.get(b'authorization', b'').decode('utf-8')
-
-        if not auth_header_token or not auth_header_token.startswith('Bearer '):
-            await self.close(code=4001)  # No token, reject connection
-            return
-        
-        token = auth_header_token.split(' ')[1]
-
-        if not token:
-            await self.close(code=4001)  # No token, reject connection
-            return
-
-        user = await self.authenticate_token(token)
-
-        if not user:
-            await self.close(code=4003)  # Invalid token, reject connection
-            return
-        
-        self.scope["user"] = user
-
-        #verify the token if its still valid
         try:
-            access_token = AccessToken(token)   
-            self.sender_id = str(access_token["user_id"]).replace("-", "")
-            self.scope["user"] = await self.get_user(access_token["user_id"])  # Attach user
-        except TokenError:
-            await self.send_error_to_websocket("Invalid or expired, Please login again")
-            await self.close(code=4002)
-            return
-        
-        #create room name
-        self.room_group_name = f"chat_{min(self.room_name, self.sender_id)}_{max(self.room_name, self.sender_id)}"
+            #user is already authenticated by middleware
+            user = self.scope["user"]
+            if not user:
+                await self.close(code=4003)
+                return
 
-        #join group and accept
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-        await self.accept()
+            self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
+            self.sender_id = str(user.id).replace("-", "")
+            
+            self.room_group_name = f"chat_{min(self.room_name, self.sender_id)}_{max(self.room_name, self.sender_id)}"
 
-        user_receiver = await get_user_by_id(self.room_name)
-        
-        #send introduction message to the client
-        await self.send_message_introduction(self.scope["user"], user_receiver)
+            await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+            await self.accept()
+
+            user_receiver = await get_user_by_id(self.room_name)
+            await self.send_message_introduction(user, user_receiver)
+            
+        except Exception as e:
+            logger.error(f"Connection error: {str(e)}")
+            logger.info(f"Connection error: {str(e)}")
+            await self.close(code=4003)
         
 
     async def disconnect(self, close_code):
@@ -184,10 +164,4 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "error": error_message
         }))
 
-    async def authenticate_token(self, token):
-        try:
-            access_token = AccessToken(token)
-            user_id = access_token["user_id"]
-            return await self.get_user(user_id)
-        except TokenError:
-            return None
+

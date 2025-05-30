@@ -5,15 +5,6 @@ from channels.middleware import BaseMiddleware
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
 
 
-@database_sync_to_async
-def get_user(user_id):
-    from django.contrib.auth import get_user_model
-    try:
-        User = get_user_model()
-        return User.objects.get(id=user_id)
-    except Exception:
-        return AnonymousUser()
-
 class JWTAuthMiddleware(BaseMiddleware):
     def __init__(self, inner):
         self.inner = inner
@@ -21,6 +12,7 @@ class JWTAuthMiddleware(BaseMiddleware):
     async def __call__(self, scope, receive, send):
         
         try:
+
             token = self.get_token_from_scope(scope)
 
             if not token:
@@ -30,7 +22,7 @@ class JWTAuthMiddleware(BaseMiddleware):
 
             if not user_id:
                 raise TokenError("Invalid or expired token. Please log in again.")
-            scope["user"] = await get_user(user_id) 
+            scope["user"] = await self.get_user(user_id) 
 
         except Exception as e:
             await self.close_connection(send, code=4003)
@@ -56,3 +48,19 @@ class JWTAuthMiddleware(BaseMiddleware):
             return access_token["user_id"]  
         except:
             return None
+        
+    @database_sync_to_async
+    def get_user(self, user_id):
+        from django.contrib.auth import get_user_model
+        try:
+            User = get_user_model()
+            return User.objects.get(id=user_id)
+        except Exception:
+            return AnonymousUser()
+        
+
+    async def close_connection(self, send, code):
+        await send({
+            "type": "websocket.close",
+            "code": code,
+        })
