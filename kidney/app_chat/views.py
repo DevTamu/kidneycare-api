@@ -138,7 +138,7 @@ class GetProvidersChatView(generics.ListAPIView):
 
         except Exception as e:
             return ResponseMessageUtils(
-                message="Something went wrong while processing your request.",
+                message=f"Something went wrong while processing your request. {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
