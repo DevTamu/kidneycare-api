@@ -16,36 +16,51 @@ class GetPatientAnalyticsView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        
+        message = None
+
         today = timezone.now().date()
         this_week_start = today - timedelta(days=6)
         last_week_start = this_week_start - timedelta(days=7)
         last_week_end = this_week_start - timedelta(days=1)
 
-        this_week_patients = Appointment.objects.annotate(
-            created_date=TruncDate('created_at'),
-        ).filter(
-            created_date__range=[this_week_start, today]
-        ).values('user_id').count()
+        this_week_patients = (
+            Appointment.objects
+            .annotate(created_date=TruncDate('created_at'))
+            .filter(created_date__range=[this_week_start, today])
+            .values('user_id').distinct().count() 
+        )
 
-        last_week_patients = Appointment.objects.annotate(
-            created_date=TruncDate('created_at')
-        ).filter(
-            created_date__range=[last_week_start, last_week_end]
-        ).values('user_id').count()
+        last_week_patients = (
+            Appointment.objects
+            .annotate(created_date=TruncDate('created_at'))
+            .filter(created_date__range=[last_week_start, last_week_end])
+            .values('user_id').distinct().count() 
+        )
 
+        # Calculate changes
+        calculate_diff_patients = this_week_patients - last_week_patients
 
         if last_week_patients > 0:
-            calculate_diff_patients = this_week_patients - last_week_patients
             percent_change = round((calculate_diff_patients / last_week_patients) * 100, 2)
+            growth_multiplier = round(this_week_patients / last_week_patients, 3) 
+
+            if percent_change > 0:
+                message = f"Patients increased by {abs(percent_change)}% in 7 days"
+            else:
+                message = f"Patients decreased by {abs(percent_change)}% in 7 days"
+
         else:
-            #handle the case where there are no patients last week
-            calculate_diff_patients = this_week_patients
-            percent_change = 100.0 if this_week_patients > 0 else 0.0
+            percent_change = None  # or "N/A" if no baseline data
+            growth_multiplier = 1.0
+
 
         data = {
             'total_patient': this_week_patients,
             'change': float(calculate_diff_patients),
-            'percent_change': int(percent_change)
+            'percent_change': int(percent_change) if percent_change else 0,
+            'growth': growth_multiplier,
+            "summary": message
         }
 
         return ResponseMessageUtils(
@@ -61,36 +76,47 @@ class GetAppointmentAnalyticsView(generics.ListAPIView):
 
     def get(self, request, *args, **kwargs):
 
+        message = None
+
         today = timezone.now().date()
         this_week_start = today - timedelta(days=6)
         last_week_start = this_week_start - timedelta(days=7)
         last_week_end = this_week_start - timedelta(days=1)
         
-        this_week_appointments = Appointment.objects.annotate(
-            created_date=TruncDate('created_at'),
-        ).filter(
-            created_date__range=[this_week_start, today]
-        ).values('id').count()
+        this_week_appointments = (
+            Appointment.objects
+            .annotate(created_date=TruncDate('created_at'))
+            .filter(created_date__range=[this_week_start, today])
+            .values('id').distinct().count() 
+        )
 
-        last_week_appointments = Appointment.objects.annotate(
-            created_date=TruncDate('created_at')
-        ).filter(
-            created_date__range=[last_week_start, last_week_end]
-        ).values('id').count()
+        last_week_appointments = (
+            Appointment.objects
+            .annotate(created_date=TruncDate('created_at'))
+            .filter(created_date__range=[last_week_start, last_week_end]
+            ).values('id').distinct().count()
+        )
 
+        calculate_diff_patients = this_week_appointments - last_week_appointments
 
         if last_week_appointments > 0:
-            calculate_diff_patients = this_week_appointments - last_week_appointments
             percent_change = round((calculate_diff_patients / last_week_appointments) * 100, 2)
+            growth_multiplier = round(this_week_appointments / last_week_appointments, 3) 
+            if percent_change > 0:
+                message = f"Appointment increase by {abs(percent_change)}% in 7 days."
+            else:
+                message = f"Appointment decreased by {abs(percent_change)}% in 7 days."
         else:
-            #handle the case where there are no patients last week
-            calculate_diff_patients = this_week_appointments
-            percent_change = 100.0 if this_week_appointments > 0 else 0.0
+            percent_change = "N/A"
+            growth_multiplier = 1.0
+
 
         data = {
             'total_appointments': this_week_appointments,
             'change': float(calculate_diff_patients),
-            'percent_change': int(percent_change)
+            'percent_change': int(percent_change),
+            "growth": growth_multiplier,
+            "summary": message
         }
 
         return ResponseMessageUtils(
