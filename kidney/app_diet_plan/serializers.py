@@ -4,7 +4,9 @@ from kidney.utils import is_field_empty
 from django.db import transaction
 from app_authentication.models import User
 from datetime import time
-
+from django.core.validators import FileExtensionValidator
+from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import InMemoryUploadedFile
 
 class SubDietPlanSerializer(serializers.ModelSerializer):
 
@@ -34,7 +36,21 @@ class CreateDietPlanSerializer(serializers.Serializer):
             error_messages={"blank": "Meal type is required"}
         )   
     )
-    dish_image = serializers.ListField(child=serializers.ImageField(required=True))
+    dish_image = serializers.ListField(
+        child=serializers.ImageField(
+            required=True,
+            allow_null=True,
+            allow_empty_file=False,
+            validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])],
+            error_messages={
+                'required': 'Please upload a image.',
+                'invalid': 'Please upload a image.',
+                'empty': 'Image cannot be empty.',
+                'null': 'Image cannot be empty.',
+            }
+        ),
+    )
+
     recipe_name = serializers.ListField(child=serializers.CharField(
         allow_null=False,
         allow_blank=False,
@@ -53,7 +69,19 @@ class CreateDietPlanSerializer(serializers.Serializer):
         error_messages={"blank": "Recipe description is required"}
         )
     )
-    
+
+    def to_internal_value(self, data):
+        # Handle case where field is present but empty
+        if isinstance(data, InMemoryUploadedFile) and data.size == 0:
+            raise ValidationError(self.error_messages['empty'])
+        
+        try:
+            return super().to_internal_value(data)
+        except ValidationError as e:
+            if 'empty' in str(e).lower():
+                raise ValidationError(self.error_messages['empty'])
+            raise
+
     def validate(self, attrs):
     
         meal_types = attrs.get('meal_type', [])
@@ -64,9 +92,6 @@ class CreateDietPlanSerializer(serializers.Serializer):
 
         if is_field_empty(attrs.get("patient_status", None)):
             raise serializers.ValidationError({"message": "Status is required"})
-        
-        if is_field_empty(dish_images):
-            raise serializers.ValidationError({"message": "Dish image is required"})
         
         if is_field_empty(recipe_names):
             raise serializers.ValidationError({"message": "Recipe name is required"})
