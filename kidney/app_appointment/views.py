@@ -282,7 +282,7 @@ class GetPatientUpcomingAppointmentView(generics.RetrieveAPIView):
                 user_id=user_id,
                 date__gte=past_24hrs,   
                 status='Approved'
-            ).first()
+            ).order_by('date').first()
    
             if not user_appointment:
                 return ResponseMessageUtils(message="No upcoming apppointment found", status_code=status.HTTP_404_NOT_FOUND)
