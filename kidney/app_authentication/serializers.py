@@ -538,7 +538,7 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
             "data": {
                 "access_token": str(refresh.access_token),
                 "refresh_token": str(refresh),
-                "user_id": str(user.id).replace("-", ""),
+                "user_id": str(user.id),
                 "first_name": user.first_name,
                 "middle_name": user.middlename if user.middlename else None,
                 "last_name": user.last_name,
