@@ -123,30 +123,20 @@ class GetProvidersChatView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
         
         try:
-
-            #get the user_id from the token
+            
+            #get the current authenticated user_id from the token
             user_id = get_token_user_id(request)
 
+            user = User.objects.filter(role__in=['Nurse', 'Head Nurse'])
 
-
-            message = Message.objects.select_related('sender', 'receiver').filter(
-                (
-                    Q(sender=user_id) & Q(receiver__role__in=['Nurse', 'Head Nurse'])
-                ) | 
-                (
-                    Q(receiver=user_id) & Q(sender__role__in=['Nurse', 'Head Nurse'])
-                )
-            ).order_by('id')
-
-            if not message:
+            if not user:
                 return ResponseMessageUtils(message="No messages found", status_code=status.HTTP_404_NOT_FOUND)
 
-            serializer = self.get_serializer(message, many=True)
+            serializer = self.get_serializer(user, many=True, context={'pk': user_id, 'request': request})
 
-            return ResponseMessageUtils(message="Lists of users", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(message="List of chat users", data=serializer.data, status_code=status.HTTP_200_OK)
 
         except Exception as e:
-            print(f"WHAT WENT WRONG?: {e}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
