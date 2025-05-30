@@ -264,7 +264,8 @@ class GetPatientUpcomingAppointmentView(generics.RetrieveAPIView):
                         
             user_appointment = Appointment.objects.filter(
                 user_id=user_id,
-                date__range=[now, next_24hr]
+                date__range=[now, next_24hr],
+                status='Approved'
             ).first()
    
             if not user_appointment:
