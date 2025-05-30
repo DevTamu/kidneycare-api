@@ -28,8 +28,10 @@ class CreateDietPlanView(generics.CreateAPIView):
             print(extract_first_error_message(serializer.errors))
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            print(f"WHAT WENT WRONG?: {e}")
-            return ResponseMessageUtils(message="Something went wrong", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return ResponseMessageUtils(
+                message=f"Something went wrong while processing your request. {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class GetPatientHealthStatusView(generics.ListAPIView):
     
