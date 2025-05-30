@@ -20,14 +20,15 @@ class CreateDietPlanView(generics.CreateAPIView):
     def post(self, request, *args, **kwargs):
 
         try:
-            
             serializer = self.get_serializer(data=request.data, context={'pk': kwargs.get('pk')})
 
             if serializer.is_valid():
                 serializer.save()
                 return ResponseMessageUtils(message="Successfully Added Diet Plan", status_code=status.HTTP_200_OK)
+            print(extract_first_error_message(serializer.errors))
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            print(f"WHAT WENT WRONG?: {e}")
             return ResponseMessageUtils(message="Something went wrong", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class GetPatientHealthStatusView(generics.ListAPIView):
@@ -71,9 +72,9 @@ class GetPatientDietPlanLimitOneView(generics.RetrieveAPIView):
     def get(self, request, *args, **kwargs):
         #define meal time ranges
         MEAL_TIME_MAPPING = {
-            "Breakfast": (time(6, 0), time(9, 0)), #6:00AM - 9:00 AM
-            "Lunch": (time(12, 0), time(13, 30)), #12:00PM - 1:30 PM
-            "Dinner": (time(18, 0), time(20, 0)), #6:00PM - 8:00 PM
+            "Breakfast": (time(6, 0), time(11, 0)), #6:00AM - 9:00AM
+            "Lunch": (time(12, 0), time(17, 0)), #12:00PM - 5:00PM
+            "Dinner": (time(18, 0), time(21, 0)), #6:00PM - 9:00PM
         }
         try:
             #get the user id of the current authenticated user

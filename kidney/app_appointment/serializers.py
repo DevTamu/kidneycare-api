@@ -532,16 +532,15 @@ class GetAllAppointsmentsInAdminSerializer(serializers.ModelSerializer):
 
 
 class CancelAppointmentSerializer(serializers.ModelSerializer):
-
+    
     class Meta:
         model = Appointment
-        fields = '__all__'
+        fields = ['id']
 
-    def __init__(self, *args, **kwargs):
-        super(CancelAppointmentSerializer, self).__init__(*args, **kwargs)
-        #make all the fields not required
-        for field in self.fields.values():
-            field.required = False
+    def update(self, instance, validated_data):
+        instance.status = 'Cancelled'
+        instance.save()
+        return instance
 
 
 class GetPatientUpcomingAppointmentsSerializer(serializers.ModelSerializer):
@@ -676,8 +675,9 @@ class GetPatientUpcomingAppointmentSerializer(serializers.ModelSerializer):
                 pass
 
         if provider_profile and provider_profile.picture:
-            data["picture"] = request.build_absolute_uri(provider_profile.picture.url) \
-            if provider_profile.picture else None
+            data["user_image"] = request.build_absolute_uri(provider_profile.picture.url)
+        else:
+            data["user_image"] = None  
 
 
         return data

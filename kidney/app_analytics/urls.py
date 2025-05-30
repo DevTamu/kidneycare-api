@@ -7,8 +7,8 @@ from .views import (
 )
 
 urlpatterns = [
-    path('analytics/patients/', GetPatientAnalyticsView.as_view(), name='patient-analytics'),
-    path('analytics/appointment/', GetAppointmentAnalyticsView.as_view(), name='appointment-analytics'),
+    path('patients/analytics/', GetPatientAnalyticsView.as_view(), name='patient-analytics'),
+    path('appointments/analytics/', GetAppointmentAnalyticsView.as_view(), name='appointment-analytics'),
     path('analytics/provider/', GetProviderAnalyticsView.as_view(), name='provider-analytics'),
-    path('analytics/appointment-status-breakdown/', GetAppointmentStatusBreakdownView.as_view(), name='appointment-status-breakdown-analytics'),
+    path('appointments-breakdown/analytics/', GetAppointmentStatusBreakdownView.as_view(), name='appointment-status-breakdown-analytics'),
 ]

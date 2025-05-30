@@ -1,45 +1,31 @@
 import os
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'kidney.settings')
 import django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'kidney.settings')
 django.setup()
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
+from channels.auth import AuthMiddlewareStack
 from .routing import websocket_urlpatterns
-from .middleware.token_auth_middleware import JWTAuthMiddleware  
+from .middleware.token_auth_middleware import JWTAuthMiddleware
 
-application = ProtocolTypeRouter(
-    {
-        "http": get_asgi_application(),
-        "websocket": AllowedHostsOriginValidator(
-            JWTAuthMiddleware(URLRouter(websocket_urlpatterns))
-        )
-    }
-)
-
-
-# import os
-# os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'kidney.settings')
-
-# from django.core.asgi import get_asgi_application
-# from channels.routing import ProtocolTypeRouter, URLRouter
-# from channels.security.websocket import AllowedHostsOriginValidator
 
 # application = ProtocolTypeRouter({
 #     "http": get_asgi_application(),
-# })
-
-# # Import websocket-related stuff here, after Django apps are ready
-# from .routing import websocket_urlpatterns
-# from .middleware.token_auth_middleware import JWTAuthMiddleware
-
-# # Now add websocket support
-# application = ProtocolTypeRouter({
-#     "http": get_asgi_application(),
-#     "websocket": AllowedHostsOriginValidator(
-#         JWTAuthMiddleware(
+#     "websocket": JWTAuthMiddleware(
+#         AuthMiddlewareStack(
 #             URLRouter(websocket_urlpatterns)
 #         )
 #     )
 # })
 
+application = ProtocolTypeRouter({
+    "http": get_asgi_application(),
+    "websocket": AllowedHostsOriginValidator(
+        JWTAuthMiddleware(
+            AuthMiddlewareStack(
+                URLRouter(websocket_urlpatterns)
+            )
+        )
+    )
+})
