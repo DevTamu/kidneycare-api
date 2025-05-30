@@ -159,7 +159,7 @@ class GetProvidersChatSerializer(serializers.ModelSerializer):
                 'time_sent': message.date_sent.strftime('%I:%M %p')
             }
         else:
-            data["chat_data"] = {
+            data["last_chat_data"] = {
                 "message": None,
                 "status": None,
                 "is_read": False,
