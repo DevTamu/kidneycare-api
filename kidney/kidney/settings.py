@@ -35,7 +35,6 @@ ALLOWED_HOSTS = ["kidneycare-api.onrender.com", "www.kidneycare-api.onrender.com
 
 CSRF_TRUSTED_ORIGINS = [
     'https://kidneycare-api.onrender.com',
-    'wss://kidneycare-api.onrender.com'
 ]
 
 CORS_ALLOWED_ORIGINS = [
