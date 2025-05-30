@@ -50,9 +50,9 @@ class CreateDietPlanSerializer(serializers.Serializer):
     def create(self, validated_data):
 
         MEAL_TIME_MAPPING = {
-            "Breakfast": (time(6, 0), time(9, 0)),
-            "Lunch": (time(12, 0), time(13, 30)),
-            "Dinner": (time(18, 0), time(20, 0)),
+            "Breakfast": (time(6, 0), time(11, 0)), #6-00AM - 11:00AM
+            "Lunch": (time(12, 0), time(17, 0)), #12:00PM - 5:00PM
+            "Dinner": (time(18, 0), time(21, 0)), #6:00PM - 9:00PM
         }
 
         pk = self.context.get('pk')
