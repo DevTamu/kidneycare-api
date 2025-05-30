@@ -13,6 +13,7 @@ from .serializers import (
     GetPatientAppointmentDetailsInAdminSerializer,
     GetUpcomingAppointmentDetailsInPatientSerializer,
 )
+from django.utils import timezone
 from app_authentication.models import User
 from .models import Appointment, AssignedProvider
 from rest_framework import generics, status
@@ -279,14 +280,14 @@ class GetPatientUpcomingAppointmentView(generics.RetrieveAPIView):
         user_id = get_token_user_id(request)
         
         try:
-            now = datetime.now()
-            next_24hr = datetime.now() + timedelta(hours=24)
+            now = timezone.now()
+            past_24hrs = now - timedelta(hours=24)
                         
             user_appointment = Appointment.objects.filter(
                 user_id=user_id,
-                date__range=[now, next_24hr],
+                date__gte=past_24hrs,   
                 status='Approved'
-            ).first()
+            ).order_by('date').first()
    
             if not user_appointment:
                 return ResponseMessageUtils(message="No upcoming apppointment found", status_code=status.HTTP_404_NOT_FOUND)
