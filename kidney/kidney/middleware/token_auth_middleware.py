@@ -1,55 +1,61 @@
-# middleware/token_auth_middleware.py
-import logging
 from urllib.parse import parse_qs
-from rest_framework_simplejwt.tokens import AccessToken
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 from channels.db import database_sync_to_async
+from channels.middleware import BaseMiddleware
+from rest_framework_simplejwt.tokens import AccessToken, TokenError
 
-logger = logging.getLogger(__name__)
 
-class JWTAuthMiddleware:
+
+
+class JWTAuthMiddleware(BaseMiddleware):
     def __init__(self, inner):
         self.inner = inner
 
     async def __call__(self, scope, receive, send):
+        
         try:
-            # 1. Extract token from query parameters
-            query_string = scope.get("query_string", b"").decode()
-            logger.debug(f"Raw query string: {query_string}")
             
-            query_params = parse_qs(query_string)
-            token = query_params.get("token", [None])[0]
-            logger.debug(f"Extracted token: {token}")
+            token = self.get_token_from_scope(scope)
 
             if not token:
-                logger.error("No token provided in WebSocket connection")
-                await send({"type": "websocket.close", "code": 4001})
-                return
+                raise TokenError("Authorization token not provided")
 
-            # 2. Authenticate user
-            user = await self.authenticate_token(token)
-            if not user:
-                logger.error("Invalid or expired token")
-                await send({"type": "websocket.close", "code": 4003})
-                return
+            user_id = await self.get_user_from_token(token)
 
-            # 3. Add user to scope
-            scope["user"] = user
-            logger.info(f"Authenticated user: {user.id}")
-            
-            # 4. Proceed to consumer
-            return await self.inner(scope, receive, send)
+            if not user_id:
+                raise TokenError("Invalid or expired token. Please log in again.")
+            scope["user"] = await self.get_user(user_id) 
 
         except Exception as e:
-            logger.error(f"Authentication failed: {str(e)}", exc_info=True)
-            await send({"type": "websocket.close", "code": 4003})
+            await self.close_connection(send, code=4003)
+            return
+        
+        return await self.inner(scope, receive, send)
+    
+    def get_token_from_scope(self, scope):
+        #get the headers from the scope
+        headers = dict(scope.get("headers", []))
 
+        #get the authorization header
+        auth_header = headers.get(b'authorization', b'').decode('utf-8')
+        #if the authorization header exists and starts with 'Bearer ' return the token part
+        if auth_header and auth_header.startswith('Bearer '):
+            return auth_header.split(' ')[1]
+
+    
     @database_sync_to_async
-    def authenticate_token(self, token):
+    def get_user_from_token(self, token):
         try:
             access_token = AccessToken(token)
-            user_id = access_token["user_id"]
-            return get_user_model().objects.get(id=user_id)
-        except Exception as e:
-            logger.error(f"Token validation failed: {str(e)}")
+            return access_token["user_id"]  
+        except:
             return None
+        
+    @database_sync_to_async
+    def get_user(user_id):
+        from django.contrib.auth import get_user_model
+        try:
+            User = get_user_model()
+            return User.objects.get(id=user_id)
+        except Exception:
+            return AnonymousUser()

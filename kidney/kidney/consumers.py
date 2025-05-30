@@ -164,10 +164,4 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "error": error_message
         }))
 
-    async def authenticate_token(self, token):
-        try:
-            access_token = AccessToken(token)
-            user_id = access_token["user_id"]
-            return await self.get_user(user_id)
-        except TokenError:
-            return None
+
