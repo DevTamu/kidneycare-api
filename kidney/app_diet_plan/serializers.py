@@ -4,6 +4,23 @@ from kidney.utils import is_field_empty
 from django.db import transaction
 from app_authentication.models import User
 from datetime import time
+import base64
+import uuid
+from django.core.files.base import ContentFile
+
+class Base64ImageField(serializers.ImageField):
+
+    def to_internal_value(self, data):
+
+        if isinstance(data, str) and data.startswith("data:image"):
+            format, imgstr = data.split(';base64')
+            ext = format.split('/')[-1] #extract image extension
+            img_data = base64.b64decode(imgstr)
+            file_name = f"{uuid.uuid4()}.{ext}"
+            data = ContentFile(img_data, name=file_name)
+
+
+        return super().to_internal_value(data)
 
 class SubDietPlanSerializer(serializers.ModelSerializer):
 
@@ -24,7 +41,7 @@ class SubDietPlanSerializer(serializers.ModelSerializer):
 class CreateDietPlanSerializer(serializers.Serializer):
     patient_status = serializers.CharField(allow_null=True, allow_blank=True)
     meal_type = serializers.ListField(child=serializers.CharField())
-    dish_image = serializers.ListField(child=serializers.ImageField())
+    dish_image = serializers.ListField(child=Base64ImageField())
     recipe_name = serializers.ListField(child=serializers.CharField())
     recipe_tutorial_url = serializers.ListField(child=serializers.CharField())
     recipe_description = serializers.ListField(child=serializers.CharField())
