@@ -128,9 +128,9 @@ class RegisterView(generics.CreateAPIView):
                         "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None,
                         "user_role": user.role,
                         "birth_date": user_information.birthdate.strftime('%m/%d/%Y') if user_information.birthdate else None,
-                        "gender": user_information.gender,
+                        "gender": user_information.gender.lower(),
                         "contact_number":  user_information.contact,
-                        "user_status": user.status
+                        "user_status": user.status.lower()
                     },
                     status_code=status.HTTP_201_CREATED
                 )
@@ -169,7 +169,7 @@ class RegisterAdminView(generics.CreateAPIView):
                         "last_name": user.last_name,
                         "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None,
                         "user_role": user.role,
-                        "user_status": user.status
+                        "user_status": user.status.lower()
                     },
                     status_code=status.HTTP_201_CREATED
                 )
@@ -442,11 +442,12 @@ class EditProfileInPatientView(generics.UpdateAPIView):
                     "middle_name": user.middlename,
                     "last_name": user.last_name,
                     "birth_date": user_information.birthdate.strftime('%m/%d/%Y'),
-                    "gender": user_information.gender,
+                    "gender": user_information.gender.lower(),
                     "contact_number": user_information.contact,
                     "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
                 }, status_code=status.HTTP_200_OK)
-                return ResponseMessageUtils(message="Successfully updated your profile", status_code=status.HTTP_200_OK)
+            
+                # return ResponseMessageUtils(message="Successfully updated your profile", status_code=status.HTTP_200_OK)
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return ResponseMessageUtils(
