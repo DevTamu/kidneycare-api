@@ -453,7 +453,7 @@ class GetPatientAppointmentHistorySerializer(serializers.ModelSerializer):
             assigned_provider = assigned_appointments.assigned_provider.assigned_provider
             data["first_name"] = assigned_appointments.assigned_provider.assigned_provider.first_name
             data["last_name"] = assigned_appointments.assigned_provider.assigned_provider.last_name
-            data["role"] = assigned_appointments.assigned_provider.assigned_provider.role
+            data["role"] = str(assigned_appointments.assigned_provider.assigned_provider.role).lower()
         else:
             assigned_provider = None
             data["first_name"] = None
