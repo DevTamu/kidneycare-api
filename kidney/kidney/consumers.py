@@ -4,6 +4,9 @@ from channels.db import database_sync_to_async
 from .utils import get_user_by_id
 from app_authentication.models import User
 from django.utils import timezone
+from app_chat.models import Message
+from django.db.models import Q
+
 
 
 class ChatConsumer(AsyncWebsocketConsumer):

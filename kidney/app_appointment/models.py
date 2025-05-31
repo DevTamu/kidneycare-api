@@ -12,7 +12,7 @@ class Appointment(TimestampModel):
         ('In-Progress', 'In-Progress'),
         ('Completed', 'Completed'),
         ('Cancelled', 'Cancelled'),
-        ('No Show', 'No Show'),
+        ('No show', 'No Show'),
         ('Rescheduled', 'Rescheduled'),
     ]
     

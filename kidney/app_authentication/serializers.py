@@ -90,7 +90,7 @@ class SendOTPSerializer(serializers.Serializer):
                     remaining_time = max(0, OTP_VALIDITY_SECONDS - int(elapsed_time))
                     return {
                         "is_verified": "Unverified",
-                        "otp_token": str(otp_obj.otp_token).replace("-", ""),
+                        "otp_token": str(otp_obj.otp_token),
                         "timer": remaining_time
                     }
  
@@ -138,7 +138,7 @@ class SendOTPSerializer(serializers.Serializer):
             cache.set(f"otp_token_to_username_{str(otp_token)}", username.lower(), timeout=OTP_VALIDITY_SECONDS)
 
             return {
-                "otp_token": str(otp_obj.otp_token).replace("-", ""),
+                "otp_token": str(otp_obj.otp_token),
                 "timer": int(timedelta(minutes=3).total_seconds())
             }
         
@@ -546,9 +546,9 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
                 "user_image": picture,  
                 "user_role": user.role,
                 "birth_date": user_information.birthdate.strftime('%m/%d/%Y') if user_information and user_information.birthdate else None,
-                "gender": user_information.gender if user_information and user_information.gender else None,
+                "gender": user_information.gender.lower() if user_information and user_information.gender else None,
                 "contact_number": user_information.contact if user_information and user_information.contact else None,
-                "user_status": user.status.capitalize()
+                "user_status": user.status.lower()
             },
         }
 
@@ -757,7 +757,7 @@ class GetUsersSeriaizer(serializers.ModelSerializer):
         data = super().to_representation(instance)
 
         #rename keys
-        data["user_id"] = str(data.pop('id')).replace("-", "")
+        data["user_id"] = str(data.pop('id'))
 
         #default keys from user_information
         default_user_info = {
@@ -804,7 +804,7 @@ class GetUserSeriaizer(serializers.ModelSerializer):
         data = super().to_representation(instance)
 
         #rename keys
-        data["user_id"] = str(data.pop('id')).replace("-", "")
+        data["user_id"] = str(data.pop('id'))
         
         #default keys from user_information
         default_user_info = {
@@ -896,7 +896,7 @@ class GetHealthCareProvidersSerializer(serializers.ModelSerializer):
 
         #rename keys
         data["contact_number"] = data.pop('contact', None)
-        data["user_id"] = str(data.pop('id')).replace("-", "")
+        data["user_id"] = str(data.pop('id'))
 
         return data
 
@@ -1031,7 +1031,7 @@ class GetAllRegisteredProvidersSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
 
-        data["user_id"] = str(data.pop('id')).replace("-", "")
+        data["user_id"] = str(data.pop('id'))
 
         return data
 
