@@ -392,8 +392,8 @@ class GetPatientInformationSerializer(serializers.ModelSerializer):
         #remove id from the response
         data.pop('id')
 
-        firstname = str(data.pop('first_name')).capitalize()
-        lastname = str(data.pop('last_name')).capitalize()
+        firstname = str(data.pop('first_name'))
+        lastname = str(data.pop('last_name'))
 
         data["patient_name"] = f"{firstname} {lastname}"
         data["patient_age"] = user_information.age
@@ -591,7 +591,7 @@ class GetPatientUpcomingAppointmentsSerializer(serializers.ModelSerializer):
         #safe access to provider data
         if assigned_provider_upcoming_appointment and assigned_provider_upcoming_appointment.assigned_provider:
             provider = assigned_provider_upcoming_appointment.assigned_provider
-            data["assigned_provider_name"] = f'{provider.role.capitalize()} {provider.first_name.capitalize()}'
+            data["assigned_provider_name"] = f'{provider.role} {provider.first_name}'
         else:
             data["assigned_provider_name"] = None
 
@@ -664,7 +664,7 @@ class GetPatientUpcomingAppointmentSerializer(serializers.ModelSerializer):
         #safe access to provider data
         if assigned_provider_upcoming_appointment and assigned_provider_upcoming_appointment.assigned_provider:
             provider = assigned_provider_upcoming_appointment.assigned_provider
-            data["assigned_provider_name"] = f'{provider.role.capitalize()} {provider.first_name.capitalize()}'
+            data["assigned_provider_name"] = f'{provider.role} {provider.first_name}'
         else:
             data["assigned_provider_name"] = None
 
@@ -821,7 +821,7 @@ class GetUpcomingAppointmentDetailsInPatientSerializer(serializers.ModelSerializ
         .get(appointment=data.get('id'))
 
         if assigned_appointment and assigned_appointment.assigned_provider:
-            data["assigned_provider_name"] = f"{assigned_appointment.assigned_provider.assigned_provider.role.capitalize()} {assigned_appointment.assigned_provider.assigned_provider.first_name.capitalize()}"
+            data["assigned_provider_name"] = f"{assigned_appointment.assigned_provider.assigned_provider.role} {assigned_appointment.assigned_provider.assigned_provider.first_name}"
         else:
             data["assigned_provider_name"] = None
 
