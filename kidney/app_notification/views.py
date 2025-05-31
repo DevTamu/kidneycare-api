@@ -10,7 +10,7 @@ class NotificationsInPatientView(generics.ListAPIView):
     serializer_class = NotificationsInPatientSerializer
 
     def get_queryset(self):
-        return Notification.objects.all()
+        return Notification.objects.select_related('appointment').all()
 
     def get(self, request, *args, **kwargs):
 
@@ -29,6 +29,7 @@ class NotificationsInPatientView(generics.ListAPIView):
             return ResponseMessageUtils(message="List of notifications", data=serializer.data, status_code=status.HTTP_200_OK)
 
         except Exception as e:
+            print(f"ERROR: {e}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR

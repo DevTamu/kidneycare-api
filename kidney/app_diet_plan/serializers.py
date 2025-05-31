@@ -185,7 +185,7 @@ class GetPatientDietPlanSerializer(serializers.ModelSerializer):
         #rename key
         data["diet_plan_id"] = data.pop('id')
 
-        data["user_id"] = str(data.pop('patient')).replace("-", "")
+        data["user_id"] = str(data.pop('patient'))
 
         data["diet_plan"] = data.pop('diet_plan')
 

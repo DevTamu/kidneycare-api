@@ -34,7 +34,6 @@ class Profile(TimestampModel):
 
 class UserInformation(TimestampModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, related_name='user_information')
-    # suffix_name = models.BooleanField(default=False)
     birthdate = models.DateField(blank=True, null=True)
     gender = models.CharField(max_length=10, blank=True, null=True)
     contact = models.CharField(max_length=11, blank=True, null=True)

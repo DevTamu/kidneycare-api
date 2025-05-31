@@ -123,7 +123,7 @@ class GetAppointmentInProviderView(generics.ListAPIView):
             
             assigned_appointments = AssignedAppointment.objects.filter(
                 assigned_provider__assigned_provider=request.user,
-                appointment__status__in=['approved', 'in-progress']
+                appointment__status__in=['Approved', 'In-Progress']
             )
             #create an instance of the paginator
             paginator = self.pagination_class()
@@ -170,7 +170,7 @@ class GetPatientAppointmentHistoryView(generics.RetrieveAPIView):
     def get_queryset(self):
         return Appointment.objects.select_related('user').filter(
             user_id=self.kwargs.get('pk'),
-            status='completed'
+            status='Completed'
         )
 
     def get(self, request, *args, **kwargs):
@@ -219,7 +219,6 @@ class GetAllAppointsmentsInAdminView(generics.ListAPIView):
                 status_code=status.HTTP_200_OK
             )
         except Exception as e:
-            print(f"qwewqe: {str(e)}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -283,7 +282,7 @@ class GetPatientUpcomingAppointmentView(generics.RetrieveAPIView):
             ).filter(
                 user_id=user_id,
                 valid_time__gte=now,   
-                status='approved'
+                status='Approved'
             ).order_by('date', 'id').first()
    
             if not appointments:
@@ -381,7 +380,7 @@ class GetUpcomingAppointmentDetailsInPatientView(generics.RetrieveAPIView):
     lookup_field = 'pk'
 
     def get_queryset(self):
-        return Appointment.objects.filter(id=self.kwargs.get('pk'), status='approved').first()
+        return Appointment.objects.filter(id=self.kwargs.get('pk'), status='Approved').first()
     
     def get(self, request, *args, **kwargs):
 
