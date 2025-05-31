@@ -356,7 +356,7 @@ class GetUsersView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
 
         try:
-            user = User.objects.filter(role='Patient')
+            user = User.objects.filter(role='patient')
             serializer = self.get_serializer(user, many=True, context={'request': request})
             return ResponseMessageUtils(
                 message="List of Patients",
@@ -407,7 +407,7 @@ class GetHealthCareProvidersView(generics.ListAPIView):
     serializer_class = GetHealthCareProvidersSerializer
 
     def get_queryset(self):
-        return User.objects.filter(role__in=['Nurse', 'Head Nurse'])
+        return User.objects.filter(role__in=['nurse', 'head nurse'])
 
     def get(self, request, *args, **kwargs):
 
@@ -554,7 +554,7 @@ class GetAllRegisteredProvidersView(generics.ListAPIView):
                     status_code=status.HTTP_200_OK
                 )
 
-            queryset = User.objects.filter(role__in=['Nurse', 'Head Nurse'])
+            queryset = User.objects.filter(role__in=['nurse', 'head nurse'])
             serializer = self.get_serializer(queryset, many=True)
 
             # cache the serialized data for 10 minutes (600 seconds)
