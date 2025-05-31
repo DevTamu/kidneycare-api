@@ -238,7 +238,7 @@ def get_token_user_id(request):
         access_token = AccessToken(auth_header_token)
 
         #extract the user_id claim, convert to string and remove hyphens
-        return str(access_token["user_id"]).replace("-", "")
+        return str(access_token["user_id"])
     except TokenError as e:
         #handle invalid or expired tokens by returning a 401 Unauthorized
         return ResponseMessageUtils(
