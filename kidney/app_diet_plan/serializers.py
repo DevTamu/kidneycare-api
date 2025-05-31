@@ -134,10 +134,6 @@ class CreateDietPlanSerializer(serializers.Serializer):
         recipe_tutorial_urls = validated_data.get('recipe_tutorial_url', [])
         recipe_descriptions = validated_data.get('recipe_description', [])
 
-
-        if not (len(meal_types) == len(dish_images) == len(recipe_names) == len(recipe_tutorial_urls) == len(recipe_descriptions)):
-            raise serializers.ValidationError({"message": "All list fields must have the same length."})
-
         for i in range(len(meal_types)):
 
             meal_type = meal_types[i]

@@ -176,11 +176,16 @@ class GetPatientAppointmentHistoryView(generics.RetrieveAPIView):
     def get(self, request, *args, **kwargs):
 
         try:
+
+            if not self.get_queryset():
+                return ResponseMessageUtils(message="No appointment history found", status_code=status.HTTP_404_NOT_FOUND)
+
             serializer = self.get_serializer(self.get_queryset(), many=True)
             return ResponseMessageUtils(message="List of Appointment history", data=serializer.data, status_code=status.HTTP_200_OK)
         except Exception as e:
+            print(f"WHAT WENT WRONG?: {e}")
             return ResponseMessageUtils(
-                message="Something went wrong while processing your request.",
+                message=f"Something went wrong while processing your request.: {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
       
