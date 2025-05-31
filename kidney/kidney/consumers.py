@@ -5,11 +5,9 @@ from channels.db import database_sync_to_async
 from .utils import get_user_by_id
 from app_authentication.models import User
 from django.utils import timezone
-import logging
 from app_chat.models import Message
 from django.db.models import Q
 
-logger = logging.getLogger(__name__)
 
 class ChatConsumer(AsyncWebsocketConsumer):
 
@@ -37,8 +35,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.send_message_introduction(user, user_receiver)
             
         except Exception as e:
-            logger.error(f"Connection error: {str(e)}")
-            logger.info(f"Connection error: {str(e)}")
             await self.close(code=4003)
         
 
