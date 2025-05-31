@@ -160,7 +160,7 @@ class UpdateAppointmentInPatientSerializer(serializers.ModelSerializer):
         
         instance.date = validated_data["date"]
         instance.time = validated_data["time"]
-        instance.status = "Rescheduled"
+        instance.status = "rescheduled"
         instance.save()
 
         return instance
@@ -438,7 +438,7 @@ class GetPatientAppointmentHistorySerializer(serializers.ModelSerializer):
 
         data["user_id"] = str(user_id)
         data["appointment_id"] = appointment_id
-        data["status"] = data.pop('status').lower()
+        data["status"] = str(data.pop('status')).lower()
 
         #fetch all assigned appointments related to the specific appointment
         #and get the related assigned machine, provider
@@ -511,7 +511,7 @@ class GetAllAppointsmentsInAdminSerializer(serializers.ModelSerializer):
         return obj.time.strftime('%I:%M %p')
     
     def get_status(self, obj):
-        return str(obj.status.lower())
+        return str(obj.status).lower()
     
     def get_picture(self, obj):
 
@@ -551,7 +551,7 @@ class CancelAppointmentSerializer(serializers.ModelSerializer):
         fields = ['id']
 
     def update(self, instance, validated_data):
-        instance.status = 'Cancelled'
+        instance.status = 'cancelled'
         instance.save()
         return instance
 
