@@ -4,5 +4,5 @@ from .views import (
 )
 
 urlpatterns = [
-    path('create/treatment-form/', CreateTreatmentFormView.as_view(), name='creat-treatment-form')
+    path('patients/<str:pk>/treatment-form/', CreateTreatmentFormView.as_view(), name='creat-treatment-form')
 ]

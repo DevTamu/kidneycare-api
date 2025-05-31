@@ -18,6 +18,7 @@ from .serializers import (
     GetProfileProfileInPatientSerializer,
     GetAllRegisteredProvidersSerializer
 )
+from django.conf import settings
 from rest_framework import serializers
 from django.core.cache import cache
 from rest_framework.exceptions import AuthenticationFailed
@@ -30,7 +31,10 @@ from rest_framework_simplejwt.tokens import TokenError, AccessToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth import logout
 from .models import OTP, User, Profile, UserInformation
+from django.http import JsonResponse
 
+def ping(request):
+    return JsonResponse({"status": "ok"})
 
 class SendOTPView(generics.CreateAPIView):
 
@@ -49,6 +53,7 @@ class SendOTPView(generics.CreateAPIView):
                 )
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            print(f'qwewqe: {e}')
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -202,6 +207,32 @@ class AddAccountHealthCareProviderView(generics.CreateAPIView):
 
 class LoginView(TokenObtainPairView):
     serializer_class = LoginObtainPairSerializer
+
+    
+    def post(self, request, *args, **kwargs):
+
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+
+            #access the access token from the response
+            access_token = response.data.get('data', {}).get('access_token')
+
+
+            #if access token exist
+            if access_token:
+                #set the cookie
+                response.set_cookie(
+                    key='access_token',
+                    value=access_token,
+                    httponly=True,
+                    secure=not settings.DEBUG,
+                    samesite='None',
+                    max_age=86400,
+                    path='/'
+                )
+
+
+        return response
 
 
 class RefreshTokenView(TokenRefreshView):

@@ -3,55 +3,42 @@ from pprint import pprint
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from .utils import get_user_by_id
-from rest_framework_simplejwt.tokens import AccessToken, TokenError
 from app_authentication.models import User
 
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
-        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
-        # pprint(f"connecting to room: {self.room_name}")
-        self.room_group_name = f"chat_{self.room_name}"
+        """Handles the WebSocket connection."""
+        try:
+            #user is already authenticated by middleware
+            user = self.scope["user"]
+            if not user:
+                await self.close(code=4003)
+                return
 
+            self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
+            self.sender_id = str(user.id).replace("-", "")
+            
+            self.room_group_name = f"chat_{min(self.room_name, self.sender_id)}_{max(self.room_name, self.sender_id)}"
 
-        user = self.scope.get("user")
-        if user is None or user.is_anonymous:
-            await self.close(code=4002)
-            return
+            await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+            await self.accept()
 
-        self.sender_id = str(user.id).replace("-", "")
-        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
-        self.room_group_name = f"chat_{min(self.room_name, self.sender_id)}_{max(self.room_name, self.sender_id)}"
-        
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-        await self.accept()
-        # pprint(f"connected to room: {self.room_group_name}")
-
-    async def disconnect(self, close_code):
-        # Leave room group
-        # pprint(f"Disconnecting from room: {self.room_group_name}")
-
-        user_receiver = await get_user_by_id(self.room_name)
-        await self.send_message_introduction(user, user_receiver)
+            user_receiver = await get_user_by_id(self.room_name)
+            await self.send_message_introduction(user, user_receiver)
+            
+        except Exception as e:
+            await self.close(code=4003)
         
 
     async def disconnect(self, close_code):
         """Handles the WebSocket disconnection."""
         pprint(f"Disconnecting from room: {self.room_group_name}")    
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
-        # pprint(f"disconnected from room: {self.room_group_name}")
+        pprint(f"disconnected from room: {self.room_group_name}")
 
     async def receive(self, text_data):
         
-        #re-validate token on every message
-        try:
-            token = AccessToken(self.token)
-            self.sender_id = str(token["user_id"]).replace("-", "")
-        except TokenError:
-            await self.send_error_to_websocket("Invalid or expired token. Please log in again.")
-            await self.close(code=4002)
-            return
-
         """Handles incoming messages from the WebSocket."""
         try:
             data = json.loads(text_data)
@@ -84,9 +71,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             {
                 'type': 'chat_message',  #this will call the 'chat_message' method on the receiver's side
                 'message': message.content,
-                'sender_id': message.sender.id,
-                'message_id': message.id,
-                'date_sent': message.created_at
+                'sender_id': str(message.sender.id),
+                'message_id': str(message.id),
+                'date_sent': message.created_at.isoformat()
             }
         )
 
@@ -96,8 +83,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             {
                 'type': 'chat_message_introduction',
                 'message': f"Hi {sender.first_name.capitalize()} {receiver.last_name.capitalize()}, this is {receiver.first_name.capitalize()} from Boho Renal Care. I'd be happy to assist you",
-                "sender_id": sender.id,
-                "receiver_id": receiver.id  
+                "sender_id": str(sender.id),
+                "receiver_id": str(receiver.id)  
             }
         )
 
@@ -167,3 +154,5 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "error": error_message
         }))
+
+
