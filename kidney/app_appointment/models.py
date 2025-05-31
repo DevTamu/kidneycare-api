@@ -6,14 +6,14 @@ from django.utils import timezone
 
 class Appointment(TimestampModel):
     appointment_status = [
-        ('pending', 'Pending'),
-        ('approved', 'Approved'),
-        ('check-in', 'Check-In'),
-        ('in-progress', 'In-Progress'),
-        ('completed', 'Completed'),
-        ('cancelled', 'Cancelled'),
-        ('no show', 'No Show'),
-        ('rescheduled', 'Rescheduled'),
+        ('pending', 'pending'),
+        ('approved', 'approved'),
+        ('check-in', 'check-in'),
+        ('in-progress', 'in-progress'),
+        ('completed', 'completed'),
+        ('cancelled', 'cancelled'),
+        ('no show', 'no show'),
+        ('rescheduled', 'rescheduled'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
