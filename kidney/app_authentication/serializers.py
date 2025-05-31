@@ -442,7 +442,7 @@ class RegisterSerializer(serializers.Serializer):
         user.first_name = validated_data["first_name"]
         user.middlename = validated_data["middlename"]
         user.last_name = validated_data["last_name"]
-        user.status = 'online'
+        user.status = 'Online'
         user.save()
     
         # Create or update User information
@@ -518,7 +518,7 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
         except UserInformation.DoesNotExist:
             pass
 
-        user.status = 'online'
+        user.status = 'Online'
         user.save()
 
         default_data = {
@@ -664,7 +664,7 @@ class LogoutSerializer(serializers.Serializer):
                 raise serializers.ValidationError({"message": "No user found"})
             
             #update the status of the user once logged out
-            user.status = 'offline'
+            user.status = 'Offline'
             user.save()
 
             #format datetime fields are correctly formatted as strings
