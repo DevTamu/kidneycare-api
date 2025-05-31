@@ -442,7 +442,7 @@ class RegisterSerializer(serializers.Serializer):
         user.first_name = validated_data["first_name"]
         user.middlename = validated_data["middlename"]
         user.last_name = validated_data["last_name"]
-        user.status = 'Online'
+        user.status = 'online'
         user.save()
     
         # Create or update User information
@@ -518,7 +518,7 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
         except UserInformation.DoesNotExist:
             pass
 
-        user.status = 'Online'
+        user.status = 'online'
         user.save()
 
         default_data = {
@@ -538,7 +538,7 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
             "data": {
                 "access_token": str(refresh.access_token),
                 "refresh_token": str(refresh),
-                "user_id": str(user.id).replace("-", ""),
+                "user_id": str(user.id),
                 "first_name": user.first_name,
                 "middle_name": user.middlename if user.middlename else None,
                 "last_name": user.last_name,
@@ -548,7 +548,7 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
                 "birth_date": user_information.birthdate.strftime('%m/%d/%Y') if user_information and user_information.birthdate else None,
                 "gender": user_information.gender if user_information and user_information.gender else None,
                 "contact_number": user_information.contact if user_information and user_information.contact else None,
-                "user_status": user.status.capitalize()
+                "user_status": user.status
             },
         }
 
@@ -664,7 +664,7 @@ class LogoutSerializer(serializers.Serializer):
                 raise serializers.ValidationError({"message": "No user found"})
             
             #update the status of the user once logged out
-            user.status = 'Offline'
+            user.status = 'offline'
             user.save()
 
             #format datetime fields are correctly formatted as strings
