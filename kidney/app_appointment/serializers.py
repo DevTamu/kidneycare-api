@@ -6,6 +6,7 @@ from app_authentication.models import User, Profile, UserInformation
 from app_schedule.models import Schedule 
 from datetime import datetime, timedelta
 from app_notification.models import Notification
+import uuid
 
 class CreateAppointmentSerializer(serializers.ModelSerializer):
 
@@ -174,6 +175,8 @@ class AddAssignedMachineSerializer(serializers.ModelSerializer):
 
 class AddAssignedProviderSerializer(serializers.ModelSerializer):
 
+    assigned_provider = serializers.CharField(write_only=True)
+
     class Meta:
         model = AssignedProvider
         fields = ['assigned_provider']
@@ -191,10 +194,10 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
     def validate(self, attrs):
         
         #extract the assigned machine data
-        assigned_machine_data = attrs.get('assigned_machine', [])
+        assigned_machine_data = attrs.get('assigned_machine', None)
 
         #extract the assigned provider data
-        assigned_provider_data = attrs.get('assigned_provider', [])
+        assigned_provider_data = attrs.get('assigned_provider', None)
 
         if is_field_empty(attrs.get('status')):
             raise serializers.ValidationError({"message": "Status is required"})
@@ -204,6 +207,9 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
         
         if is_field_empty(assigned_provider_data):
             raise serializers.ValidationError({"message": "Please assign a provider"})
+        
+        if not User.objects.filter(id=assigned_provider_data["assigned_provider"]).exists():
+            raise serializers.ValidationError({"message": "No provider found"})
 
         return attrs
     
@@ -217,7 +223,7 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
 
         #extract the assigned provider data
         assigned_providers_data = validated_data.pop('assigned_provider')
-        
+
         appointment = self.context.get('appointment_pk')
 
         #create assigned machine object instance linked to the appointment
@@ -225,13 +231,18 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
             assigned_machine_appointment=appointment,
             defaults={
                 "assigned_machine":assigned_machines_data["assigned_machine"],
-                "status":'in use'
+                "status":'In use'
             }
         )
 
+        try:
+            user_provider = User.objects.filter(id=assigned_providers_data["assigned_provider"]).first()
+        except User.DoesNotExist:
+            raise serializers.ValidationError({"message": "No provider found"})
+
         #create assigned provider object instance linked to the appointment
         assigned_provider_obj, _ = AssignedProvider.objects.update_or_create(
-            assigned_provider=assigned_providers_data["assigned_provider"],
+            assigned_provider=user_provider,
             defaults={
                 "assigned_patient_appointment":appointment
             }
@@ -242,7 +253,7 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
             appointment=appointment,
             defaults={
                 "assigned_machine":assigned_machine_obj,
-                "assigned_provider":assigned_provider_obj
+                "assigned_provider":assigned_provider_obj   
             }
         )
 
