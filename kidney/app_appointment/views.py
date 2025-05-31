@@ -109,8 +109,6 @@ class AddAppointmentDetailsInAdminView(generics.CreateAPIView):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    
-
 
 class GetAppointmentInProviderView(generics.ListAPIView):
 
@@ -170,7 +168,7 @@ class GetPatientAppointmentHistoryView(generics.RetrieveAPIView):
     def get_queryset(self):
         return Appointment.objects.select_related('user').filter(
             user_id=self.kwargs.get('pk'),
-            status='Completed'
+            status='completed'
         )
 
     def get(self, request, *args, **kwargs):
@@ -183,9 +181,8 @@ class GetPatientAppointmentHistoryView(generics.RetrieveAPIView):
             serializer = self.get_serializer(self.get_queryset(), many=True)
             return ResponseMessageUtils(message="List of Appointment history", data=serializer.data, status_code=status.HTTP_200_OK)
         except Exception as e:
-            print(f"WHAT WENT WRONG?: {e}")
             return ResponseMessageUtils(
-                message=f"Something went wrong while processing your request.: {e}",
+                message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
       
@@ -282,7 +279,7 @@ class GetPatientUpcomingAppointmentView(generics.RetrieveAPIView):
             ).filter(
                 user_id=user_id,
                 valid_time__gte=now,   
-                status='Approved'
+                status='approved'
             ).order_by('date', 'id').first()
    
             if not appointments:
@@ -380,7 +377,7 @@ class GetUpcomingAppointmentDetailsInPatientView(generics.RetrieveAPIView):
     lookup_field = 'pk'
 
     def get_queryset(self):
-        return Appointment.objects.filter(id=self.kwargs.get('pk'), status='Approved').first()
+        return Appointment.objects.filter(id=self.kwargs.get('pk'), status='approved').first()
     
     def get(self, request, *args, **kwargs):
 
@@ -396,7 +393,6 @@ class GetUpcomingAppointmentDetailsInPatientView(generics.RetrieveAPIView):
             return ResponseMessageUtils(message="Appointment details found", data=serializer.data)
 
         except Exception as e:
-            print(f"SOMETHING WENT WRONG: {e}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR

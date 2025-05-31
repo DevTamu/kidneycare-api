@@ -6,20 +6,20 @@ from django.utils import timezone
 
 class Appointment(TimestampModel):
     appointment_status = [
-        ('Pending', 'Pending'),
-        ('Approved', 'Approved'),
-        ('Check-In', 'Check-In'),
-        ('In-Progress', 'In-Progress'),
-        ('Completed', 'Completed'),
-        ('Cancelled', 'Cancelled'),
-        ('No show', 'No Show'),
-        ('Rescheduled', 'Rescheduled'),
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('check-in', 'Check-In'),
+        ('in-progress', 'In-Progress'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+        ('no show', 'No Show'),
+        ('rescheduled', 'Rescheduled'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     date = models.DateField(blank=True, null=True, default=None)
     time = models.TimeField(blank=True, null=True)
-    status = models.CharField(max_length=20, choices=appointment_status, default='Pending')
+    status = models.CharField(max_length=20, choices=appointment_status, default='pending')
 
     def __str__(self):
         return f"{self.user.username} Appointment - {self.id}"
