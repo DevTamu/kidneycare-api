@@ -53,7 +53,6 @@ class SendOTPView(generics.CreateAPIView):
                 )
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            print(f'qwewqe: {e}')
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -121,7 +120,7 @@ class RegisterView(generics.CreateAPIView):
                     data={
                         "access_token": token["access_token"],
                         "refresh_token": token["refresh_token"],
-                        "user_id": str(user.id).replace("-", ""),
+                        "user_id": str(user.id),
                         "user_email": user.username,
                         "first_name": user.first_name,
                         "middle_name": user.middlename if user.middlename else None,
@@ -131,7 +130,7 @@ class RegisterView(generics.CreateAPIView):
                         "birth_date": user_information.birthdate.strftime('%m/%d/%Y') if user_information.birthdate else None,
                         "gender": user_information.gender,
                         "contact_number":  user_information.contact,
-                        "user_status": user.status.capitalize()
+                        "user_status": user.status
                     },
                     status_code=status.HTTP_201_CREATED
                 )
@@ -164,13 +163,13 @@ class RegisterAdminView(generics.CreateAPIView):
                     data={
                         "access_token": token["access_token"],
                         "refresh_token": token["refresh_token"],
-                        "user_id": str(user.id).replace("-", ""),
+                        "user_id": str(user.id),
                         "user_email": user.username,
                         "first_name": user.first_name,
                         "last_name": user.last_name,
                         "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None,
                         "user_role": user.role,
-                        "user_status": user.status.capitalize()
+                        "user_status": user.status
                     },
                     status_code=status.HTTP_201_CREATED
                 )
@@ -204,36 +203,8 @@ class AddAccountHealthCareProviderView(generics.CreateAPIView):
             )
 
 
-
 class LoginView(TokenObtainPairView):
     serializer_class = LoginObtainPairSerializer
-
-    
-    def post(self, request, *args, **kwargs):
-
-        response = super().post(request, *args, **kwargs)
-        if response.status_code == 200:
-
-            #access the access token from the response
-            access_token = response.data.get('data', {}).get('access_token')
-
-
-            #if access token exist
-            if access_token:
-                #set the cookie
-                response.set_cookie(
-                    key='access_token',
-                    value=access_token,
-                    httponly=True,
-                    secure=not settings.DEBUG,
-                    samesite='None',
-                    max_age=86400,
-                    path='/'
-                )
-
-
-        return response
-
 
 class RefreshTokenView(TokenRefreshView):
 

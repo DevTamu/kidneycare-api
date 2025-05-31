@@ -31,7 +31,8 @@ DEBUG = os.environ.get('DEBUG')
 
 ALLOWED_HOSTS = ["*"]
 
-# ALLOWED_HOSTS = ["kidneycare-api.onrender.com", "www.kidneycare-api.onrender.com", "localhost", "127.0.0.1"]
+
+# ALLOWED_HOSTS = ["kidneycare-api.onrender.com"]
 
 # CSRF_TRUSTED_ORIGINS = [
 #     'https://kidneycare-api.onrender.com',
@@ -117,6 +118,7 @@ DATABASES = {
     }
 }
 
+
 # DATABASES = {
 #     'default': dj_database_url.config(
 #         default=os.environ.get('DATABASE_URL'),
@@ -124,6 +126,7 @@ DATABASES = {
 #         ssl_require=True,
 #     )
 # }
+
 
 
 # Password validation
