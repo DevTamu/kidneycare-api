@@ -546,9 +546,9 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
                 "user_image": picture,  
                 "user_role": user.role,
                 "birth_date": user_information.birthdate.strftime('%m/%d/%Y') if user_information and user_information.birthdate else None,
-                "gender": user_information.gender if user_information and user_information.gender else None,
+                "gender": user_information.gender.lower() if user_information and user_information.gender else None,
                 "contact_number": user_information.contact if user_information and user_information.contact else None,
-                "user_status": user.status.capitalize()
+                "user_status": user.status.lower()
             },
         }
 
