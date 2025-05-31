@@ -166,4 +166,4 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def send_error_to_websocket(self, error_message):
         await self.send(text_data=json.dumps({
             "error": error_message
-        }))
+        }))k
