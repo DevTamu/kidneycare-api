@@ -231,7 +231,7 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
 
         #create assigned provider object instance linked to the appointment
         assigned_provider_obj, _ = AssignedProvider.objects.update_or_create(
-            assigned_provider=assigned_providers_data["assigned_provider"],
+            assigned_provider=str(assigned_providers_data["assigned_provider"]),
             defaults={
                 "assigned_patient_appointment":appointment
             }
