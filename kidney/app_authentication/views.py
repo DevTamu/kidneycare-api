@@ -70,7 +70,7 @@ class VerifyOTPView(generics.UpdateAPIView):
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
                 result = serializer.save()
-                return ResponseMessageUtils(message="Account verified successfully, you may now log in.",data={'user_id': str(result.user.id).replace('-', '').strip()}, status_code=status.HTTP_200_OK)
+                return ResponseMessageUtils(message="Account verified successfully, you may now log in.",data={'user_id': str(result.user.id)}, status_code=status.HTTP_200_OK)
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return ResponseMessageUtils(
@@ -121,7 +121,7 @@ class RegisterView(generics.CreateAPIView):
                     data={
                         "access_token": token["access_token"],
                         "refresh_token": token["refresh_token"],
-                        "user_id": str(user.id).replace("-", ""),
+                        "user_id": str(user.id),
                         "user_email": user.username,
                         "first_name": user.first_name,
                         "middle_name": user.middlename if user.middlename else None,
@@ -164,7 +164,7 @@ class RegisterAdminView(generics.CreateAPIView):
                     data={
                         "access_token": token["access_token"],
                         "refresh_token": token["refresh_token"],
-                        "user_id": str(user.id).replace("-", ""),
+                        "user_id": str(user.id),
                         "user_email": user.username,
                         "first_name": user.first_name,
                         "last_name": user.last_name,
@@ -517,22 +517,22 @@ class GetAllRegisteredProvidersView(generics.ListAPIView):
 
         try:
 
-            data_cache_key = 'all_registered_providers'
+            # data_cache_key = 'all_registered_providers'
 
-            #check if data is already in cache
-            cached_data = cache.get(data_cache_key)
-            if cached_data is not None:
-                return ResponseMessageUtils(
-                    message="List of registered providers",
-                    data=cached_data,
-                    status_code=status.HTTP_200_OK
-                )
+            # #check if data is already in cache
+            # cached_data = cache.get(data_cache_key)
+            # if cached_data is not None:
+            #     return ResponseMessageUtils(
+            #         message="List of registered providers",
+            #         data=cached_data,
+            #         status_code=status.HTTP_200_OK
+            #     )
 
             queryset = User.objects.filter(role__in=['Nurse', 'Head Nurse'])
             serializer = self.get_serializer(queryset, many=True)
 
-            # cache the serialized data for 10 minutes (600 seconds)
-            cache.set(data_cache_key, serializer.data, timeout=600)
+            # # cache the serialized data for 10 minutes (600 seconds)
+            # cache.set(data_cache_key, serializer.data, timeout=600)
 
             return ResponseMessageUtils(message="List of registered providers", data=serializer.data, status_code=status.HTTP_200_OK)
 
