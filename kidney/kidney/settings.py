@@ -8,6 +8,7 @@ from django.core.files.storage import default_storage
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv()
 import dj_database_url
+import urllib.parse
 
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
@@ -30,9 +31,20 @@ DEBUG = os.environ.get('DEBUG')
 
 ALLOWED_HOSTS = ["*"]
 
+
 # ALLOWED_HOSTS = ["kidneycare-api.onrender.com"]
 
-# CSRF_TRUSTED_ORIGINS = ['https://kidneycare-api.onrender.com', 'wss://kidneycare-api.onrender.com']
+# CSRF_TRUSTED_ORIGINS = [
+#     'https://kidneycare-api.onrender.com',
+# ]
+
+# CORS_ALLOWED_ORIGINS = [
+#     'https://kidneycare-api.onrender.com',
+# ]
+
+redis_url = os.environ.get('REDIS_URL')
+
+parsed_url = urllib.parse.urlparse(redis_url)
 
 
 # Application definition
@@ -107,6 +119,16 @@ DATABASES = {
 }
 
 
+# DATABASES = {
+#     'default': dj_database_url.config(
+#         default=os.environ.get('DATABASE_URL'),
+#         conn_max_age=600,
+#         ssl_require=True,
+#     )
+# }
+
+
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -125,10 +147,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'Asia/Hong_Kong'
@@ -136,11 +154,6 @@ TIME_ZONE = 'Asia/Hong_Kong'
 USE_I18N = True
 
 USE_TZ = True
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
 
 STATIC_URL = 'static/'
 
@@ -172,9 +185,35 @@ SIMPLE_JWT = {
 ASGI_APPLICATION = 'kidney.asgi.application'
 
 
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": redis_url,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "PASSWORD": parsed_url.password,
+        }
+    }
+}
+
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels.layers.InMemoryChannelLayer",
+#     },
+# }
+
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [
+                "redis://:gCFK8c8QYhGmGssIqfFXDqaqybD6f6uR@redis-12945.c299.asia-northeast1-1.gce.redns.redis-cloud.com:12945"
+            ],
+            "prefix": "kidneycare",
+        },
     },
 }
 

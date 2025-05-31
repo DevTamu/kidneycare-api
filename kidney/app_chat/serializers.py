@@ -1,7 +1,9 @@
 from rest_framework import serializers
 from .models import Message
-from app_authentication.models import Profile
-
+from app_authentication.models import Profile, User
+from django.db.models import Q
+from datetime import datetime
+from django.utils import timezone
 class GetUsersMessageSerializer(serializers.ModelSerializer):
     
     created_at = serializers.SerializerMethodField()
@@ -21,8 +23,8 @@ class GetUsersMessageSerializer(serializers.ModelSerializer):
         #rename keys
         data["is_read"] = data.pop('read', None)
         data["chat_id"] = data.pop('id', None)
-        data["sender_id"] = str(data.pop('sender', ""))
-        data["receiver_id"] = str(data.pop('receiver', ""))
+        data["sender_id"] = str(data.pop('sender'))
+        data["receiver_id"] = str(data.pop('receiver'))
 
         #remove from the response
         data.pop('updated_at')
@@ -46,8 +48,8 @@ class GetNotificationChatsToProviderSerializer(serializers.ModelSerializer):
         data.pop('updated_at')
 
         #rename keys
-        data["sender_id"] = str(data.pop('sender')).replace("-", "")
-        data["receiver_id"] = str(data.pop('receiver')).replace("-", "")
+        data["sender_id"] = str(data.pop('sender'))
+        data["receiver_id"] = str(data.pop('receiver'))
         data["chat_id"] = data.pop('id')
         data["created_at"] = str(data.pop('created_at'))[10:].strip()
 
@@ -92,11 +94,84 @@ class GetUsersChatSerializer(serializers.ModelSerializer):
 
         #rename keys
         data["time_sent"] = data.pop('created_at')
-        data["sender_id"] = str(sender_id).replace("-", "")
-        data["receiver_id"] = str(receiver_id).replace("-", "")
+        data["sender_id"] = str(sender_id)
+        data["receiver_id"] = str(receiver_id)
         data["chat_id"] = data.pop('id  ')
 
         return data
+    
+
+class GetProvidersChatSerializer(serializers.ModelSerializer):
+
+    user_image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['role', 'status', 'first_name', 'id', 'user_image']
+
+    def get_user_image(self, obj):
+
+        #get the request object from the serializer context
+        request = self.context.get('request')
+
+        try:
+            user_profile = Profile.objects.select_related('user').get(user=obj)
+        except Profile.DoesNotExist:
+            raise serializers.ValidationError({"message": "No user profile found"})
+        
+        if user_profile and user_profile.picture:
+            return request.build_absolute_uri(user_profile.picture.url)
+        return None
+
+    def to_representation(self, instance):
+
+        #get the request object from the serializer context
+        request = self.context.get('request')
+
+        data = super().to_representation(instance)
+
+        #get the pk from the context
+        pk = self.context.get('pk') #pk is the current authenticated user(Patient)
+
+        provider_information = {
+            "provider_id": data.pop('id'),
+            "role": data.pop('role'),
+            "status": data.pop('status'),
+            "first_name": data.pop('first_name'),
+            "user_image": data.pop('user_image')
+        }
+
+        provider_id = provider_information.get('provider_id', None)
+
+        message = Message.objects.select_related('sender', 'receiver').filter(
+            (
+                Q(sender=pk, receiver=provider_id)
+            ) | 
+            (
+                Q(sender=provider_id, receiver=pk)
+            )
+        ).order_by('-created_at').first()
+
+        if message:
+
+            #convnert the date sent into local time
+            local_time = timezone.localtime(message.date_sent)
+
+            #merged the provider information to main data dictionary
+            data.update(provider_information)
+            data["last_message"] = {
+                "message": message.content,
+                "status": message.status,
+                "is_read": message.read,
+                "chat_id": message.id,
+                "sender_id": str(message.sender.id),
+                "receiver_id": str(message.receiver.id),
+                'time_sent': local_time.strftime('%I:%M %p')
+            }
+
+        return data
+    
+
 
 
     
