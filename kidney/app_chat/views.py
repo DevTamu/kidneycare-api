@@ -62,7 +62,11 @@ class GetNotificationChatsToProviderView(generics.ListAPIView):
 
             serializer = self.get_serializer(messages, many=True)
 
-            return ResponseMessageUtils(message="List of notification messages", data=serializer.data)
+            return ResponseMessageUtils(
+                message="List of notification messages",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -83,7 +87,11 @@ class GetUsersChatView(generics.ListAPIView):
 
             serializer = self.get_serializer(messages, many=True)
 
-            return ResponseMessageUtils(message="List of users chat", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(
+                message="List of users chat",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
 
         except Exception as e:
             return ResponseMessageUtils(
@@ -107,11 +115,18 @@ class GetProvidersChatView(generics.ListAPIView):
             user = User.objects.filter(role__in=['Nurse', 'Head Nurse'])
 
             if not user:
-                return ResponseMessageUtils(message="No messages found", status_code=status.HTTP_404_NOT_FOUND)
+                return ResponseMessageUtils(
+                    message="No messages found",
+                    status_code=status.HTTP_404_NOT_FOUND
+                )
 
             serializer = self.get_serializer(user, many=True, context={'pk': user_id, 'request': request})
 
-            return ResponseMessageUtils(message="List of chat users", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(
+                message="List of chat users",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
 
         except Exception as e:
             return ResponseMessageUtils(
