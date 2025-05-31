@@ -545,22 +545,22 @@ class GetAllRegisteredProvidersView(generics.ListAPIView):
 
         try:
 
-            data_cache_key = 'all_registered_providers'
+            # data_cache_key = 'all_registered_providers'
 
-            #check if data is already in cache
-            cached_data = cache.get(data_cache_key)
-            if cached_data is not None:
-                return ResponseMessageUtils(
-                    message="List of registered providers",
-                    data=cached_data,
-                    status_code=status.HTTP_200_OK
-                )
+            # #check if data is already in cache
+            # cached_data = cache.get(data_cache_key)
+            # if cached_data is not None:
+            #     return ResponseMessageUtils(
+            #         message="List of registered providers",
+            #         data=cached_data,
+            #         status_code=status.HTTP_200_OK
+            #     )
 
             queryset = User.objects.filter(role__in=['Nurse', 'Head Nurse'])
             serializer = self.get_serializer(queryset, many=True)
 
-            # cache the serialized data for 10 minutes (600 seconds)
-            cache.set(data_cache_key, serializer.data, timeout=600)
+            # # cache the serialized data for 10 minutes (600 seconds)
+            # cache.set(data_cache_key, serializer.data, timeout=600)
 
             return ResponseMessageUtils(
                 message="List of registered providers",
