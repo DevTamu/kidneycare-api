@@ -69,8 +69,15 @@ class VerifyOTPView(generics.UpdateAPIView):
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
                 result = serializer.save()
-                return ResponseMessageUtils(message="Account verified successfully, you may now log in.",data={'user_id': str(result.user.id).replace('-', '').strip()}, status_code=status.HTTP_200_OK)
-            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+                return ResponseMessageUtils(
+                    message="Account verified successfully, you may now log in.",
+                    data={'user_id': str(result.user.id)},
+                    status_code=status.HTTP_200_OK
+                )
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -87,8 +94,15 @@ class ResendOTPView(generics.UpdateAPIView):
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
                 result = serializer.save()
-                return ResponseMessageUtils(message="Successfully Resend the OTP", data={"otp_token": result.otp_token}, status_code=status.HTTP_200_OK)
-            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+                return ResponseMessageUtils(
+                    message="Successfully Resend the OTP",
+                    data={"otp_token": result.otp_token},
+                    status_code=status.HTTP_200_OK
+                )
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -134,7 +148,10 @@ class RegisterView(generics.CreateAPIView):
                     },
                     status_code=status.HTTP_201_CREATED
                 )
-            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -173,7 +190,10 @@ class RegisterAdminView(generics.CreateAPIView):
                     },
                     status_code=status.HTTP_201_CREATED
                 )
-            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
 
         except Exception as e:
             return ResponseMessageUtils(
@@ -193,8 +213,14 @@ class AddAccountHealthCareProviderView(generics.CreateAPIView):
 
             if serializer.is_valid():
                 serializer.save()
-                return ResponseMessageUtils(message="Added Account Successfully", status_code=status.HTTP_201_CREATED)
-            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+                return ResponseMessageUtils(
+                    message="Added Account Successfully",
+                    status_code=status.HTTP_201_CREATED
+                )
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
 
         except Exception as e:
             return ResponseMessageUtils(
@@ -216,8 +242,15 @@ class RefreshTokenView(TokenRefreshView):
             serializer = self.get_serializer(data=request.data)
 
             if serializer.is_valid():
-                return ResponseMessageUtils(message="Successfully Refresh your token", data=serializer.data, status_code=status.HTTP_200_OK)
-            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+                return ResponseMessageUtils(
+                    message="Successfully Refresh your token",
+                    data=serializer.data,
+                    status_code=status.HTTP_200_OK
+                )
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -238,8 +271,14 @@ class ChangePasswordView(generics.UpdateAPIView):
 
             if serializer.is_valid():
                 serializer.save()
-                return ResponseMessageUtils(message="Password updated Successfully", status_code=status.HTTP_200_OK)
-            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+                return ResponseMessageUtils(
+                    message="Password updated Successfully",
+                    status_code=status.HTTP_200_OK
+                )
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -261,8 +300,14 @@ class LogoutView(generics.CreateAPIView):
             if serializer.is_valid():
                 serializer.save()
                 logout(request)
-                return ResponseMessageUtils(message="Successfully logged out", status_code=status.HTTP_200_OK) 
-            return ResponseMessageUtils(message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST) 
+                return ResponseMessageUtils(
+                    message="Successfully logged out",
+                    status_code=status.HTTP_200_OK
+                ) 
+            return ResponseMessageUtils(
+                message=serializer.errors,
+                status_code=status.HTTP_400_BAD_REQUEST
+            ) 
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -285,10 +330,19 @@ class ChangePasswordHealthCareProviderView(generics.UpdateAPIView):
 
             if serializer.is_valid():
                 serializer.save()
-                return ResponseMessageUtils(message="Password updated Successfully", status_code=status.HTTP_200_OK)
-            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+                return ResponseMessageUtils(
+                    message="Password updated Successfully",
+                    status_code=status.HTTP_200_OK
+                )
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
         except AuthenticationFailed as e:
-            return ResponseMessageUtils(message="Token has expired or is invalid. Please log in again.", status_code=status.HTTP_401_UNAUTHORIZED)
+            return ResponseMessageUtils(
+                message="Token has expired or is invalid. Please log in again.",
+                status_code=status.HTTP_401_UNAUTHORIZED
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -306,7 +360,11 @@ class GetUsersView(generics.ListAPIView):
         try:
             user = User.objects.filter(role='Patient')
             serializer = self.get_serializer(user, many=True, context={'request': request})
-            return ResponseMessageUtils(message="List of Patients", data=serializer.data)
+            return ResponseMessageUtils(
+                message="List of Patients",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -330,22 +388,9 @@ class GetUserRoleView(generics.ListAPIView):
 
         try:
             
-            auth_header = request.headers.get('Authorization')
+            user_id = get_token_user_id(request)
 
-            #check if the authorization is empty or not starts with Bearer
-            if not auth_header or not auth_header.startswith('Bearer '):
-                return ResponseMessageUtils(message="Authorization is missing or invalid", status_code=status.HTTP_401_UNAUTHORIZED)
-            
-            #get the token part
-            token = auth_header.split(' ')[1]
-
-            try:
-                #parse the token
-                access_token = AccessToken(token)
-            except TokenError as e: 
-                return ResponseMessageUtils(message="token is Invalid or expired", status_code=status.HTTP_400_BAD_REQUEST) 
-
-            user = User.objects.get(id=str(access_token["user_id"]))
+            user = User.objects.get(id=user_id)
 
             serializer = self.get_serializer(user, data=request.data)
 
@@ -371,7 +416,11 @@ class GetHealthCareProvidersView(generics.ListAPIView):
         try:
             user = self.get_queryset()  
             serializer = self.get_serializer(user, many=True)
-            return ResponseMessageUtils(message="List of Providers", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(
+                message="List of Providers",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -442,7 +491,7 @@ class EditProfileInPatientView(generics.UpdateAPIView):
                     "middle_name": user.middlename,
                     "last_name": user.last_name,
                     "birth_date": user_information.birthdate.strftime('%m/%d/%Y'),
-                    "gender": user_information.gender.lower(),
+                    "gender": str(user_information.gender).lower(),
                     "contact_number": user_information.contact,
                     "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
                 }, status_code=status.HTTP_200_OK)
@@ -470,9 +519,16 @@ class GetUserProfileInformationView(generics.ListAPIView):
             user_profile = Profile.objects.get(user_id=user_id)
             
             serializer = self.get_serializer(user_profile)
-            return ResponseMessageUtils(message="Profile Information", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(
+                message="Profile Information",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
         except Profile.DoesNotExist:
-            return ResponseMessageUtils(message="No Profile information found", status_code=status.HTTP_404_NOT_FOUND)
+            return ResponseMessageUtils(
+                message="No Profile information found",
+                status_code=status.HTTP_404_NOT_FOUND
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -506,7 +562,11 @@ class GetAllRegisteredProvidersView(generics.ListAPIView):
             # cache the serialized data for 10 minutes (600 seconds)
             cache.set(data_cache_key, serializer.data, timeout=600)
 
-            return ResponseMessageUtils(message="List of registered providers", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(
+                message="List of registered providers",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
 
         except Exception as e:
             return ResponseMessageUtils(
