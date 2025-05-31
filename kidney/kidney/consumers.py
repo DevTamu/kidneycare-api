@@ -1,15 +1,10 @@
 import json
-from pprint import pprint
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from .utils import get_user_by_id
 from app_authentication.models import User
 from django.utils import timezone
-import logging
-from app_chat.models import Message
-from django.db.models import Q
 
-logger = logging.getLogger(__name__)
 
 class ChatConsumer(AsyncWebsocketConsumer):
 
@@ -37,8 +32,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.send_message_introduction(user, user_receiver)
             
         except Exception as e:
-            logger.error(f"Connection error: {str(e)}")
-            logger.info(f"Connection error: {str(e)}")
             await self.close(code=4003)
         
 
@@ -110,7 +103,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 {
                     'type': 'chat_message_introduction',
-                    'message': f"Hi {sender.first_name.capitalize()} {sender.last_name.capitalize()}, this is {receiver.first_name.capitalize()} from Boho Renal Care. I'd be happy to assist you",
+                    'message': f"Hi {sender.first_name} {sender.last_name}, this is {receiver.first_name} from Boho Renal Care. I'd be happy to assist you",
                     "sender_id": str(sender.id),
                     "receiver_id": str(receiver.id)  
                 }
@@ -120,7 +113,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 {
                     'type': 'chat_message_introduction',
-                    'message': f"Hi {receiver.first_name.capitalize()} {receiver.last_name.capitalize()}, this is {sender.first_name.capitalize()} from Boho Renal Care. I'd be happy to assist you",
+                    'message': f"Hi {receiver.first_name} {receiver.last_name}, this is {sender.first_name} from Boho Renal Care. I'd be happy to assist you",
                     "sender_id": str(sender.id),
                     "receiver_id": str(receiver.id)  
                 }
@@ -189,7 +182,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             sender=sender_user,
             receiver=receiver_user,
             content=message_content,    
-            status='sent', #initially set status to 'sent',,
+            status='Sent', #initially set status to 'sent',,
             date_sent=timezone.now()
         )
 
@@ -210,7 +203,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if message.receiver.id == self.sender_id:
                 
                 #update the status and read 
-                message.status = 'read'
+                message.status = 'Read'
                 message.read = True
 
                 #save the message obj
