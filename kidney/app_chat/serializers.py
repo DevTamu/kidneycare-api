@@ -21,7 +21,7 @@ class GetUsersMessageSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
 
         #rename keys
-        data["is_read"] = data.pop('read', None)
+        data["is_read"] = str(data.pop('read', None)).lower()
         data["chat_id"] = data.pop('id', None)
         data["sender_id"] = str(data.pop('sender'))
         data["receiver_id"] = str(data.pop('receiver'))
@@ -96,7 +96,7 @@ class GetUsersChatSerializer(serializers.ModelSerializer):
         data["time_sent"] = data.pop('created_at')
         data["sender_id"] = str(sender_id)
         data["receiver_id"] = str(receiver_id)
-        data["chat_id"] = data.pop('id  ')
+        data["chat_id"] = data.pop('id')
 
         return data
     
@@ -135,8 +135,8 @@ class GetProvidersChatSerializer(serializers.ModelSerializer):
 
         provider_information = {
             "provider_id": data.pop('id'),
-            "role": data.pop('role'),
-            "status": data.pop('status'),
+            "role": str(data.pop('role')).lower(),
+            "status": str(data.pop('status')).lower(),
             "first_name": data.pop('first_name'),
             "user_image": data.pop('user_image')
         }
@@ -161,8 +161,8 @@ class GetProvidersChatSerializer(serializers.ModelSerializer):
             data.update(provider_information)
             data["last_message"] = {
                 "message": message.content,
-                "status": message.status,
-                "is_read": message.read,
+                "status": str(message.status).lower(),
+                "is_read": str(message.read).lower(),
                 "chat_id": message.id,
                 "sender_id": str(message.sender.id),
                 "receiver_id": str(message.receiver.id),
