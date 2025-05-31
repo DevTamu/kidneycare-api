@@ -23,29 +23,6 @@ class GetUsersMessageView(generics.ListAPIView):
     def get_queryset(self):
         return Message.objects.all()
     
-
-    # def get(self, request, *args, **kwargs):
-
-    #     try:
-
-    #         user = request.user
-
-    #         messages = Message.objects.filter(
-    #             Q(sender=user, receiver__id=id) |
-    #             Q(sender__id=id, receiver=user)
-    #         )
-    #         print(f'Messages: {messages}')
-          
-
-    #         serializer = self.get_serializer(messages, many=True)
-
-    #         return ResponseMessageUtils(message="List of messages", data=serializer.data, status_code=status.HTTP_200_OK)
-    #     except Exception as e:
-    #         return ResponseMessageUtils(
-    #             message="Something went wrong while processing your request.",
-    #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-    #         )
-    
     def get_object(self):
         
         # Perform the lookup filtering.

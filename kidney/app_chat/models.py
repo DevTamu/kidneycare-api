@@ -6,9 +6,9 @@ from django.utils import timezone
 class Message(TimestampModel):
 
     status_choices = [
-        ('sent', 'Sent'),
-        ('delivered', 'Delivered'),
-        ('read', 'Read')
+        ('sent', 'sent'),
+        ('delivered', 'delivered'),
+        ('read', 'read')
     ]
 
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sender_messages')
