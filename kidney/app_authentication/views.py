@@ -18,7 +18,6 @@ from .serializers import (
     GetProfileProfileInPatientSerializer,
     GetAllRegisteredProvidersSerializer
 )
-from django.conf import settings
 from rest_framework import serializers
 from django.core.cache import cache
 from rest_framework.exceptions import AuthenticationFailed
@@ -27,7 +26,6 @@ from kidney.utils import ResponseMessageUtils, get_tokens_for_user, extract_firs
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from rest_framework_simplejwt.tokens import TokenError, AccessToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth import logout
 from .models import OTP, User, Profile, UserInformation
@@ -140,11 +138,11 @@ class RegisterView(generics.CreateAPIView):
                         "middle_name": user.middlename if user.middlename else None,
                         "last_name": user.last_name,
                         "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None,
-                        "user_role": user.role,
+                        "user_role": str(user.role).lower(),
                         "birth_date": user_information.birthdate.strftime('%m/%d/%Y') if user_information.birthdate else None,
                         "gender": user_information.gender.lower(),
                         "contact_number":  user_information.contact,
-                        "user_status": user.status.lower()
+                        "user_status": str(user.status).lower()
                     },
                     status_code=status.HTTP_201_CREATED
                 )
@@ -185,8 +183,8 @@ class RegisterAdminView(generics.CreateAPIView):
                         "first_name": user.first_name,
                         "last_name": user.last_name,
                         "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None,
-                        "user_role": user.role,
-                        "user_status": user.status.lower()
+                        "user_role": str(user.role).lower(),
+                        "user_status": str(user.status).lower()
                     },
                     status_code=status.HTTP_201_CREATED
                 )
@@ -358,7 +356,7 @@ class GetUsersView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
 
         try:
-            user = User.objects.filter(role='Patient')
+            user = User.objects.filter(role='patient')
             serializer = self.get_serializer(user, many=True, context={'request': request})
             return ResponseMessageUtils(
                 message="List of Patients",
@@ -409,7 +407,7 @@ class GetHealthCareProvidersView(generics.ListAPIView):
     serializer_class = GetHealthCareProvidersSerializer
 
     def get_queryset(self):
-        return User.objects.filter(role__in=['Nurse', 'Head Nurse'])
+        return User.objects.filter(role__in=['nurse', 'head nurse'])
 
     def get(self, request, *args, **kwargs):
 
@@ -556,7 +554,7 @@ class GetAllRegisteredProvidersView(generics.ListAPIView):
             #         status_code=status.HTTP_200_OK
             #     )
 
-            queryset = User.objects.filter(role__in=['Nurse', 'Head Nurse'])
+            queryset = User.objects.filter(role__in=['nurse', 'head nurse'])
             serializer = self.get_serializer(queryset, many=True)
 
             # # cache the serialized data for 10 minutes (600 seconds)
