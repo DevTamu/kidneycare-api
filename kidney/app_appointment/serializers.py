@@ -712,6 +712,7 @@ class GetPatientAppointmentDetailsInAdminSerializer(serializers.ModelSerializer)
         #renamey keys
         data["appointment_id"] = data.pop('id')
         data["user_id"] = str(data.pop('user'))
+        data["status"] = str(data.pop('status')).lower()
 
         try:
             assigned_appointment = AssignedAppointment.objects.select_related('appointment').filter(appointment=data.get('appointment_id')).first()
