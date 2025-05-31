@@ -159,7 +159,7 @@ class UpdateAppointmentInPatientSerializer(serializers.ModelSerializer):
         
         instance.date = validated_data["date"]
         instance.time = validated_data["time"]
-
+        instance.status = "Rescheduled"
         instance.save()
 
         return instance
