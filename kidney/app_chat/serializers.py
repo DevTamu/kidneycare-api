@@ -2,7 +2,8 @@ from rest_framework import serializers
 from .models import Message
 from app_authentication.models import Profile, User
 from django.db.models import Q
-
+from datetime import datetime
+from django.utils import timezone
 class GetUsersMessageSerializer(serializers.ModelSerializer):
     
     created_at = serializers.SerializerMethodField()
@@ -132,11 +133,15 @@ class GetProvidersChatSerializer(serializers.ModelSerializer):
         #get the pk from the context
         pk = self.context.get('pk') #pk is the current authenticated user(Patient)
 
-        #get the id of provider
-        provider_id = data.get('id')
+        provider_information = {
+            "provider_id": data.pop('id'),
+            "role": data.pop('role'),
+            "status": data.pop('status'),
+            "first_name": data.pop('first_name'),
+            "user_image": data.pop('user_image')
+        }
 
-        #renamey key
-        data["user_id"] = data.pop('id')
+        provider_id = provider_information.get('provider_id', None)
 
         message = Message.objects.select_related('sender', 'receiver').filter(
             (
@@ -147,16 +152,21 @@ class GetProvidersChatSerializer(serializers.ModelSerializer):
             )
         ).order_by('-created_at').first()
 
-
         if message:
-            data["last_chat_data"] = {
+
+            #convnert the date sent into local time
+            local_time = timezone.localtime(message.date_sent)
+
+            #merged the provider information to main data dictionary
+            data.update(provider_information)
+            data["last_message"] = {
                 "message": message.content,
                 "status": message.status,
                 "is_read": message.read,
                 "chat_id": message.id,
                 "sender_id": str(message.sender.id),
                 "receiver_id": str(message.receiver.id),
-                'time_sent': message.date_sent.strftime('%I:%M %p')
+                'time_sent': local_time.strftime('%I:%M %p')
             }
 
         return data
