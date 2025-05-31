@@ -18,6 +18,7 @@ from .serializers import (
     GetProfileProfileInPatientSerializer,
     GetAllRegisteredProvidersSerializer
 )
+from django.conf import settings
 from rest_framework import serializers
 from django.core.cache import cache
 from rest_framework.exceptions import AuthenticationFailed
@@ -204,7 +205,6 @@ class AddAccountHealthCareProviderView(generics.CreateAPIView):
 
 class LoginView(TokenObtainPairView):
     serializer_class = LoginObtainPairSerializer
-
 
 class RefreshTokenView(TokenRefreshView):
 
