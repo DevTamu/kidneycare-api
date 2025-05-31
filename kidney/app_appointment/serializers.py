@@ -443,6 +443,7 @@ class GetPatientAppointmentHistorySerializer(serializers.ModelSerializer):
             data["last_name"] = assigned_appointments.assigned_provider.assigned_provider.last_name
             data["role"] = assigned_appointments.assigned_provider.assigned_provider.role
         else:
+            assigned_provider = None
             data["first_name"] = None
             data["last_name"] = None
             data["role"] = None
@@ -451,7 +452,7 @@ class GetPatientAppointmentHistorySerializer(serializers.ModelSerializer):
             try:
                 user_profile = Profile.objects.filter(user=assigned_provider).first()
             except Profile.DoesNotExist:
-                pass
+                assigned_provider = None
             
         if assigned_provider:
             data["user_image"] = request.build_absolute_uri(user_profile.picture.url)
