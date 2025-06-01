@@ -1,12 +1,10 @@
 from rest_framework import serializers
 from .models import DietPlan, SubDietPlan
 from kidney.utils import is_field_empty
-from django.db import transaction
 from app_authentication.models import User
 from datetime import time
 from django.core.validators import FileExtensionValidator
-from django.core.exceptions import ValidationError
-from django.core.files.uploadedfile import InMemoryUploadedFile
+from collections import defaultdict
 
 class SubDietPlanSerializer(serializers.ModelSerializer):
 
@@ -26,9 +24,16 @@ class SubDietPlanSerializer(serializers.ModelSerializer):
 
 class CreateDietPlanSerializer(serializers.Serializer):
 
-    patient_status = serializers.CharField(required=True,error_messages={
-        "blank": "Patient status is required",
-    })
+    patient_status = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True
+    )
+    medication = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True
+    )
     meal_type = serializers.ListField(
         child=serializers.CharField(
             allow_null=False,
@@ -45,42 +50,28 @@ class CreateDietPlanSerializer(serializers.Serializer):
             error_messages={
                 'required': 'Please upload a image.',
                 'invalid': 'Please upload a image.',
-                'empty': 'Image cannot be empty.',
-                'null': 'Image cannot be empty.',
             }
         ),
     )
 
     recipe_name = serializers.ListField(child=serializers.CharField(
-        allow_null=False,
-        allow_blank=False,
-        error_messages={"blank": "Recipe name is required"}
+            allow_null=False,
+            allow_blank=False,
+            error_messages={"blank": "Recipe name is required"}
         )
     )
-    recipe_tutorial_url = serializers.ListField(child=serializers.CharField(
-        allow_null=False,
-        allow_blank=False,
-        error_messages={"blank": "Recipe tutorial url is required"}
+    recipe_tutorial_url = serializers.ListField(child=serializers.URLField(
+            allow_null=False,
+            allow_blank=False,
+            error_messages={"blank": "Recipe tutorial url is required"}
         )
     )
     recipe_description = serializers.ListField(child=serializers.CharField(
-        allow_null=False,
-        allow_blank=False,
-        error_messages={"blank": "Recipe description is required"}
+            allow_null=False,
+            allow_blank=False,
+            error_messages={"blank": "Recipe description is required"}
         )
     )
-
-    def to_internal_value(self, data):
-        # Handle case where field is present but empty
-        if isinstance(data, InMemoryUploadedFile) and data.size == 0:
-            raise ValidationError(self.error_messages['empty'])
-        
-        try:
-            return super().to_internal_value(data)
-        except ValidationError as e:
-            if 'empty' in str(e).lower():
-                raise ValidationError(self.error_messages['empty'])
-            raise
 
     def validate(self, attrs):
     
@@ -89,9 +80,6 @@ class CreateDietPlanSerializer(serializers.Serializer):
         recipe_names = attrs.get('recipe_name', [])
         recipe_tutorial_urls = attrs.get('recipe_tutorial_url', [])
         recipe_descriptions = attrs.get('recipe_description', [])
-
-        if is_field_empty(attrs.get("patient_status", None)):
-            raise serializers.ValidationError({"message": "Status is required"})
         
         if is_field_empty(recipe_names):
             raise serializers.ValidationError({"message": "Recipe name is required"})
@@ -116,16 +104,19 @@ class CreateDietPlanSerializer(serializers.Serializer):
         }
 
         pk = self.context.get('pk')
-        patient_status = validated_data.get('patient_status')
+
 
         try:
-            user_instance = User.objects.get(id=pk)
+            user = User.objects.get(id=pk)
         except User.DoesNotExist:
             raise serializers.ValidationError({"patient": "User not found."})
 
-        diet_plan = DietPlan.objects.create(
-            patient=user_instance,
-            patient_status=patient_status
+        diet_plan_obj, created = DietPlan.objects.update_or_create(
+            patient=user,
+            defaults={
+                "patient_status": validated_data.get('patient_status', None),
+                "medication": validated_data.get('medication', None)
+            }
         )
 
         meal_types = validated_data.get('meal_type', [])
@@ -133,10 +124,6 @@ class CreateDietPlanSerializer(serializers.Serializer):
         recipe_names = validated_data.get('recipe_name', [])
         recipe_tutorial_urls = validated_data.get('recipe_tutorial_url', [])
         recipe_descriptions = validated_data.get('recipe_description', [])
-
-
-        if not (len(meal_types) == len(dish_images) == len(recipe_names) == len(recipe_tutorial_urls) == len(recipe_descriptions)):
-            raise serializers.ValidationError({"message": "All list fields must have the same length."})
 
         for i in range(len(meal_types)):
 
@@ -147,19 +134,20 @@ class CreateDietPlanSerializer(serializers.Serializer):
             if start_time is None or end_time is None:
                 raise serializers.ValidationError({"message": "Invalid meal_type"})
 
-            SubDietPlan.objects.create(
-                diet_plan=diet_plan,
-                meal_type=meal_type,
-                dish_image=dish_images[i],
-                recipe_name=recipe_names[i],
-                recipe_tutorial_url=recipe_tutorial_urls[i],
-                recipe_description=recipe_descriptions[i],
-                start_time=start_time,
-                end_time=end_time
-            )
+            if created:
+                SubDietPlan.objects.create(
+                    diet_plan=diet_plan_obj,
+                    meal_type=meal_type,
+                    dish_image=dish_images[i],
+                    recipe_name=recipe_names[i],
+                    recipe_tutorial_url=recipe_tutorial_urls[i],
+                    recipe_description=recipe_descriptions[i],
+                    start_time=start_time,
+                    end_time=end_time
+                )
         
-        return diet_plan
-
+        return diet_plan_obj
+        
 
 class GetPatientHealthStatusSerializer(serializers.ModelSerializer):
 
@@ -211,3 +199,55 @@ class GetPatientDietPlanWithIDSerializer(serializers.ModelSerializer):
         data["sub_diet_plan_id"] = data.pop('id')
 
         return data
+    
+
+class GetDietPlanInAdminSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = DietPlan
+        fields = ['patient', 'patient_status', 'medication', 'id']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        #rename keys
+        data["patient_id"] = str(data.pop('patient'))
+        data["diet_plan_id"] = data.pop('id')
+
+        return data
+    
+
+class GetAllDietPlansInAdminSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = SubDietPlan
+        fields = ['diet_plan', 'id', 'meal_type', "dish_image", "recipe_name"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        
+  
+
+
+        grouped_data = defaultdict(list)
+
+        for item in data:
+            # Rename keys
+            item["diet_plan_id"] = item.pop('diet_plan')
+            item["sub_diet_plan_id"] = item.pop('id')
+
+            meal_type = item['meal_type'].lower()
+            item_copy = item.copy()
+            del item_copy['meal_type']
+            grouped_data[meal_type].append(item_copy)
+
+        # Convert to regular dict if needed
+        grouped_result = dict(grouped_data)
+
+  
+
+
+        return {
+            "message": data.get("message", ""),
+            **grouped_result
+        }
