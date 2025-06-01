@@ -131,7 +131,7 @@ class GetProviderAnalyticsView(generics.ListAPIView):
 
     def get(self, request, *args, **kwargs):
         
-        total_provider = User.objects.filter(role__in=['Nurse', 'Head Nurse']).count()
+        total_provider = User.objects.filter(role__in=['nurse', 'head nurse']).count()
 
         return ResponseMessageUtils(
             message="Analytics of Healthcare Provider",
