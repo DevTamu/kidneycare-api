@@ -236,3 +236,18 @@ class GetAllDietPlansInAdminSerializer(serializers.ModelSerializer):
 
 
         return data
+    
+
+class GetPatientMedicationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = DietPlan
+        fields = ['patient', 'patient_status', 'medication', 'id']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        data["patient_id"] = str(data.pop('patient'))
+        data["medication_id"] = data.pop('id')
+
+        return data
