@@ -225,29 +225,14 @@ class GetAllDietPlansInAdminSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        
-  
+
+        #rename keys
+        data["diet_plan_id"] = data.pop('diet_plan')
+        data["sub_diet_plan_id"] = data.pop('id')
+
+        #lowercase the response
+        data["meal_type"] = str(data.pop('meal_type')).lower()
+        data["recipe_name"] = str(data.pop('recipe_name')).lower()
 
 
-        grouped_data = defaultdict(list)
-
-        for item in data:
-            # Rename keys
-            item["diet_plan_id"] = item.pop('diet_plan')
-            item["sub_diet_plan_id"] = item.pop('id')
-
-            meal_type = item['meal_type'].lower()
-            item_copy = item.copy()
-            del item_copy['meal_type']
-            grouped_data[meal_type].append(item_copy)
-
-        # Convert to regular dict if needed
-        grouped_result = dict(grouped_data)
-
-  
-
-
-        return {
-            "message": data.get("message", ""),
-            **grouped_result
-        }
+        return data

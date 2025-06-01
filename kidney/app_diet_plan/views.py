@@ -8,6 +8,7 @@ from .serializers import (
     GetDietPlanInAdminSerializer,
     GetAllDietPlansInAdminSerializer
 )
+from collections import defaultdict
 from rest_framework.permissions import IsAuthenticated
 from .models import DietPlan, SubDietPlan
 from datetime import time, datetime
@@ -254,7 +255,7 @@ class GetAllDietPlansInAdminView(generics.ListAPIView):
     def get_queryset(self):
         return SubDietPlan.objects.all()
 
-    def get(self, request, *args, **kwargs):
+    def list(self, request, *args, **kwargs):
 
         try:
 
@@ -263,9 +264,15 @@ class GetAllDietPlansInAdminView(generics.ListAPIView):
             
             serializer = self.get_serializer(sub_diet_plans, many=True)
 
+            grouped_data = defaultdict(list)
+
+            for item in serializer.data:
+                meal_type = str( item['meal_type']).lower()
+                grouped_data[meal_type].append(item)
+
             return ResponseMessageUtils(
                 message="List of diet plans",
-                data=serializer.data,
+                data=grouped_data,
                 status_code=status.HTTP_200_OK
             )
 
