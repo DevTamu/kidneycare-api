@@ -203,16 +203,27 @@ class GetPatientDietPlanWithIDSerializer(serializers.ModelSerializer):
 
 class GetDietPlanInAdminSerializer(serializers.ModelSerializer):
 
+    patient_status = serializers.SerializerMethodField()
+    patient_medication = serializers.SerializerMethodField()
+
     class Meta:
-        model = DietPlan
-        fields = ['patient', 'patient_status', 'medication', 'id']
+        model = SubDietPlan
+        fields = ['meal_type', 'dish_image', 'recipe_name', 'recipe_tutorial_url', 'recipe_description', 'id', 'diet_plan', 'patient_status', 'patient_medication']
+
+    def get_patient_status(self, obj):
+        return getattr(obj.diet_plan, 'patient_status', None)
+    
+    def get_patient_medication(self, obj):
+        return getattr(obj.diet_plan, 'medication', None)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
 
         #rename keys
-        data["patient_id"] = str(data.pop('patient'))
-        data["diet_plan_id"] = data.pop('id')
+        data["diet_plan_id"] = data.pop('diet_plan')
+        data["sub_diet_plan_id"] = data.pop('id')
+        data["recipe_name"] = str(data.pop('recipe_name')).lower()
+        data["meal_type"] = str(data.pop('meal_type')).lower()
 
         return data
     
