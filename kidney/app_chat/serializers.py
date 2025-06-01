@@ -102,73 +102,50 @@ class GetUsersChatSerializer(serializers.ModelSerializer):
     
 
 class GetProvidersChatSerializer(serializers.ModelSerializer):
-
-    user_image = serializers.SerializerMethodField()
-
     class Meta:
-        model = User
-        fields = ['role', 'status', 'first_name', 'id', 'user_image']
-
-    def get_user_image(self, obj):
-
-        #get the request object from the serializer context
-        request = self.context.get('request')
-
-        try:
-            user_profile = Profile.objects.select_related('user').get(user=obj)
-        except Profile.DoesNotExist:
-            raise serializers.ValidationError({"message": "No user profile found"})
-        
-        if user_profile and user_profile.picture:
-            return request.build_absolute_uri(user_profile.picture.url)
-        return None
+        model = Message
+        fields = ['id', 'sender', 'receiver', 'content', 'read', 'status', 'date_sent']
 
     def to_representation(self, instance):
-
-        #get the request object from the serializer context
         request = self.context.get('request')
-
         data = super().to_representation(instance)
+        pk = self.context.get('pk')
 
-        #get the pk from the context
-        pk = self.context.get('pk') #pk is the current authenticated user(Patient)
+        provider = instance.sender if str(instance.sender.id) != str(pk) else instance.receiver
 
         provider_information = {
-            "provider_id": data.pop('id'),
-            "role": str(data.pop('role')).lower(),
-            "status": str(data.pop('status')).lower(),
-            "first_name": data.pop('first_name'),
-            "user_image": data.pop('user_image')
+            "provider_id": provider.id,
+            "role": getattr(provider, 'role', 'unknown').lower(),
+            "status": getattr(provider, 'status', 'offline').lower(),
+            "first_name": provider.first_name,
+            "user_image": provider.profile.picture.url if hasattr(provider, 'profile') and provider.profile.picture else None
         }
 
-        provider_id = provider_information.get('provider_id', None)
+        #rename key
+        data["chat_id"] = data.pop('id')
 
-        message = Message.objects.select_related('sender', 'receiver').filter(
-            (
-                Q(sender=pk, receiver=provider_id)
-            ) | 
-            (
-                Q(sender=provider_id, receiver=pk)
-            )
-        ).order_by('-created_at').first()
+        #removed from the response
+        data.pop('sender')
+        data.pop('receiver')
+        data.pop('read')
+        data.pop('status')
+        data.pop('date_sent')
 
-        if message:
+        local_time = timezone.localtime(instance.date_sent)
 
-            #convnert the date sent into local time
-            local_time = timezone.localtime(message.date_sent)
+        data.update(provider_information)
+        data["last_message"] = {
+            "message": instance.content,
+            "status": instance.status.lower(),
+            "is_read": instance.read,
+            "sender_id": str(instance.sender.id),
+            "receiver_id": str(instance.receiver.id),
+            "time_sent": local_time.strftime('%I:%M %p')
+        }
 
-            #merged the provider information to main data dictionary
-            data.update(provider_information)
-            data["last_message"] = {
-                "message": message.content,
-                "status": str(message.status).lower(),
-                "is_read": str(message.read).lower(),
-                "chat_id": message.id,
-                "sender_id": str(message.sender.id),
-                "receiver_id": str(message.receiver.id),
-                'time_sent': local_time.strftime('%I:%M %p')
-            }
+        return data
 
+    
         return data
     
 
