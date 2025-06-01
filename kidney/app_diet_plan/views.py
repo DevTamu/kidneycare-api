@@ -268,6 +268,9 @@ class GetAllDietPlansInAdminView(generics.ListAPIView):
 
             sub_diet_plans = self.get_queryset()
 
+            if not sub_diet_plans:
+                return ResponseMessageUtils(message="No diet plan found", status_code=status.HTTP_404_NOT_FOUND)
+
             
             serializer = self.get_serializer(sub_diet_plans, many=True)
 
