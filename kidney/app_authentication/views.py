@@ -142,7 +142,7 @@ class RegisterView(generics.CreateAPIView):
                         "birth_date": user_information.birthdate.strftime('%m/%d/%Y') if user_information.birthdate else None,
                         "gender": user_information.gender.lower(),
                         "contact_number":  user_information.contact,
-                        "user_status": str(user.status).lower()
+                        "is_online": str(user.status).lower()
                     },
                     status_code=status.HTTP_201_CREATED
                 )
