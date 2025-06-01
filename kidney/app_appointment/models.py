@@ -6,27 +6,27 @@ from django.utils import timezone
 
 class Appointment(TimestampModel):
     appointment_status = [
-        ('Pending', 'Pending'),
-        ('Approved', 'Approved'),
-        ('Check-In', 'Check-In'),
-        ('In-Progress', 'In-Progress'),
-        ('Completed', 'Completed'),
-        ('Cancelled', 'Cancelled'),
-        ('No Show', 'No Show'),
-        ('Rescheduled', 'Rescheduled'),
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('check-in', 'Check-In'),
+        ('in-progress', 'In-Progress'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+        ('no show', 'No Show'),
+        ('rescheduled', 'Rescheduled'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-    date = models.DateField(blank=True, null=True)
+    date = models.DateField(blank=True, null=True, default=None)
     time = models.TimeField(blank=True, null=True)
-    status = models.CharField(max_length=20, choices=appointment_status, default='Pending')
+    status = models.CharField(max_length=20, choices=appointment_status, default='pending')
 
     def __str__(self):
-        return f"{self.user.username} Appointment"
+        return f"{self.user.username} Appointment - {self.id}"
 
 class AssignedMachine(models.Model):
     assigned_machine_appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name='assigned_machine_appointment', null=True, blank=True)
-    assigned_machine = models.CharField(blank=True, null=True)  #list of assigned machines
+    assigned_machine = models.CharField(max_length=20, blank=True, null=True)  #list of assigned machines
     status = models.CharField(max_length=20, blank=True, null=True)
 
     def __str__(self):
@@ -47,7 +47,6 @@ class AssignedAppointment(models.Model):
   
     def __str__(self):
         return f'Assigned Appointment: {self.appointment.user.username}'
-
-
+    
 
 
