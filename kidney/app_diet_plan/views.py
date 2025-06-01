@@ -6,14 +6,14 @@ from .serializers import (
     GetPatientDietPlanWithIDSerializer,
     GetPatientDietPlanSerializer,
     GetDietPlanInAdminSerializer,
-    GetAllDietPlansInAdminSerializer
+    GetAllDietPlansInAdminSerializer,
+    GetPatientMedicationSerializer
 )
 from collections import defaultdict
 from rest_framework.permissions import IsAuthenticated
 from .models import DietPlan, SubDietPlan
 from datetime import time, datetime
 from kidney.utils import get_token_user_id, ResponseMessageUtils, extract_first_error_message
-from django.db.models import QuerySet
 
 class CreateDietPlanView(generics.CreateAPIView):
 
@@ -282,3 +282,42 @@ class GetAllDietPlansInAdminView(generics.ListAPIView):
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+
+class GetPatientMedicationView(generics.RetrieveAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetPatientMedicationSerializer
+    lookup_field = 'pk'
+
+
+    def get(self, request, *args, **kwargs):
+
+        try:
+            
+            user_id = get_token_user_id(request)
+
+
+            if kwargs.get('pk') in (None, ""):
+                diet_plan = DietPlan.objects.filter(patient=user_id)
+            else:
+                diet_plan = DietPlan.objects.filter(patient=user_id, id=kwargs.get('pk'))
+                
+            if not diet_plan:
+                return ResponseMessageUtils(message="No medication found", status_code=status.HTTP_404_NOT_FOUND)
+
+            serializer = self.get_serializer(diet_plan, many=True)
+
+            return ResponseMessageUtils(
+                message="List of diet plans",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            print(f"WHAT WENT WRONG? {e}")
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
