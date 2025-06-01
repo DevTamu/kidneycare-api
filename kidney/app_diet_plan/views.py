@@ -254,9 +254,13 @@ class GetAllDietPlansInAdminView(generics.ListAPIView):
 
     permission_classes = [IsAuthenticated]
     serializer_class = GetAllDietPlansInAdminSerializer
+    lookup_field = 'pk'
     
     def get_queryset(self):
-        return SubDietPlan.objects.all()
+
+        diet_plan = DietPlan.objects.filter(patient=self.kwargs.get('pk')).first()
+
+        return SubDietPlan.objects.filter(diet_plan=diet_plan)
 
     def list(self, request, *args, **kwargs):
 
