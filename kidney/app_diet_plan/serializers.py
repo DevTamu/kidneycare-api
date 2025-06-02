@@ -262,3 +262,9 @@ class GetPatientMedicationSerializer(serializers.ModelSerializer):
         data["medication_id"] = data.pop('id')
 
         return data
+
+class GetDietPlanStatusInProviderSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = DietPlan
+        fields = ['patient_status', 'medication']
