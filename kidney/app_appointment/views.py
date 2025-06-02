@@ -121,7 +121,7 @@ class GetAppointmentInProviderView(generics.ListAPIView):
             
             assigned_appointments = AssignedAppointment.objects.filter(
                 assigned_provider__assigned_provider=request.user,
-                appointment__status__in=['Approved', 'In-Progress']
+                appointment__status__in=['approved', 'in-progress']
             )
             #create an instance of the paginator
             paginator = self.pagination_class()
