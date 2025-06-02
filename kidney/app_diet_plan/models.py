@@ -12,8 +12,15 @@ class DietPlan(TimestampModel):
         return f'{self.patient.username} Diet Plan'
     
 class SubDietPlan(models.Model):
+
+    meal_type_choices = [
+        ('breakfast', 'Breakfast'),
+        ('lunch', 'Lunch'),
+        ('dinner', 'Dinner')
+    ]
+
     diet_plan = models.ForeignKey(DietPlan, on_delete=models.CASCADE, null=True, blank=True, related_name='diet_plan')
-    meal_type = models.CharField(null=True, blank=True)
+    meal_type = models.CharField(null=True, blank=True, choices=meal_type_choices)
     dish_image = models.ImageField(storage=MediaCloudinaryStorage(), upload_to='dish_image/', blank=True, null=True)
     recipe_name = models.CharField(null=True, blank=True)
     recipe_tutorial_url = models.URLField(max_length=255, null=True, blank=True)

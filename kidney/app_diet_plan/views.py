@@ -111,7 +111,7 @@ class GetPatientDietPlanLimitOneView(generics.RetrieveAPIView):
             suggested_meal = None
             for meal_type, (start_time, end_time) in MEAL_TIME_MAPPING.items():
                 if start_time <= now <= end_time:
-                    suggested_meal = meal_type
+                    suggested_meal = str(meal_type).lower()
                     break
 
             if not suggested_meal:
@@ -218,7 +218,6 @@ class GetDietPlanInAdminView(generics.RetrieveAPIView):
     
     def get_queryset(self):
 
-        # diet_plan = DietPlan.objects.filter(id=).first()
 
         return SubDietPlan.objects.select_related('diet_plan').filter(
             id=self.kwargs.get('sub_diet_plan_id')
@@ -244,7 +243,6 @@ class GetDietPlanInAdminView(generics.RetrieveAPIView):
             )
 
         except Exception as e:
-            print(f"WHAT WENT WRONG? {e}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -278,7 +276,7 @@ class GetAllDietPlansInAdminView(generics.ListAPIView):
             grouped_data = defaultdict(list)
 
             for item in serializer.data:
-                meal_type = str( item['meal_type']).lower()
+                meal_type = str(item['meal_type']).lower()
                 grouped_data[meal_type].append(item)
 
             return ResponseMessageUtils(
@@ -288,7 +286,6 @@ class GetAllDietPlansInAdminView(generics.ListAPIView):
             )
 
         except Exception as e:
-            print(f"WHAT WENT WRONG? {e}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
