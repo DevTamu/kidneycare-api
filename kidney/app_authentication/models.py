@@ -10,11 +10,11 @@ from cloudinary_storage.storage import MediaCloudinaryStorage
 class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     ROLE_CHOICES = (
-        ('Patient', 'Patient'),
-        ('Admin', 'Admin'),
-        ('Nurse', 'Nurse'),
-        ('Head Nurse', 'Head Nurse'),
-        ('Caregiver', 'Caregiver'),
+        ('patient', 'Patient'),
+        ('admin', 'Admin'),
+        ('nurse', 'Nurse'),
+        ('head nurse', 'Head Nurse'),
+        ('caregiver', 'Caregiver'),
     )
     middlename = models.CharField(max_length=50, null=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
@@ -34,7 +34,6 @@ class Profile(TimestampModel):
 
 class UserInformation(TimestampModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, related_name='user_information')
-    # suffix_name = models.BooleanField(default=False)
     birthdate = models.DateField(blank=True, null=True)
     gender = models.CharField(max_length=10, blank=True, null=True)
     contact = models.CharField(max_length=11, blank=True, null=True)

@@ -1,17 +1,19 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
 from rest_framework import status
+from app_authentication.models import User
 from kidney.utils import ResponseMessageUtils, get_token_user_id
 from django.db.models import Q
-import logging
-logger = logging.getLogger(__name__)
 from .serializers import (
     GetUsersMessageSerializer,
     GetNotificationChatsToProviderSerializer,
-    GetUsersChatSerializer
+    GetUsersChatSerializer,
+    GetProvidersChatSerializer
 )
 from django.shortcuts import get_object_or_404
 from .models import Message
+import logging
+logger = logging.getLogger(__name__)
 
 class GetUsersMessageView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -20,29 +22,6 @@ class GetUsersMessageView(generics.ListAPIView):
 
     def get_queryset(self):
         return Message.objects.all()
-    
-
-    # def get(self, request, *args, **kwargs):
-
-    #     try:
-
-    #         user = request.user
-
-    #         messages = Message.objects.filter(
-    #             Q(sender=user, receiver__id=id) |
-    #             Q(sender__id=id, receiver=user)
-    #         )
-    #         print(f'Messages: {messages}')
-          
-
-    #         serializer = self.get_serializer(messages, many=True)
-
-    #         return ResponseMessageUtils(message="List of messages", data=serializer.data, status_code=status.HTTP_200_OK)
-    #     except Exception as e:
-    #         return ResponseMessageUtils(
-    #             message="Something went wrong while processing your request.",
-    #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-    #         )
     
     def get_object(self):
         
@@ -83,7 +62,11 @@ class GetNotificationChatsToProviderView(generics.ListAPIView):
 
             serializer = self.get_serializer(messages, many=True)
 
-            return ResponseMessageUtils(message="List of notification messages", data=serializer.data)
+            return ResponseMessageUtils(
+                message="List of notification messages",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -104,11 +87,65 @@ class GetUsersChatView(generics.ListAPIView):
 
             serializer = self.get_serializer(messages, many=True)
 
-            return ResponseMessageUtils(message="List of users chat", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(
+                message="List of users chat",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
 
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+
+class GetProvidersChatView(generics.ListAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetProvidersChatSerializer
+
+    def get(self, request, *args, **kwargs):
+        
+        try:
+            #get the current authenticated user_id from the token
+            user_id = get_token_user_id(request)
+            patient = User.objects.get(id=user_id)
+
+            providers = User.objects.filter(role__in=['Nurse', 'Head Nurse'])
+
+            providers_who_messaged_patient = providers.filter(
+                sender_messages__receiver=patient
+            ).distinct()
+
+            if not providers_who_messaged_patient.exists():
+                return ResponseMessageUtils(
+                    message="No messages found",
+                    status_code=status.HTTP_404_NOT_FOUND
+                )
+
+            latest_messages = []
+            for provider in providers_who_messaged_patient:
+                message = Message.objects.filter(
+                    sender=provider,
+                    receiver=patient
+                ).order_by('-created_at').first()
+                if message:
+                    latest_messages.append(message)
+       
+
+            serializer = self.get_serializer(latest_messages, many=True, context={'pk': user_id, 'request': request})
+
+
+            return ResponseMessageUtils(
+                message="List of chat users",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            return ResponseMessageUtils(
+                message=f"Something went wrong while processing your request. {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
