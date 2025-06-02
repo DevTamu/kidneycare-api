@@ -81,9 +81,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "type": "chat_message", 
                 "message": message.content,
                 "sender_id": str(message.sender.id),
-                "message_id": str(message.id),
-                "date_sent": message.created_at.isoformat(),
-                "message_status": str(message.status).lower(),
+                "receiver_id": str(message.receiver.id),
+                "chat_id": str(message.id),
+                "date_sent": timezone.localtime(message.date_sent).strftime('%I:%M'),
+                "status": str(message.status).lower(),
             }
         )
 
@@ -94,9 +95,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "message": event["message"], #message content
             "sender_id": str(event["sender_id"]),
-            "message_id": str(event["message_id"]),
+            "receiver_id": str(event["receiver_id"]),
+            "chat_id": int(event["chat_id"]),
             "date_sent": event["date_sent"],
-            "message_status": event["message_status"],
+            "status": event["status"],
         }))
 
     async def send_message_introduction(self, sender, receiver):
