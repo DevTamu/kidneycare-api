@@ -26,10 +26,22 @@ class CreateDietPlanSerializer(serializers.Serializer):
 
     patient_status = serializers.CharField()
     medication = serializers.CharField()
-    meal_type = serializers.CharField()
-    recipe_name = serializers.CharField()
-    recipe_tutorial_url = serializers.URLField()
-    recipe_description = serializers.CharField()
+    meal_type = serializers.CharField(required=True, error_messages={
+        "blank": "Meal type cannot be empty",
+        "required": "Meal type is required"
+    })
+    recipe_name = serializers.CharField(required=True, error_messages={
+        "blank": "Recipe name cannot be empty",
+        "required": "Recipe name is required"
+    })
+    recipe_tutorial_url = serializers.URLField(required=True, error_messages={
+        "blank": "Recipe tutorial cannot be empty",
+        "required": "Recipe tutorial is required"
+    })
+    recipe_description = serializers.CharField(required=True, error_messages={
+        "blank": "Recipe description cannot be empty",
+        "required": "Recipe description is required"
+    })
     dish_image = serializers.ImageField(
         required=True,
         allow_null=True,
