@@ -83,7 +83,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "sender_id": str(message.sender.id),
                 "message_id": str(message.id),
                 "date_sent": message.created_at.isoformat(),
-                "message_status": message.status,
+                "message_status": str(message.status).lower(),
             }
         )
 
@@ -101,7 +101,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def send_message_introduction(self, sender, receiver):
         
-        if sender.role == "Patient" and receiver.role == "Admin":
+        if sender.role == "patient" and receiver.role == "admin":
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -140,7 +140,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "last_message": {
                 "message": event["message"],
                 "status": event["status"],
-                "is_read": event["is_read"],
+                "read": event["is_read"],
                 "chat_id": event["chat_id"],
                 "sender_id": str(event["sender_id"]),
                 "receiver_id": str(event["receiver_id"]),
@@ -153,20 +153,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
         receiver_user_id = str(message.receiver.id)
         provider = message.sender if str(message.sender.id) != str(self.sender_id) else message.receiver
         #send to inbox group
-        if provider.role in ['Nurse', 'Head Nurse']:
+        if provider.role in ['nurse', 'head nurse']:
             await self.channel_layer.group_send(
                 f"inbox_{receiver_user_id}",
                 {
                     "type": "inbox_update",
                     "provider_id": str(provider.id),
-                    "role": provider.role,
-                    "status": provider.status,
+                    "role": str(provider.role).lower(),
+                    "status": str(provider.status).lower(),
                     "first_name": provider.first_name,
                     "user_image": provider.picture.url if hasattr(provider, "picture") else None,
                     "last_message": {
                         "message": message.content,
                         "message_status": message.status,
-                        "is_read": message.read,
+                        "read": str(message.read).lower(),
                         "chat_id": message.id,
                         "sender_id": str(message.sender.id),
                         "receiver_id": str(message.receiver.id),
@@ -185,7 +185,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             sender=sender_user,
             receiver=receiver_user,
             content=message_content,    
-            status='Sent', #initially set status to 'sent',,
+            status='sent', #initially set status to 'sent',,
             date_sent=timezone.now()
         )
 
@@ -206,7 +206,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if message.receiver.id == self.sender_id:
                 
                 #update the status and read 
-                message.status = 'Read'
+                message.status = 'read'
                 message.read = True
 
                 #save the message obj

@@ -7,6 +7,8 @@ from app_schedule.models import Schedule
 from datetime import datetime, timedelta
 from app_notification.models import Notification
 from django.utils import timezone
+import uuid
+
 class CreateAppointmentSerializer(serializers.ModelSerializer):
 
     date = serializers.DateField(format='%m/%d/%Y',input_formats=['%m/%d/%Y'])
@@ -230,7 +232,7 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
             assigned_machine_appointment=appointment,
             defaults={
                 "assigned_machine":assigned_machines_data["assigned_machine"],
-                "status":'in use'
+                "status":'In use'
             }
         )
 
@@ -456,7 +458,7 @@ class GetPatientAppointmentHistorySerializer(serializers.ModelSerializer):
             assigned_provider = assigned_appointments.assigned_provider.assigned_provider
             data["first_name"] = assigned_appointments.assigned_provider.assigned_provider.first_name
             data["last_name"] = assigned_appointments.assigned_provider.assigned_provider.last_name
-            data["role"] = assigned_appointments.assigned_provider.assigned_provider.role
+            data["role"] = str(assigned_appointments.assigned_provider.assigned_provider.role).lower()
         else:
             assigned_provider = None
             data["first_name"] = None

@@ -1,10 +1,8 @@
-import datetime
 from rest_framework import serializers
 from .models import (
     NewsEvent,
     NewsEventImage
 )
-from django.db import transaction
 from kidney.utils import is_field_empty
 
 class AddNewsEventSerializer(serializers.Serializer):

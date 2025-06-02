@@ -62,7 +62,11 @@ class GetNotificationChatsToProviderView(generics.ListAPIView):
 
             serializer = self.get_serializer(messages, many=True)
 
-            return ResponseMessageUtils(message="List of notification messages", data=serializer.data)
+            return ResponseMessageUtils(
+                message="List of notification messages",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -83,7 +87,11 @@ class GetUsersChatView(generics.ListAPIView):
 
             serializer = self.get_serializer(messages, many=True)
 
-            return ResponseMessageUtils(message="List of users chat", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(
+                message="List of users chat",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
 
         except Exception as e:
             return ResponseMessageUtils(
@@ -100,18 +108,40 @@ class GetProvidersChatView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
         
         try:
-            
             #get the current authenticated user_id from the token
             user_id = get_token_user_id(request)
+            patient = User.objects.get(id=user_id)
 
-            user = User.objects.filter(role__in=['Nurse', 'Head Nurse'])
+            providers = User.objects.filter(role__in=['Nurse', 'Head Nurse'])
 
-            if not user:
-                return ResponseMessageUtils(message="No messages found", status_code=status.HTTP_404_NOT_FOUND)
+            providers_who_messaged_patient = providers.filter(
+                sender_messages__receiver=patient
+            ).distinct()
 
-            serializer = self.get_serializer(user, many=True, context={'pk': user_id, 'request': request})
+            if not providers_who_messaged_patient.exists():
+                return ResponseMessageUtils(
+                    message="No messages found",
+                    status_code=status.HTTP_404_NOT_FOUND
+                )
 
-            return ResponseMessageUtils(message="List of chat users", data=serializer.data, status_code=status.HTTP_200_OK)
+            latest_messages = []
+            for provider in providers_who_messaged_patient:
+                message = Message.objects.filter(
+                    sender=provider,
+                    receiver=patient
+                ).order_by('-created_at').first()
+                if message:
+                    latest_messages.append(message)
+       
+
+            serializer = self.get_serializer(latest_messages, many=True, context={'pk': user_id, 'request': request})
+
+
+            return ResponseMessageUtils(
+                message="List of chat users",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
 
         except Exception as e:
             return ResponseMessageUtils(
