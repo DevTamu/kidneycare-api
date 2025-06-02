@@ -35,6 +35,7 @@ class CreateDietPlanView(generics.CreateAPIView):
                     message="Successfully Added Diet Plan",
                     status_code=status.HTTP_200_OK
                 )
+            print(f"WHAT WENT WRONG?: {extract_first_error_message(serializer.errors)}")
             return ResponseMessageUtils(
                 message=extract_first_error_message(serializer.errors),
                 status_code=status.HTTP_400_BAD_REQUEST

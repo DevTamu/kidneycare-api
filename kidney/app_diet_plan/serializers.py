@@ -44,14 +44,12 @@ class CreateDietPlanSerializer(serializers.Serializer):
     })
     dish_image = serializers.ImageField(
         required=True,
-        allow_null=True,
-        allow_empty_file=False,
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])],
         error_messages={
-            'required': 'Please upload a image.',
-            'invalid': 'Please upload a image.',
+            "required": "Image is required",
+            "invalid": "Invalid image"
         }
-    ),
+    )
 
     def validate(self, attrs):
             
@@ -67,7 +65,7 @@ class CreateDietPlanSerializer(serializers.Serializer):
         if is_field_empty(attrs.get('recipe_description')):
             raise serializers.ValidationError({"message": "Recipe description is required"})
         
-        if is_field_empty(attrs.get('dish_image')):
+        if is_field_empty(attrs.get('dish_image', None)):
             raise serializers.ValidationError({"message": "Image is required"})
 
         return attrs
@@ -114,17 +112,17 @@ class CreateDietPlanSerializer(serializers.Serializer):
             start_time = time(18, 0)
             end_time = time(21, 0)
 
-        if created:
-            SubDietPlan.objects.create(
-                diet_plan=diet_plan_obj,
-                meal_type=meal_type,
-                dish_image=dish_image,
-                recipe_name=recipe_name,
-                recipe_tutorial_url=recipe_tutorial_url,
-                recipe_description=recipe_description,
-                start_time=start_time,
-                end_time=end_time
-            )
+
+        SubDietPlan.objects.create(
+            diet_plan=diet_plan_obj,
+            meal_type=meal_type,
+            dish_image=dish_image,
+            recipe_name=recipe_name,
+            recipe_tutorial_url=recipe_tutorial_url,
+            recipe_description=recipe_description,
+            start_time=start_time,
+            end_time=end_time
+        )
 
         return diet_plan_obj
         
