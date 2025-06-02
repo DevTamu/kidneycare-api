@@ -10,7 +10,7 @@ from .views import (
     CancelAppointmentView,
     GetPatientUpcomingAppointmentView,
     GetPatientUpcomingAppointmentsInHomeView,
-    CancelPatientUpcomingAppointmentInAppointmentView,
+    CancelAppointmentView,
     GetPatientAppointmentDetailsInAdminView,
     GetUpcomingAppointmentDetailsInPatientView,
 )
@@ -29,5 +29,5 @@ urlpatterns = [
     path('patient/upcoming-appointment/', GetPatientUpcomingAppointmentView.as_view(), name='patient-upcoming-appointment'),
     path('patient/upcoming-appointment-details/<int:pk>/', GetUpcomingAppointmentDetailsInPatientView.as_view(), name='patient-upcoming-appointment-details'),
     path('patient/upcoming-appointments/', GetPatientUpcomingAppointmentsInHomeView.as_view(), name='patient-upcoming-appointments'),
-    path('patient/cancel-upcoming-appointment/<int:pk>/', CancelPatientUpcomingAppointmentInAppointmentView.as_view(), name='patient-cancel-appointment'),
+    path('patient/cancel-upcoming-appointment/<int:pk>/', CancelAppointmentView.as_view(), name='patient-cancel-appointment'),
 ]
