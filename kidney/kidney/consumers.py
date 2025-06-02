@@ -37,7 +37,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             await self.close(code=4003)
         
-
     async def disconnect(self, close_code):
         """Handles the WebSocket disconnection."""
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
