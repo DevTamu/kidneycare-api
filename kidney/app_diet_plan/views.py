@@ -8,6 +8,7 @@ from .serializers import (
     GetDietPlanInAdminSerializer,
     GetAllDietPlansInAdminSerializer,
     GetPatientMedicationSerializer,
+    GetDietPlanStatusInProviderSerializer
 )
 from collections import defaultdict
 from rest_framework.permissions import IsAuthenticated
@@ -268,6 +269,9 @@ class GetAllDietPlansInAdminView(generics.ListAPIView):
 
             sub_diet_plans = self.get_queryset()
 
+            if not sub_diet_plans:
+                return ResponseMessageUtils(message="No diet plan found", status_code=status.HTTP_404_NOT_FOUND)
+
             
             serializer = self.get_serializer(sub_diet_plans, many=True)
 
@@ -322,7 +326,25 @@ class GetPatientMedicationView(generics.RetrieveAPIView):
             )
 
         except Exception as e:
-            print(f"WHAT WENT WRONG? {e}")
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+
+class GetDietPlanStatusInProviderView(generics.RetrieveAPIView):
+    
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetDietPlanStatusInProviderSerializer
+    lookup_field = 'pk'
+
+    def get(self, request, *args, **kwargs):
+
+        try:
+
+            diet_plan = DietPlan.objects.filter()
+
+        except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
