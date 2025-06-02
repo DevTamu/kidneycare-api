@@ -322,7 +322,7 @@ class GetPatientUpcomingAppointmentsInHomeView(generics.ListAPIView):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class CancelPatientUpcomingAppointmentInAppointmentView(generics.DestroyAPIView):
+class CancelPatientUpcomingAppointmentInAppointmentView(generics.UpdateAPIView):
 
     permission_classes = [IsAuthenticated]
     serializer_class = CancelPatientUpcomingAppointmentInAppointmentPageSerializer
@@ -331,7 +331,7 @@ class CancelPatientUpcomingAppointmentInAppointmentView(generics.DestroyAPIView)
     def get_queryset(self):
         return Appointment.objects.get(id=self.kwargs.get('pk'))
     
-    def delete(self, request, *args, **kwargs):
+    def patch(self, request, *args, **kwargs):
         
         try:
             instance = self.get_queryset()
