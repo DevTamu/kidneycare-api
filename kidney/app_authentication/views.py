@@ -16,7 +16,9 @@ from .serializers import (
     GetHealthCareProvidersSerializer,
     EditProfileInPatientSerializer,
     GetProfileProfileInPatientSerializer,
-    GetAllRegisteredProvidersSerializer
+    GetAllRegisteredProvidersSerializer,
+    RegisterCaregiverSerializer,
+    CaregiverListSerializer,
 )
 from rest_framework import serializers
 from django.core.cache import cache
@@ -28,7 +30,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth import logout
-from .models import OTP, User, Profile, UserInformation
+from .models import OTP, User, Profile, UserInformation, Caregiver
 from django.http import JsonResponse
 
 def ping(request):
@@ -572,7 +574,97 @@ class GetAllRegisteredProvidersView(generics.ListAPIView):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
+
+class RegisterCaregiverSerializer(generics.RetrieveUpdateDestroyAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = RegisterCaregiverSerializer
+        
+    def post(self, request, *args, **kwargs):
+
+        try:
+
+            serializer = self.get_serializer(data=request.data)
+
+            if serializer.is_valid():
+                serializer.save()
+                return ResponseMessageUtils(
+                    message="Account created successfully",
+                    status_code=status.HTTP_201_CREATED
+                )
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        except Exception as e:
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+class CaregiverListView(generics.RetrieveDestroyAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = CaregiverListSerializer
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        user_id = get_token_user_id(self.request)
+        return Caregiver.objects.filter(added_by=user_id)
     
+    def get_object(self):
+        return Caregiver.objects.filter(id=self.kwargs.get('pk')).first()
 
+    def destroy(self, request, *args, **kwargs):
+        
+        try:
 
+            instance = self.get_object()
+
+            if not instance:
+                return ResponseMessageUtils(
+                message="No caregiver found",
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+
+            instance.user.delete()
+
+            return ResponseMessageUtils(
+                message="Successfully deleted",
+                status_code=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )   
+
+    def get(self, request, *args, **kwargs):
+
+        try:
+
+            queryset = self.get_queryset()
+
+            if not queryset.exists():
+                return ResponseMessageUtils(
+                    message="No caregiver found",
+                    status_code=status.HTTP_404_NOT_FOUND
+                )
+            
+            serializer = self.get_serializer(queryset, many=True)
+
+            return ResponseMessageUtils(
+                message="List of caregivers",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
 
