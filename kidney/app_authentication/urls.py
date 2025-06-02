@@ -17,7 +17,9 @@ from .views import (
     GetHealthCareProvidersView,
     EditProfileInPatientView,
     GetUserProfileInformationView,
-    GetAllRegisteredProvidersView
+    GetAllRegisteredProvidersView,
+    RegisterCaregiverSerializer,
+    CaregiverListView
 )
 
 urlpatterns = [
@@ -39,4 +41,8 @@ urlpatterns = [
     path('user/role/', GetUserRoleView.as_view(), name='get-user-role'),
     path('get/providers/', GetHealthCareProvidersView.as_view(), name='get-providers'),
     path('registered-providers/', GetAllRegisteredProvidersView.as_view(), name='get-registered-providers'),
+    path('caregiver/register/', RegisterCaregiverSerializer.as_view(), name='caregiver-register'),
+    path('caregivers/', CaregiverListView.as_view(), name='list-caregivers'),
+    path('caregivers/<int:pk>/', CaregiverListView.as_view(), name='caregiver-delete')
+
 ]
