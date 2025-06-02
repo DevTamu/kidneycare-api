@@ -6,7 +6,7 @@ from app_authentication.models import User, Profile, UserInformation
 from app_schedule.models import Schedule 
 from datetime import datetime, timedelta
 from app_notification.models import Notification
-
+from django.utils import timezone
 class CreateAppointmentSerializer(serializers.ModelSerializer):
 
     date = serializers.DateField(format='%m/%d/%Y',input_formats=['%m/%d/%Y'])
@@ -310,6 +310,7 @@ class GetAssignedAppointmentSerializer(serializers.ModelSerializer):
 
 #DONE
 class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
+
     first_name = serializers.SerializerMethodField()
     last_name = serializers.SerializerMethodField()
     user_id = serializers.SerializerMethodField()
@@ -317,59 +318,62 @@ class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
     time = serializers.SerializerMethodField()
     machine = serializers.SerializerMethodField()
     provider = serializers.SerializerMethodField()
+    user_image = serializers.SerializerMethodField()
 
     class Meta:
-        model = AssignedAppointment
-        fields = ['first_name', 'last_name', 'user_id', 'date', 'time', 'machine', 'provider']
+        model = Appointment
+        fields = ['first_name', 'last_name', 'user_image', 'user_id', 'date', 'time', 'machine', 'provider']
 
 
-    def to_representation(self, instance):
-
-        #get the request from the serializer context
+    def get_user_image(self, obj):
+        #get the request object from the serializer context
         request = self.context.get('request')
-
-        #get the default serialized data from the parent class
-        data = super().to_representation(instance)
-
-        user_id = data.get('user_id')
-
-
         try:
-            user_profile = Profile.objects.get(user=user_id)
-        except Exception as e:
-            user_profile = None
+            user_profile = Profile.objects.get(user=obj.user)
+            return request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+        except Profile.DoesNotExist:
+            return None
 
-        data["user_image"] = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
-
-        return data
-    
-    #get the assigned provider of the patient from the related appointment
+    # # get the assigned provider of the patient from the related appointment
     def get_provider(self, obj):
-        return str(obj.assigned_provider.assigned_provider)
+        
+        try:
+            assigned_provider = AssignedProvider.objects.get(
+                assigned_patient_appointment=obj
+            )
+            return f"{assigned_provider.assigned_provider.first_name} {assigned_provider.assigned_provider.last_name}"
+        except AssignedProvider.DoesNotExist:
+            return None
     
-    #get the assigned machine of the patient from the related appointment
+    # #get the assigned machine of the patient from the related appointment
     def get_machine(self, obj):
-        return int(obj.assigned_machine.assigned_machine)
+        try:
+            assigned_machine = AssignedMachine.objects.get(
+                assigned_machine_appointment=obj
+            )
+            return int(assigned_machine.assigned_machine)
+        except AssignedMachine.DoesNotExist:
+            return None
     
-    #get the firstname of the patient from the related appointment
+    # #get the firstname of the patient from the related appointment
     def get_first_name(self, obj):
-        return obj.appointment.user.first_name
+        return obj.user.first_name
 
-    #get the lastname of the patient from the related appointment
+    # #get the lastname of the patient from the related appointment
     def get_last_name(self, obj):
-        return obj.appointment.user.last_name
+        return obj.user.last_name
 
-    #get the id of the patient from the related appointment
+    # #get the id of the patient from the related appointment
     def get_user_id(self, obj):
-        return str(obj.appointment.user.id)
+        return str(obj.user.id)
        
-    #format the appointment date in a readable format (May 25, 2025
+    # #format the appointment date in a readable format (May 25, 2025
     def get_date(self, obj):
-        return obj.appointment.date.strftime('%B %d, %Y')
+        return obj.date.strftime('%B %d, %Y')
 
-    #format the appointment time in a readable format (May 25, 2025
+    # #format the appointment time in a readable format (May 25, 2025
     def get_time(self, obj):
-        return obj.appointment.time.strftime('%I:%M %p')
+        return obj.time.strftime('%I:%M %p')
     
     
 
