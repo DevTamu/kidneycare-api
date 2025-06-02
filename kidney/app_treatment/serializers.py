@@ -150,25 +150,8 @@ class CreateTreatmentFormSerializer(serializers.ModelSerializer):
             for field_key, value in data.items():
                 if is_field_empty(str(value)):
                     raise serializers.ValidationError({"message": f"{str(field_key).capitalize().replace("_", " ")} is required"})
-
-
-
-        
-
-
-
-        # for field in nested_input_data["data"]:
-        #     if is_field_empty(attrs.get(field)):
-        #         raise serializers.ValidationError({"message": f"{field} is required"})
                 
-
-        
-  
-        
-   
         return attrs
-
-
 
     def create(self, validated_data):
         
@@ -218,3 +201,34 @@ class CreateTreatmentFormSerializer(serializers.ModelSerializer):
         )
 
         return treatment
+    
+
+class GetPatientHealthMonitoringSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Treatment
+        fields = ['id']
+
+    def to_representation(self, instance):
+
+        data = super().to_representation(instance)
+
+        user_id = self.context.get('user_id')
+
+        treatment = Treatment.objects.get(user=user_id)
+
+        prescription = Prescription.objects.get(
+            treatment=treatment
+        )
+
+        data["weight_change"] = str(prescription.weight).lower()
+        data["pre_dialysis"] = prescription.weight_pre
+        data["post_dialysis"] = prescription.weight_post
+
+        data["blood_pressure_pre_dialysis"] = str(prescription.blood_pressure_pre).replace('/', '~')
+        data["blood_pressure_post_dialysis"] = str(prescription.blood_pressure_post).replace('/', '~')
+
+        data["heart_rate_pre_dialysis"] = prescription.pulse_pre
+        data["heart_rate_post_dialysis"] = prescription.pulse_post
+
+        return data

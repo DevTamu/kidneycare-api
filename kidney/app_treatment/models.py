@@ -3,7 +3,7 @@ from kidney.models import TimestampModel
 from app_appointment.models import User
 
 class Treatment(TimestampModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='treatment',null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='treatment', null=True)
     diagnosis = models.CharField(max_length=100, null=True, blank=True)
     nephrologist = models.CharField(max_length=100, null=True, blank=True)
     last_treatment_date = models.DateField(null=True, blank=True)
