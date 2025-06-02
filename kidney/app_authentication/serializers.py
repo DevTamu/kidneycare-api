@@ -14,7 +14,7 @@ from datetime import timedelta
 from django.core.cache import cache
 from django.contrib.auth.hashers import make_password
 
-OTP_VALIDITY_SECONDS = 180  # 3 minutes otp validity
+OTP_VALIDITY_SECONDS = 600  # 3 minutes otp validity
 MAX_ATTEMPT = 5 #max attempt to send code
 
 class RefreshTokenSerializer(TokenRefreshSerializer):
