@@ -24,78 +24,62 @@ class SubDietPlanSerializer(serializers.ModelSerializer):
 
 class CreateDietPlanSerializer(serializers.Serializer):
 
-    patient_status = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        allow_null=True
-    )
-    medication = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        allow_null=True
-    )
-    meal_type = serializers.ListField(
-        child=serializers.CharField(
-            allow_null=False,
-            allow_blank=False,
-            error_messages={"blank": "Meal type is required"}
-        )   
-    )
-    dish_image = serializers.ListField(
-        child=serializers.ImageField(
-            required=True,
-            allow_null=True,
-            allow_empty_file=False,
-            validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])],
-            error_messages={
-                'required': 'Please upload a image.',
-                'invalid': 'Please upload a image.',
-            }
-        ),
-    )
-
-    recipe_name = serializers.ListField(child=serializers.CharField(
-            allow_null=False,
-            allow_blank=False,
-            error_messages={"blank": "Recipe name is required"}
-        )
-    )
-    recipe_tutorial_url = serializers.ListField(child=serializers.URLField(
-            allow_null=False,
-            allow_blank=False,
-            error_messages={"blank": "Recipe tutorial url is required"}
-        )
-    )
-    recipe_description = serializers.ListField(child=serializers.CharField(
-            allow_null=False,
-            allow_blank=False,
-            error_messages={"blank": "Recipe description is required"}
-        )
+    patient_status = serializers.CharField()
+    medication = serializers.CharField()
+    meal_type = serializers.CharField(required=True, error_messages={
+        "blank": "Meal type cannot be empty",
+        "required": "Meal type is required"
+    })
+    recipe_name = serializers.CharField(required=True, error_messages={
+        "blank": "Recipe name cannot be empty",
+        "required": "Recipe name is required"
+    })
+    recipe_tutorial_url = serializers.URLField(required=True, error_messages={
+        "blank": "Recipe tutorial cannot be empty",
+        "required": "Recipe tutorial is required"
+    })
+    recipe_description = serializers.CharField(required=True, error_messages={
+        "blank": "Recipe description cannot be empty",
+        "required": "Recipe description is required"
+    })
+    dish_image = serializers.ImageField(
+        required=True,
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])],
+        error_messages={
+            "required": "Image is required",
+            "invalid": "Invalid image"
+        }
     )
 
     def validate(self, attrs):
-    
-        meal_types = attrs.get('meal_type', [])
-        dish_images = attrs.get('dish_image', [])
-        recipe_names = attrs.get('recipe_name', [])
-        recipe_tutorial_urls = attrs.get('recipe_tutorial_url', [])
-        recipe_descriptions = attrs.get('recipe_description', [])
+            
+        if is_field_empty(attrs.get('meal_type')):
+            raise serializers.ValidationError({"message": "Meal type is required"})
         
-        if is_field_empty(recipe_names):
+        if is_field_empty(attrs.get('recipe_name')):
             raise serializers.ValidationError({"message": "Recipe name is required"})
         
-        if is_field_empty(recipe_tutorial_urls):
+        if is_field_empty(attrs.get('recipe_tutorial_url')):
             raise serializers.ValidationError({"message": "Recipe tutorial url is required"})
         
-        if is_field_empty(recipe_descriptions):
+        if is_field_empty(attrs.get('recipe_description')):
             raise serializers.ValidationError({"message": "Recipe description is required"})
         
-        if not (len(meal_types) == len(dish_images) == len(recipe_names) == len(recipe_tutorial_urls) == len(recipe_descriptions)):
-            raise serializers.ValidationError({"message": "All list fields must have the same length."})
+        if is_field_empty(attrs.get('dish_image', None)):
+            raise serializers.ValidationError({"message": "Image is required"})
 
         return attrs
     
     def create(self, validated_data):
+
+        start_time = None
+        end_time = None
+
+        meal_type = validated_data.get('meal_type', None)
+        dish_image = validated_data.get('dish_image', None)
+        recipe_name = validated_data.get('recipe_name', None)
+        recipe_tutorial_url = validated_data.get('recipe_tutorial_url', None)
+        recipe_description = validated_data.get('recipe_description', None)
 
         MEAL_TIME_MAPPING = {
             "Breakfast": (time(6, 0), time(11, 0)), #6-00AM - 11:00AM
@@ -104,7 +88,6 @@ class CreateDietPlanSerializer(serializers.Serializer):
         }
 
         pk = self.context.get('pk')
-
 
         try:
             user = User.objects.get(id=pk)
@@ -119,33 +102,28 @@ class CreateDietPlanSerializer(serializers.Serializer):
             }
         )
 
-        meal_types = validated_data.get('meal_type', [])
-        dish_images = validated_data.get('dish_image', [])
-        recipe_names = validated_data.get('recipe_name', [])
-        recipe_tutorial_urls = validated_data.get('recipe_tutorial_url', [])
-        recipe_descriptions = validated_data.get('recipe_description', [])
+        if str(meal_type).lower() == "breakfast":
+            start_time = time(6, 0)
+            end_time = time(11, 0)
+        elif str(meal_type).lower() == "lunch":
+            start_time = time(12, 0)
+            end_time = time(17, 0)
+        elif str(meal_type).lower() == "dinner":
+            start_time = time(18, 0)
+            end_time = time(21, 0)
 
-        for i in range(len(meal_types)):
 
-            meal_type = meal_types[i]
+        SubDietPlan.objects.create(
+            diet_plan=diet_plan_obj,
+            meal_type=meal_type,
+            dish_image=dish_image,
+            recipe_name=recipe_name,
+            recipe_tutorial_url=recipe_tutorial_url,
+            recipe_description=recipe_description,
+            start_time=start_time,
+            end_time=end_time
+        )
 
-            start_time, end_time = MEAL_TIME_MAPPING.get(meal_type, (None, None))
-
-            if start_time is None or end_time is None:
-                raise serializers.ValidationError({"message": "Invalid meal_type"})
-
-            if created:
-                SubDietPlan.objects.create(
-                    diet_plan=diet_plan_obj,
-                    meal_type=meal_type,
-                    dish_image=dish_images[i],
-                    recipe_name=recipe_names[i],
-                    recipe_tutorial_url=recipe_tutorial_urls[i],
-                    recipe_description=recipe_descriptions[i],
-                    start_time=start_time,
-                    end_time=end_time
-                )
-        
         return diet_plan_obj
         
 
@@ -262,3 +240,9 @@ class GetPatientMedicationSerializer(serializers.ModelSerializer):
         data["medication_id"] = data.pop('id')
 
         return data
+
+class GetDietPlanStatusInProviderSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = DietPlan
+        fields = ['patient_status', 'medication']

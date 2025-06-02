@@ -44,7 +44,6 @@ class UserInformation(TimestampModel):
     def __str__(self):
         return f"Information of {self.user.username}"
     
-
 class OTP(TimestampModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='user_otp')
     otp_code = models.CharField(max_length=6)
@@ -53,3 +52,9 @@ class OTP(TimestampModel):
 
     def is_otp_expired(self):
         return timezone.now() > self.created_at + timedelta(minutes=3)
+    
+class Caregiver(TimestampModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='caregiver')
+    added_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='added_caregivers')
+    def __str__(self):
+        return f"{self.user.username} - {self.user.role}"

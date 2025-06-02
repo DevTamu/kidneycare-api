@@ -13,7 +13,7 @@ from .serializers import (
     GetPatientAppointmentDetailsInAdminSerializer,
     GetUpcomingAppointmentDetailsInPatientSerializer,
 )
-from django.db.models import F, DateTimeField, ExpressionWrapper
+from django.db.models import F, DateTimeField, ExpressionWrapper, Q
 from django.utils import timezone
 from app_authentication.models import User
 from .models import Appointment
@@ -119,14 +119,16 @@ class GetAppointmentInProviderView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):  
         try:
             
-            assigned_appointments = AssignedAppointment.objects.filter(
-                assigned_provider__assigned_provider=request.user,
-                appointment__status__in=['Approved', 'In-Progress']
+            assigned_appointments_to_provider = Appointment.objects.select_related('user').filter(
+                Q(assigned_patient_appointment__assigned_provider=request.user) |
+                Q(assigned_patient_appointment__assigned_provider__isnull=True),
+                status__in=['approved', 'in-progress']
             )
+
             #create an instance of the paginator
             paginator = self.pagination_class()
             #assign the assigned appointments in paginate queryset
-            paginated_data = paginator.paginate_queryset(assigned_appointments, request)
+            paginated_data = paginator.paginate_queryset(assigned_appointments_to_provider, request)
             serializer = self.get_serializer(paginated_data, many=True)
             paginated_response = paginator.get_paginated_response(serializer.data)
             

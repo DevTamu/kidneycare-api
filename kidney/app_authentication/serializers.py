@@ -1,7 +1,7 @@
 from datetime import datetime
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 from app_authentication.models import User, OTP
-from .models import Profile, UserInformation, User
+from .models import Profile, UserInformation, User, Caregiver
 from rest_framework import serializers
 from django.contrib.auth import authenticate, login
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError, AccessToken
@@ -544,6 +544,12 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
 
         if user.role == 'patient':
             user_data["data"]["is_verified"] = self.is_verified
+        elif user.role ==  'caregiver':
+            user_data["data"].pop('user_image')
+            user_data["data"].pop('birth_date')
+            user_data["data"].pop('gender')
+            user_data["data"].pop('contact_number')
+            user_data["data"].pop('middle_name')
         else:
             #removed this response from the admin user
             user_data["data"].pop('birth_date')
@@ -1032,3 +1038,77 @@ class GetAllRegisteredProvidersSerializer(serializers.ModelSerializer):
             pass
 
         return request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+    
+
+class RegisterCaregiverSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'username']
+
+
+    def validate(self, attrs):
+        
+        #get the request object from the serializer context
+        request = self.context.get('request')
+
+        if is_field_empty(attrs.get("first_name", None)):
+            raise serializers.ValidationError({"message": "Firstname is required"})
+        
+        if is_field_empty(attrs.get("last_name", None)):
+            raise serializers.ValidationError({"message": "Lastname is required"})
+        
+        if not validate_email(attrs.get("username", None)):
+            raise serializers.ValidationError({"message": "Must be a valid email address"})
+        
+        if User.objects.filter(username=attrs.get('username')).exists():
+            raise serializers.ValidationError({"message": "Email already used"})
+        
+        if Caregiver.objects.filter(added_by=request.user).count() >= 2:
+            raise serializers.ValidationError({"message": "You can only add up to 2 caregivers per patient"})
+
+        return attrs
+    
+    def create(self, validated_data):
+
+        #get the request object from the serializer context
+        request = self.context.get('request')
+
+        #generate a password
+        generated_password = generate_password(6)
+
+        #create the user object
+        user = User.objects.create_user(
+            username=validated_data.get('username'),
+            password=generated_password,
+            first_name=validated_data.get('first_name'),
+            last_name=validated_data.get('last_name'),
+            role='caregiver'
+        )
+
+        #create the caregiver object
+        Caregiver.objects.create(user=user, added_by=request.user)
+
+        if user:
+            #send password to the gmail
+            send_password_to_email(
+                subject='Generated Password',
+                message=f'Your Password is {generated_password}',
+                recipient_list=[validated_data.get('username')],
+                password=generated_password  
+            )
+
+        return user
+    
+class CaregiverListSerializer(serializers.ModelSerializer):
+
+    username = serializers.CharField(source='user.username')
+    first_name = serializers.CharField(source='user.first_name')
+    last_name = serializers.CharField(source='user.last_name')
+
+    class Meta:
+        model = Caregiver
+        fields = ['id', 'username', 'first_name', 'last_name'] 
+
+
+

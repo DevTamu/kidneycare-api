@@ -8,6 +8,7 @@ from .views import (
     GetDietPlanInAdminView,
     GetAllDietPlansInAdminView,
     GetPatientMedicationView,
+    GetDietPlanStatusInProviderView
 )
 
 urlpatterns = [
@@ -20,4 +21,6 @@ urlpatterns = [
         path('patients/<str:pk>/all-diet-plans/', GetAllDietPlansInAdminView.as_view(), name='all-diet-plans'),
         path('patients/medications/', GetPatientMedicationView.as_view(), name='patient-medication'),
         path('patients/medications/<int:pk>/', GetPatientMedicationView.as_view(), name='patient-medication'),
+        path('patients/<str:pk>/health-status/', GetDietPlanStatusInProviderView.as_view(), name='patient-medication'),
+
 ]
