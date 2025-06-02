@@ -342,7 +342,22 @@ class GetDietPlanStatusInProviderView(generics.RetrieveAPIView):
 
         try:
 
-            diet_plan = DietPlan.objects.filter()
+            diet_plan = DietPlan.objects.filter(patient=kwargs.get('pk')).first()
+
+            if not diet_plan:
+                return ResponseMessageUtils(
+                    message="No diet plan found",
+                    status_code=status.HTTP_404_NOT_FOUND
+                )
+
+            serializer = self.get_serializer(diet_plan, many=False)
+
+            return ResponseMessageUtils(
+                message="Diet plan found",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
+
 
         except Exception as e:
             return ResponseMessageUtils(
