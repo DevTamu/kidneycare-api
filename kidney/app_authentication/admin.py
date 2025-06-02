@@ -1,5 +1,5 @@
 from django.contrib import admin
-from app_authentication.models import User, UserInformation, Profile, OTP
+from app_authentication.models import User, UserInformation, Profile, OTP, Caregiver
 # Register your models here.
 
 @admin.register(User)
@@ -16,4 +16,8 @@ class UserInformationAdmin(admin.ModelAdmin):
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(Caregiver)
+class CaregiverAdmin(admin.ModelAdmin):
     pass
