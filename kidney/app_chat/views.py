@@ -8,7 +8,9 @@ from .serializers import (
     GetUsersMessageSerializer,
     GetNotificationChatsToProviderSerializer,
     GetProvidersChatSerializer,
-    GetPatientsChatSerializer
+    GetProviderChatInformationSerializer,
+    GetPatientsChatSerializer,
+    GetPatientChatInformationSerializer
 )
 from django.shortcuts import get_object_or_404
 from .models import Message
@@ -96,6 +98,7 @@ class GetProvidersChatView(generics.ListAPIView):
             if not providers_who_messaged_patient.exists():
                 return ResponseMessageUtils(
                     message="No messages found",
+                    data=[],
                     status_code=status.HTTP_404_NOT_FOUND
                 )
 
@@ -114,6 +117,36 @@ class GetProvidersChatView(generics.ListAPIView):
 
             return ResponseMessageUtils(
                 message="List of chat users",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            return ResponseMessageUtils(
+                message=f"Something went wrong while processing your request. {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+
+class GetProviderChatInformationView(generics.RetrieveAPIView):
+    
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetProviderChatInformationSerializer
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        return User.objects.get(id=self.kwargs.get('pk'))
+
+    def get(self, request, *args, **kwargs):
+
+        try:
+
+            queryset = self.get_queryset()
+
+            serializer = self.get_serializer(queryset)
+
+            return ResponseMessageUtils(
+                message="Provider Chat",
                 data=serializer.data,
                 status_code=status.HTTP_200_OK
             )
@@ -176,5 +209,32 @@ class GetPatientsChatView(generics.ListAPIView):
                 message=f"Something went wrong while processing your request. {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+class GetPatientChatInformationView(generics.RetrieveAPIView):
 
-    
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetPatientChatInformationSerializer
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        return User.objects.get(id=self.kwargs.get('pk'))
+
+    def get(self, request, *args, **kwargs):
+
+        try:
+
+            queryset = self.get_queryset()
+
+            serializer = self.get_serializer(queryset)
+
+            return ResponseMessageUtils(
+                message="User Chat",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            return ResponseMessageUtils(
+                message=f"Something went wrong while processing your request. {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

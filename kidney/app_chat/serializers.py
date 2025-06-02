@@ -146,6 +146,30 @@ class GetPatientsChatSerializer(serializers.ModelSerializer):
         }
 
         return data
+    
+
+class GetPatientChatInformationSerializer(serializers.ModelSerializer):
+
+    user_image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'user_image']
+
+    def get_user_image(self, obj):
+        return getattr(getattr(obj, 'user_profile', None), 'picture', None).url if getattr(getattr(obj, 'user_profile', None), 'picture', None) else None
+    
+
+class GetProviderChatInformationSerializer(serializers.ModelSerializer):
+
+    user_image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'user_image']
+
+    def get_user_image(self, obj):
+        return getattr(getattr(obj, 'user_profile', None), 'picture', None).url if getattr(getattr(obj, 'user_profile', None), 'picture', None) else None
 
 
     
