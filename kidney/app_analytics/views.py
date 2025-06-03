@@ -133,7 +133,7 @@ class GetAppointmentAnalyticsView(generics.ListAPIView):
                 percent_change = round((calculate_diff_appointments / last_week_appointments) * 100, 2)
                 growth_multiplier = round(this_week_appointments / last_week_appointments, 3) 
                 if percent_change > 0:
-                    message = f"Appointment increase by {abs(int(percent_change))}% in 7 days."
+                    message = f"Appointment increased by {abs(int(percent_change))}% in 7 days."
                 else:
                     message = f"Appointment decreased by {abs(int(percent_change))}% in 7 days."
             else:
