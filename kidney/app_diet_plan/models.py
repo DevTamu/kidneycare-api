@@ -28,4 +28,7 @@ class SubDietPlan(models.Model):
     start_time = models.TimeField(null=True)   
     end_time = models.TimeField(null=True)   
 
+    class Meta:
+        unique_together = ('meal_type',)
+
 
