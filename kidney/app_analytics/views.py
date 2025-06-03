@@ -1,7 +1,7 @@
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime
 from app_appointment.models import Appointment
 from kidney.utils import ResponseMessageUtils
 from django.db.models.functions import TruncDate
@@ -31,6 +31,7 @@ class GetPatientAnalyticsView(generics.ListAPIView):
                 .values('user_id').distinct().count() 
             )
 
+
             last_week_patients = (
                 Appointment.objects
                 .annotate(created_date=TruncDate('created_at'))
@@ -46,21 +47,42 @@ class GetPatientAnalyticsView(generics.ListAPIView):
                 growth_multiplier = round(this_week_patients / last_week_patients, 3) 
 
                 if percent_change > 0:
-                    message = f"Patients increased by {abs(percent_change)}% in 7 days"
+                    message = f"Patients increased by {abs(int(percent_change))}% in 7 days"
                 else:
-                    message = f"Patients decreased by {abs(percent_change)}% in 7 days"
+                    message = f"Patients decreased by {abs(int(percent_change))}% in 7 days"
 
             else:
                 percent_change = 0  # or "N/A" if no baseline data
                 growth_multiplier = 1.0
 
+            daily_appointments = (
+                Appointment.objects
+                .annotate(created_date=TruncDate('created_at'))
+                .filter(created_date__range=[this_week_start, today])
+                .values('created_date')
+                .annotate(patient_count=Count('user_id', distinct=True))
+                .order_by('created_date')
+            )
+
+            graph_data = []
+
+            date_cursor = this_week_start
+
+            while date_cursor <= today:
+                entry_data = next((item for item in daily_appointments if item['created_date'] == date_cursor), None)
+                count = entry_data['patient_count'] if entry_data else 0
+                graph_data.append({
+                    "value": count
+                })
+                date_cursor += timedelta(days=1)
 
             data = {
                 'total_patient': this_week_patients,
                 'change': float(calculate_diff_patients),
-                'percent_change': int(percent_change) if percent_change else 0,
+                'percent_change': abs(int(percent_change)) if percent_change else 0,
                 'growth': growth_multiplier,
-                "summary": message
+                "summary": message,
+                "graph_data": graph_data
             }
 
             return ResponseMessageUtils(
@@ -89,40 +111,63 @@ class GetAppointmentAnalyticsView(generics.ListAPIView):
             last_week_start = this_week_start - timedelta(days=7)
             last_week_end = this_week_start - timedelta(days=1)
             
+
             this_week_appointments = (
                 Appointment.objects
                 .annotate(created_date=TruncDate('created_at'))
                 .filter(created_date__range=[this_week_start, today])
-                .values('id').distinct().count() 
+                .values('id').count() 
             )
 
             last_week_appointments = (
                 Appointment.objects
                 .annotate(created_date=TruncDate('created_at'))
                 .filter(created_date__range=[last_week_start, last_week_end]
-                ).values('id').distinct().count()
+                ).values('id').count()
             )
 
-            calculate_diff_patients = this_week_appointments - last_week_appointments
+            calculate_diff_appointments = this_week_appointments - last_week_appointments
+
 
             if last_week_appointments > 0:
-                percent_change = round((calculate_diff_patients / last_week_appointments) * 100, 2)
+                percent_change = round((calculate_diff_appointments / last_week_appointments) * 100, 2)
                 growth_multiplier = round(this_week_appointments / last_week_appointments, 3) 
                 if percent_change > 0:
-                    message = f"Appointment increase by {abs(percent_change)}% in 7 days."
+                    message = f"Appointment increase by {abs(int(percent_change))}% in 7 days."
                 else:
-                    message = f"Appointment decreased by {abs(percent_change)}% in 7 days."
+                    message = f"Appointment decreased by {abs(int(percent_change))}% in 7 days."
             else:
                 percent_change = 0
                 growth_multiplier = 1.0
 
 
+            daily_appointments = (
+                Appointment.objects
+                .annotate(created_date=TruncDate('created_at'))
+                .values('created_date')
+                .filter(created_date__range=[this_week_start, today])
+                .annotate(appointment_count=Count('id'))
+                .order_by('created_date')
+            )
+
+            date_cursor = this_week_start
+            graph_data = []
+
+            while date_cursor <= today:
+                entry_data = next((item for item in daily_appointments if item["created_date"] == date_cursor), None)
+                count = entry_data["appointment_count"] if entry_data else 0
+                graph_data.append({
+                    "values": count
+                })
+                #increment the date cursor by 1 day
+                date_cursor += timedelta(days=1)
             data = {
                 'total_appointments': this_week_appointments,
-                'change': float(calculate_diff_patients),
-                'percent_change': percent_change if percent_change else 0,
+                'change': abs(float(calculate_diff_appointments)),
+                'percent_change': abs(int(percent_change)) if percent_change else 0,
                 "growth": growth_multiplier,
-                "summary": message
+                "summary": message,
+                "graph_data": graph_data
             }
 
             return ResponseMessageUtils(
@@ -130,6 +175,7 @@ class GetAppointmentAnalyticsView(generics.ListAPIView):
                 data=data,
                 status_code=status.HTTP_200_OK
             )
+        
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -189,6 +235,8 @@ class GetAppointmentStatusBreakdownView(generics.ListAPIView):
                 statuses = ['pending', 'approved', 'check_in', 'in_progress', 'completed', 'cancelled', 'no_show', 'rescheduled']
                 for status in statuses:
                     data[f"percentage_{str(status).replace('-', '_')}_appointment"] = 0
+
+
             return ResponseMessageUtils(
                 message="Analytics of Appointment status breakdown",
                 data=data,
@@ -210,11 +258,13 @@ class GetPatientTrackingGenderView(generics.ListAPIView):
 
             data_output = {}
 
-            gender_month_counts = UserInformation.objects.filter(user__role="patient") \
-            .annotate(month=ExtractMonth('created_at')) \
-            .values('gender', 'month') \
-            .annotate(count=Count('user_id')) \
-            .order_by('month')
+            gender_month_counts = (
+                UserInformation.objects.filter(user__role="patient")
+                .annotate(month=ExtractMonth('created_at'))
+                .values('gender', 'month')
+                .annotate(count=Count('user_id'))
+                .order_by('month')
+            )
 
             data_labels = {
                 "labels": [month_abbr[m] for m in range(1, 13)],
@@ -252,7 +302,6 @@ class GetPatientTrackingGenderView(generics.ListAPIView):
             )
 
         except Exception as e:
-            print(f"WHAT WENT WRONG? {e}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
