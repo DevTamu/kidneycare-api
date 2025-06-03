@@ -83,11 +83,11 @@ class GetPatientHealthStatusView(generics.ListAPIView):
 
             diet_plan = DietPlan.objects.filter(patient=user_id).first()
 
-            if not diet_plan:
-                return ResponseMessageUtils(
-                    message="No diet plan found",
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
+            # if not diet_plan:
+            #     return ResponseMessageUtils(
+            #         message="No diet plan found",
+            #         status_code=status.HTTP_404_NOT_FOUND
+            #     )
 
             serializer = self.get_serializer(diet_plan)
 
@@ -124,11 +124,11 @@ class GetPatientDietPlanLimitOneView(generics.RetrieveAPIView):
             diet_plan = DietPlan.objects.filter(patient=user_id).first()
 
 
-            if not diet_plan:
-                return ResponseMessageUtils(
-                    message="No diet plan found",
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
+            # if not diet_plan:
+            #     return ResponseMessageUtils(
+            #         message="No diet plan found",
+            #         status_code=status.HTTP_404_NOT_FOUND
+            #     )
             
             #get the current time
             now = datetime.now().time()
@@ -182,11 +182,11 @@ class GetPatientAllDietPlanView(generics.ListAPIView):
             #get the diet plans of the authenticated user
             diet_plan = DietPlan.objects.filter(patient=user_id)
 
-            if not diet_plan:
-                return ResponseMessageUtils(
-                    message="No diet plan found",
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
+            # if not diet_plan:
+            #     return ResponseMessageUtils(
+            #         message="No diet plan found",
+            #         status_code=status.HTTP_404_NOT_FOUND
+            #     )
 
             serializer = self.get_serializer(diet_plan, many=True)
 
@@ -217,11 +217,11 @@ class GetPatientDietPlanWithIDView(generics.RetrieveAPIView):
             diet_plan = self.get_queryset().first()
 
             #if no diet plan found return 404
-            if not diet_plan:
-                return ResponseMessageUtils(
-                    message="No diet plan found",
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
+            # if not diet_plan:
+            #     return ResponseMessageUtils(
+            #         message="No diet plan found",
+            #         status_code=status.HTTP_404_NOT_FOUND
+            #     )
 
             serializer = self.get_serializer(diet_plan, many=False)
 
@@ -254,11 +254,11 @@ class GetDietPlanInAdminView(generics.RetrieveAPIView):
         try:
             diet_plan = self.get_queryset()
 
-            if not diet_plan:
-                return ResponseMessageUtils(
-                    message="No diet plan found",
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
+            # if not diet_plan:
+            #     return ResponseMessageUtils(
+            #         message="No diet plan found",
+            #         status_code=status.HTTP_404_NOT_FOUND
+            #     )
             
             serializer = self.get_serializer(diet_plan, many=False)
 
@@ -293,8 +293,8 @@ class GetAllDietPlansInAdminView(generics.ListAPIView):
 
             sub_diet_plans = self.get_queryset()
 
-            if not sub_diet_plans:
-                return ResponseMessageUtils(message="No diet plan found", status_code=status.HTTP_404_NOT_FOUND)
+            # if not sub_diet_plans:
+            #     return ResponseMessageUtils(message="No diet plan found", status_code=status.HTTP_404_NOT_FOUND)
 
             
             serializer = self.get_serializer(sub_diet_plans, many=True)
@@ -337,8 +337,8 @@ class GetPatientMedicationView(generics.RetrieveAPIView):
             else:
                 diet_plan = DietPlan.objects.filter(patient=user_id, id=kwargs.get('pk'))
                 
-            if not diet_plan:
-                return ResponseMessageUtils(message="No medication found", status_code=status.HTTP_404_NOT_FOUND)
+            # if not diet_plan:
+            #     return ResponseMessageUtils(message="No medication found", status_code=status.HTTP_404_NOT_FOUND)
 
             serializer = self.get_serializer(diet_plan, many=True)
 
@@ -367,11 +367,11 @@ class GetDietPlanStatusInProviderView(generics.RetrieveAPIView):
 
             diet_plan = DietPlan.objects.filter(patient=kwargs.get('pk')).first()
 
-            if not diet_plan:
-                return ResponseMessageUtils(
-                    message="No diet plan found",
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
+            # if not diet_plan:
+            #     return ResponseMessageUtils(
+            #         message="No diet plan found",
+            #         status_code=status.HTTP_404_NOT_FOUND
+            #     )
 
             serializer = self.get_serializer(diet_plan, many=False)
 
