@@ -7,6 +7,7 @@ from django.core.mail import EmailMultiAlternatives
 import random
 import re
 import secrets
+import base64
 import string
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
 from rest_framework import status
@@ -255,3 +256,11 @@ def get_user_by_id(user_id):
         return User.objects.get(id=user_id)
     except User.DoesNotExist:
         return None
+    
+def get_base64_file_size(base64_data: str) -> int:
+    """
+    Returns the size in bytes of the base64-encoded image.
+    """
+    if ";base64," in base64_data:
+        base64_data = base64_data.split(";base64,")[1]
+    return len(base64.b64decode(base64_data))
