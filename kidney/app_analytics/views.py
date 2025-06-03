@@ -78,7 +78,7 @@ class GetPatientAnalyticsView(generics.ListAPIView):
 
             data = {
                 'total_patient': this_week_patients,
-                'change': float(calculate_diff_patients),
+                # 'change': float(calculate_diff_patients),
                 'percent_change': abs(int(percent_change)) if percent_change else 0,
                 'growth': growth_multiplier,
                 "summary": message,
@@ -163,7 +163,7 @@ class GetAppointmentAnalyticsView(generics.ListAPIView):
                 date_cursor += timedelta(days=1)
             data = {
                 'total_appointments': this_week_appointments,
-                'change': abs(float(calculate_diff_appointments)),
+                # 'change': abs(float(calculate_diff_appointments)),
                 'percent_change': abs(int(percent_change)) if percent_change else 0,
                 "growth": growth_multiplier,
                 "summary": message,
