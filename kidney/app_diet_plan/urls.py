@@ -8,11 +8,13 @@ from .views import (
     GetDietPlanInAdminView,
     GetAllDietPlansInAdminView,
     GetPatientMedicationView,
-    GetDietPlanStatusInProviderView
+    GetDietPlanStatusInProviderView,
+    CreatePatientHealthStatusView
 )
 
 urlpatterns = [
-        path("patients/<str:pk>/diet-plan/", CreateDietPlanView.as_view(), name='create-diet-plan'),
+        path("patients/diet-plan/", CreateDietPlanView.as_view(), name='create-diet-plan'),
+        path("patients/<str:pk>/health-diet-plan/", CreatePatientHealthStatusView.as_view(), name='create-diet-plan'),
         path("patients/health-status/", GetPatientHealthStatusView.as_view(), name='get-health-status'),
         path("patients/diet-plan/", GetPatientDietPlanLimitOneView.as_view(), name='get-diet-plan'),
         path("patients/diet-plan/<int:pk>/", GetPatientDietPlanWithIDView.as_view(), name='get-diet-plan-by-id'),

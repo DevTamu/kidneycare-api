@@ -24,8 +24,6 @@ class SubDietPlanSerializer(serializers.ModelSerializer):
 
 class CreateDietPlanSerializer(serializers.Serializer):
 
-    patient_status = serializers.CharField()
-    medication = serializers.CharField()
     meal_type = serializers.CharField(required=True, error_messages={
         "blank": "Meal type cannot be empty",
         "required": "Meal type is required"
@@ -81,11 +79,49 @@ class CreateDietPlanSerializer(serializers.Serializer):
         recipe_tutorial_url = validated_data.get('recipe_tutorial_url', None)
         recipe_description = validated_data.get('recipe_description', None)
 
-        MEAL_TIME_MAPPING = {
-            "Breakfast": (time(6, 0), time(11, 0)), #6-00AM - 11:00AM
-            "Lunch": (time(12, 0), time(17, 0)), #12:00PM - 5:00PM
-            "Dinner": (time(18, 0), time(21, 0)), #6:00PM - 9:00PM
-        }
+        if str(meal_type).lower() == "breakfast":
+            start_time = time(6, 0)
+            end_time = time(11, 0)
+        elif str(meal_type).lower() == "lunch":
+            start_time = time(12, 0)
+            end_time = time(17, 0)
+        elif str(meal_type).lower() == "dinner":
+            start_time = time(18, 0)
+            end_time = time(21, 0)
+
+        return SubDietPlan.objects.create(
+            diet_plan=None,
+            meal_type=meal_type,
+            dish_image=dish_image,
+            recipe_name=recipe_name,
+            recipe_tutorial_url=recipe_tutorial_url,
+            recipe_description=recipe_description,
+            start_time=start_time,
+            end_time=end_time
+        )
+
+   
+class CreatePatientHealthStatusSerializer(serializers.ModelSerializer):
+
+    patient = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = DietPlan
+        fields = ['patient', 'patient_status', 'medication']
+
+
+
+    def validate(self, attrs):
+
+        if is_field_empty(attrs.get('patient_status')):
+            raise serializers.ValidationError({"message": "Patient Status is required"})
+        
+        if is_field_empty(attrs.get('medication')):
+            raise serializers.ValidationError({"message": "Medication is required"})
+        
+        return attrs
+
+    def create(self, validated_data):
 
         pk = self.context.get('pk')
 
@@ -102,30 +138,13 @@ class CreateDietPlanSerializer(serializers.Serializer):
             }
         )
 
-        if str(meal_type).lower() == "breakfast":
-            start_time = time(6, 0)
-            end_time = time(11, 0)
-        elif str(meal_type).lower() == "lunch":
-            start_time = time(12, 0)
-            end_time = time(17, 0)
-        elif str(meal_type).lower() == "dinner":
-            start_time = time(18, 0)
-            end_time = time(21, 0)
-
-
-        SubDietPlan.objects.create(
-            diet_plan=diet_plan_obj,
-            meal_type=meal_type,
-            dish_image=dish_image,
-            recipe_name=recipe_name,
-            recipe_tutorial_url=recipe_tutorial_url,
-            recipe_description=recipe_description,
-            start_time=start_time,
-            end_time=end_time
-        )
+        if created:
+            SubDietPlan.objects.update_or_create(
+                diet_plan=diet_plan_obj,
+            )
 
         return diet_plan_obj
-        
+
 
 class GetPatientHealthStatusSerializer(serializers.ModelSerializer):
 
