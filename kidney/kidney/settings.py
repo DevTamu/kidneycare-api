@@ -41,7 +41,6 @@ ALLOWED_HOSTS = ["*"]
 #     'https://kidneycare-api.onrender.com',
 # ]
 
-
 redis_url = os.environ.get('REDIS_URL')
 
 parsed_url = urllib.parse.urlparse(redis_url)
@@ -110,13 +109,13 @@ WSGI_APPLICATION = 'kidney.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
 
 # DATABASES = {
 #     'default': dj_database_url.config(
@@ -147,7 +146,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'Asia/Manila'
+TIME_ZONE = 'Asia/Hong_Kong'
 
 USE_I18N = True
 
@@ -200,15 +199,6 @@ SESSION_CACHE_ALIAS = "default"
 # CHANNEL_LAYERS = {
 #     "default": {
 #         "BACKEND": "channels.layers.InMemoryChannelLayer",
-#     },
-# }
-
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": [redis_url],
-#         },
 #     },
 # }
 
