@@ -176,7 +176,7 @@ class GetAppointmentAnalyticsView(generics.ListAPIView):
                 entry_data = next((item for item in daily_appointments if item["created_date"] == date_cursor), None)
                 count = entry_data["appointment_count"] if entry_data else 0
                 graph_data.append({
-                    "values": count
+                    "value": count
                 })
                 #increment the date cursor by 1 day
                 date_cursor += timedelta(days=1)
