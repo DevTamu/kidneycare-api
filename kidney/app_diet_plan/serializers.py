@@ -24,8 +24,8 @@ class SubDietPlanSerializer(serializers.ModelSerializer):
 
 class CreateDietPlanSerializer(serializers.Serializer):
 
-    patient_status = serializers.CharField()
-    medication = serializers.CharField()
+    patient_status = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    medication = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     meal_type = serializers.CharField(required=True, error_messages={
         "blank": "Meal type cannot be empty",
         "required": "Meal type is required"
