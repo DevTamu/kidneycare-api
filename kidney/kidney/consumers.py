@@ -60,7 +60,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if hasattr(self, 'receiver_inbox_name') and self.receiver_inbox_name:
                 await self.channel_layer.group_discard(self.receiver_inbox_name, self.channel_name)
         except Exception as e:
-            print(f"[ERROR] Disconnect failed: {e}")
+            print(f"[ERROR] Disconnect failed")
 
     async def receive(self, text_data):
         
@@ -139,7 +139,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'type': 'chat_message_introduction',
                     'message': f"Hi {sender.first_name} {sender.last_name}, this is {receiver.first_name} from Boho Renal Care. I'd be happy to assist you",
                     "sender_id": str(sender.id),
-                    "receiver_id": str(receiver.id)  
+                    "receiver_id": str(receiver.id),
+                    "time_sent": timezone.localtime(timezone.now()).strftime("%I:%M")
                 }
             )
         elif sender.role == "admin" and receiver.role == "patient":
@@ -149,7 +150,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'type': 'chat_message_introduction',
                     'message': f"Hi {receiver.first_name} {receiver.last_name}, this is {sender.first_name} from Boho Renal Care. I'd be happy to assist you",
                     "sender_id": str(sender.id),
-                    "receiver_id": str(receiver.id)  
+                    "receiver_id": str(receiver.id),
+                    "time_sent": timezone.localtime(timezone.now()).strftime("%I:%M")
                 }
             )
 
@@ -158,6 +160,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "introduction_message": event['message'],
             "sender_id": str(event['sender_id']),
             "receiver_id": str(event['receiver_id']),
+            "time_sent": event["time_sent"]
         }))
 
     async def inbox_update(self, event):
