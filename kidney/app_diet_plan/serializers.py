@@ -166,8 +166,15 @@ class GetPatientDietPlanLimitOneSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SubDietPlan
-        fields = ['diet_plan', 'meal_type', 'dish_image', 'recipe_name', 'recipe_tutorial_url', 'recipe_description']
+        fields = ['id', 'diet_plan', 'meal_type', 'dish_image', 'recipe_name', 'recipe_tutorial_url', 'recipe_description']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        data["diet_plan_id"] = data.pop('diet_plan')
+        data["sub_diet_plan_id"] = data.pop('id')
+
+        return data
 
 class GetPatientDietPlanSerializer(serializers.ModelSerializer):
 
@@ -182,7 +189,6 @@ class GetPatientDietPlanSerializer(serializers.ModelSerializer):
 
         #rename key
         data["diet_plan_id"] = data.pop('id')
-
         data["user_id"] = str(data.pop('patient'))
 
         data["diet_plan"] = data.pop('diet_plan')
