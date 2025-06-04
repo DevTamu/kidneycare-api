@@ -22,8 +22,14 @@ class CreateTreatmentFormView(generics.CreateAPIView):
 
             if serializer.is_valid():
                 serializer.save()
-                return ResponseMessageUtils(message="Created Treatment Form Successfully", status_code=status.HTTP_201_CREATED)
-            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+                return ResponseMessageUtils(
+                    message="Created Treatment Form Successfully",
+                    status_code=status.HTTP_201_CREATED
+                )
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
         except ParseError as e:
             return ResponseMessageUtils(
                 message=f"Invalid JSON: {str(e)}",
