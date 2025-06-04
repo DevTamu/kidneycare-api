@@ -132,35 +132,37 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def send_message_introduction(self, sender, receiver):
         
 
-        if sender.role == "patient" and receiver.role == "admin":
+        if sender.role == "admin" and receiver.role == "patient":
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {   
                     'type': 'chat_message_introduction',
-                    'message': f"Hi {sender.first_name} {sender.last_name}, this is {receiver.first_name} from Boho Renal Care. I'd be happy to assist you",
-                    "sender_id": str(sender.id),
-                    "receiver_id": str(receiver.id),
-                    "time_sent": timezone.localtime(timezone.now()).strftime("%I:%M")
-                }
-            )
-        elif sender.role == "admin" and receiver.role == "patient":
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'chat_message_introduction',
                     'message': f"Hi {receiver.first_name} {receiver.last_name}, this is {sender.first_name} from Boho Renal Care. I'd be happy to assist you",
                     "sender_id": str(sender.id),
                     "receiver_id": str(receiver.id),
-                    "time_sent": timezone.localtime(timezone.now()).strftime("%I:%M")
+                    "time_sent": timezone.localtime(timezone.now()).strftime("%I:%M"),
+                    "status": "sent",
                 }
             )
+        # elif sender.role == "admin" and receiver.role == "patient":
+        #     await self.channel_layer.group_send(
+        #         self.room_group_name,
+        #         {
+        #             'type': 'chat_message_introduction',
+        #             'message': f"Hi {receiver.first_name} {receiver.last_name}, this is {sender.first_name} from Boho Renal Care. I'd be happy to assist you",
+        #             "sender_id": str(sender.id),
+        #             "receiver_id": str(receiver.id),
+        #             "time_sent": timezone.localtime(timezone.now()).strftime("%I:%M")
+        #         }
+        #     )
 
     async def chat_message_introduction(self, event):
         await self.send(text_data=json.dumps({
             "introduction_message": event['message'],
             "sender_id": str(event['sender_id']),
             "receiver_id": str(event['receiver_id']),
-            "time_sent": event["time_sent"]
+            "time_sent": event["time_sent"],
+            "status": event["status"]
         }))
 
     async def inbox_update(self, event):
