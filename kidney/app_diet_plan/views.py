@@ -25,7 +25,6 @@ class CreateDietPlanView(generics.CreateAPIView):
             if serializer.is_valid():
                 serializer.save()
                 return ResponseMessageUtils(message="Successfully Added Diet Plan", status_code=status.HTTP_200_OK)
-            print(extract_first_error_message(serializer.errors))
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return ResponseMessageUtils(

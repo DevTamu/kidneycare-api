@@ -5,33 +5,7 @@ from django.db.models import Q
 from datetime import datetime
 from django.utils import timezone
 from django.db import connection
-import pprint
-class GetUsersMessageSerializer(serializers.ModelSerializer):
-    
-    created_at = serializers.SerializerMethodField()
 
-    class Meta:
-        model = Message
-        fields = '__all__'
-
-    #convert created_at to a readable time-format
-    def get_created_at(self, obj):
-        return obj.created_at.strftime("%I:%M: %p")
-
-    def to_representation(self, instance):
-
-        data = super().to_representation(instance)
-
-        #rename keys
-        data["is_read"] = str(data.pop('read', None)).lower()
-        data["chat_id"] = data.pop('id', None)
-        data["sender_id"] = str(data.pop('sender'))
-        data["receiver_id"] = str(data.pop('receiver'))
-
-        #remove from the response
-        data.pop('updated_at')
-
-        return data
     
 
 class GetNotificationChatsToProviderSerializer(serializers.ModelSerializer):
@@ -156,11 +130,55 @@ class GetPatientChatInformationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'user_image']
+        fields = ['id', 'first_name', 'last_name', 'user_image', 'status']
 
     def get_user_image(self, obj):
         return getattr(getattr(obj, 'user_profile', None), 'picture', None).url if getattr(getattr(obj, 'user_profile', None), 'picture', None) else None
     
+    def to_representation(self, instance):
+
+        data = super().to_representation(instance)
+
+        messages_list = None
+
+        #rename key
+        data["patient_id"] = data.pop('id')
+
+        user_id = self.context.get('user_id')
+
+        patient = User.objects.filter(id=instance.id, role='patient').first()
+
+        if patient:
+
+            admin = User.objects.filter(id=user_id, role='admin').first()
+
+            messages = Message.objects.select_related('sender', 'receiver').filter(
+                sender=patient, receiver=admin
+            ).values('content', 'status', 'sender', 'receiver', 'date_sent', 'read').union(
+                Message.objects.select_related('sender', 'receiver').filter(
+                    (
+                        Q(sender=patient, receiver=admin) |
+                        Q(sender=admin, receiver=patient)
+                    )
+                ).values('content', 'status', 'sender', 'receiver', 'date_sent', 'read')
+            )
+
+            messages_list = [{
+
+                "message": str(message["content"]).lower(),
+                "sent": str(message["status"]).lower(),
+                "is_read": message["read"],
+                "sender_id": str(message["sender"]),
+                "receiver_id": str(message["receiver"]),
+                "time_sent": timezone.localtime(message["date_sent"]).strftime("%I:%M")
+
+            }for message in messages]
+
+            data["messages"] = messages_list
+
+        return data
+
+        
 
 class GetProviderChatInformationSerializer(serializers.ModelSerializer):
 
@@ -168,14 +186,14 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'user_image']
+        fields = ['id', 'first_name', 'last_name', 'user_image', 'status']
 
     def to_representation(self, instance):
 
         user_id = self.context.get('user_id')
 
         data = super().to_representation(instance)
-
+        
         #rename keys
         data["provider_id"] = str(data.pop('id'))
         data["provider_first_name"] = data.pop('first_name')
@@ -196,15 +214,21 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
                 #get all messages between the patient and provider
                 messages = Message.objects.prefetch_related('sender', 'receiver').filter(
                     sender=patient, receiver=provider
-                ).values('content', 'status', 'sender', 'receiver', 'date_sent').union(
-                    Message.objects.prefetch_related('sender', 'receiver').filter(sender=provider, receiver=patient).values(
-                        'content', 'status', 'sender', 'receiver', 'date_sent'
+                ).values('content', 'status', 'sender', 'receiver', 'date_sent', 'read').union(
+                    Message.objects.prefetch_related('sender', 'receiver').filter(
+                        (
+                            Q(sender=provider, receiver=patient) |
+                            Q(sender=patient, receiver=provider)
+                        )
+                    ).values(
+                        'content', 'status', 'sender', 'receiver', 'date_sent', 'read'
                     )
                 )  
 
                 messages_list = [{
                     "message": str(message["content"]).lower(),
                     "sent": str(message["status"]).lower(),
+                    "is_read": message["read"],
                     "sender_id": str(message["sender"]),
                     "receiver_id": str(message["receiver"]),
                     "time_sent": timezone.localtime(message["date_sent"]).strftime('%I:%M')
