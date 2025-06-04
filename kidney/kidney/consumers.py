@@ -81,7 +81,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
         image_data = data.get("image_data", None)
         
-        message_content = data["message"]
+        message_content = data.get('message', None)
         #if message not provided
         # if not message_content:
         #     await self.send(text_data=json.dumps({"error": "Message is required."}))
@@ -104,7 +104,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.room_group_name, #send to the receiver websocket
             {
                 "type": "chat_message", 
-                "message": message.content,
+                "message": message.content if message.content else None,
                 "sender_id": str(message.sender.id),
                 "receiver_id": str(message.receiver.id),
                 "chat_id": None if message.sender.role == "patient" and message.receiver.role == "admin" or message.sender.role == "admin" and message.receiver.role == "patient" else int(message.id),
@@ -210,7 +210,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "status": str(user.status).lower(),
                     "first_name": user.first_name,
                     "user_image": user_profile,
-                    "message": message.content,
+                    "message": message.content if message.content else None,
                     "message_status": message.status,
                     "read": message.read,
                     "chat_id": (
@@ -239,7 +239,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = Message(
             sender=sender_user,
             receiver=receiver_user,
-            content=message_content,    
+            content=message_content if message_content else None,    
             status='sent', #initially set status to 'sent',
             date_sent=timezone.now()
         )
