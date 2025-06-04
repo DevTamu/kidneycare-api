@@ -26,11 +26,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 await self.close(code=4003)
                 return
             
+            self.chat_type = str(self.scope["url_route"]["kwargs"]["chat_type"]) #(e.g, admin,nurse, head nurse, patient)
             self.receiver_id = str(self.scope["url_route"]["kwargs"]["room_name"])
             self.sender_id = str(user.id)
 
             #create chat room and join the chat room
-            self.room_group_name = f"chat_{min(self.receiver_id, self.sender_id)}_{max(self.receiver_id, self.sender_id)}"
+            self.room_group_name = f"chat_{self.chat_type}_{min(self.receiver_id, self.sender_id)}_{max(self.receiver_id, self.sender_id)}"
             await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
             #create sender inbox room and join the sender inbox group
@@ -45,7 +46,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.accept()
 
             user_receiver = await get_user_by_id(self.receiver_id)
-            await self.send_message_introduction(user, user_receiver)
+            # await self.send_message_introduction(user, user_receiver)
             
         except Exception as e:
             await self.close(code=4003)
@@ -78,14 +79,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 await self.mark_message_as_read(message_id)
             return
         
-
         image_data = data.get("image_data", None)
         
         message_content = data["message"]
         #if message not provided
-        if not message_content:
-            await self.send(text_data=json.dumps({"error": "Message is required."}))
-            return
+        # if not message_content:
+        #     await self.send(text_data=json.dumps({"error": "Message is required."}))
+        #     return
         
         #get the returned message from the save_message
         message_obj = await self.save_message(
@@ -260,13 +260,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 print(f"[ERROR] Failed to decode image: {e}")
 
         #only save to DB if not patient-admin chat
-        is_patient_admin_chat = (
-            (receiver_user.role == "patient" and sender_user.role == "admin") or
-            (receiver_user.role == "admin" and sender_user.role == "patient")
-        )
+        # is_patient_admin_chat = (
+        #     (receiver_user.role == "patient" and sender_user.role == "admin") or
+        #     (receiver_user.role == "admin" and sender_user.role == "patient")
+        # )
 
-        if not is_patient_admin_chat:
-            await database_sync_to_async(message.save)()
+        # if not is_patient_admin_chat:
+        await database_sync_to_async(message.save)()
             
         #return the message
         return message
