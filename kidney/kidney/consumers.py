@@ -178,7 +178,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "chat_id": event["chat_id"],
             "sender_id": str(event["sender_id"]),
             "receiver_id": str(event["receiver_id"]),
-            "time_sent": event["time_sent"]
+            "time_sent": event["time_sent"],
+            "image": event["image"]
         }))
 
     async def send_message_to_inbox(self, message):
@@ -220,7 +221,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     ),
                     "sender_id": str(message.sender.id),
                     "receiver_id": str(message.receiver.id),
-                    "time_sent": timezone.localtime(message.date_sent).strftime("%I:%M %p")
+                    "time_sent": timezone.localtime(message.date_sent).strftime("%I:%M %p"),
+                    "image": message.image.url if message.image else None
                 }
             )
             
