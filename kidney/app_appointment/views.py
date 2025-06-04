@@ -13,7 +13,7 @@ from .serializers import (
     GetPatientAppointmentDetailsInAdminSerializer,
     GetUpcomingAppointmentDetailsInPatientSerializer,
 )
-from django.db.models import F, DateTimeField, ExpressionWrapper
+from django.db.models import F, DateTimeField, ExpressionWrapper, Q
 from django.utils import timezone
 from app_authentication.models import User
 from .models import Appointment
@@ -105,11 +105,9 @@ class AddAppointmentDetailsInAdminView(generics.CreateAPIView):
 
         except Exception as e:
             return ResponseMessageUtils(
-                message="Something went wrong while processing your request.",
+                message=f"Something went wrong while processing your request. {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-    
 
 
 class GetAppointmentInProviderView(generics.ListAPIView):
@@ -121,14 +119,16 @@ class GetAppointmentInProviderView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):  
         try:
             
-            assigned_appointments = AssignedAppointment.objects.filter(
-                assigned_provider__assigned_provider=request.user,
-                appointment__status__in=['Approved', 'In-Progress']
+            assigned_appointments_to_provider = Appointment.objects.select_related('user').filter(
+                Q(assigned_patient_appointment__assigned_provider=request.user) |
+                Q(assigned_patient_appointment__assigned_provider__isnull=True),
+                status__in=['approved', 'in-progress']
             )
+
             #create an instance of the paginator
             paginator = self.pagination_class()
             #assign the assigned appointments in paginate queryset
-            paginated_data = paginator.paginate_queryset(assigned_appointments, request)
+            paginated_data = paginator.paginate_queryset(assigned_appointments_to_provider, request)
             serializer = self.get_serializer(paginated_data, many=True)
             paginated_response = paginator.get_paginated_response(serializer.data)
             
@@ -170,7 +170,7 @@ class GetPatientAppointmentHistoryView(generics.RetrieveAPIView):
     def get_queryset(self):
         return Appointment.objects.select_related('user').filter(
             user_id=self.kwargs.get('pk'),
-            status='Completed'
+            status='completed'
         )
 
     def get(self, request, *args, **kwargs):
@@ -184,7 +184,7 @@ class GetPatientAppointmentHistoryView(generics.RetrieveAPIView):
             return ResponseMessageUtils(message="List of Appointment history", data=serializer.data, status_code=status.HTTP_200_OK)
         except Exception as e:
             return ResponseMessageUtils(
-                message=f"Something went wrong while processing your request.: {e}",
+                message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
       
@@ -281,7 +281,7 @@ class GetPatientUpcomingAppointmentView(generics.RetrieveAPIView):
             ).filter(
                 user_id=user_id,
                 valid_time__gte=now,   
-                status='Approved'
+                status='approved'
             ).order_by('date', 'id').first()
    
             if not appointments:
@@ -322,7 +322,7 @@ class GetPatientUpcomingAppointmentsInHomeView(generics.ListAPIView):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class CancelPatientUpcomingAppointmentInAppointmentView(generics.DestroyAPIView):
+class CancelPatientUpcomingAppointmentInAppointmentView(generics.UpdateAPIView):
 
     permission_classes = [IsAuthenticated]
     serializer_class = CancelPatientUpcomingAppointmentInAppointmentPageSerializer
@@ -331,7 +331,7 @@ class CancelPatientUpcomingAppointmentInAppointmentView(generics.DestroyAPIView)
     def get_queryset(self):
         return Appointment.objects.get(id=self.kwargs.get('pk'))
     
-    def delete(self, request, *args, **kwargs):
+    def patch(self, request, *args, **kwargs):
         
         try:
             instance = self.get_queryset()
@@ -379,7 +379,7 @@ class GetUpcomingAppointmentDetailsInPatientView(generics.RetrieveAPIView):
     lookup_field = 'pk'
 
     def get_queryset(self):
-        return Appointment.objects.filter(id=self.kwargs.get('pk'), status='Approved').first()
+        return Appointment.objects.filter(id=self.kwargs.get('pk'), status='approved').first()
     
     def get(self, request, *args, **kwargs):
 

@@ -31,7 +31,7 @@ DEBUG = os.environ.get('DEBUG')
 
 ALLOWED_HOSTS = ["*"]
 
-# ALLOWED_HOSTS = ["kidneycare-api.onrender.com", "localhost", "127.0.0.1"]
+# ALLOWED_HOSTS = ["kidneycare-api.onrender.com", "www.kidneycare-api.onrender.com", "localhost", "127.0.0.1"]
 
 # CSRF_TRUSTED_ORIGINS = [
 #     'https://kidneycare-api.onrender.com',
@@ -39,7 +39,11 @@ ALLOWED_HOSTS = ["*"]
 
 # CORS_ALLOWED_ORIGINS = [
 #     'https://kidneycare-api.onrender.com',
+#     'http://localhost:8000',
+#     'http://192.168.100.11:8000'
 # ]
+
+# CORS_ALLOW_CREDENTIALS = True
 
 redis_url = os.environ.get('REDIS_URL')
 
@@ -53,7 +57,7 @@ INSTALLED_APPS = [
     'cloudinary',
     'cloudinary_storage',
     'storages',
-    # 'corsheaders',
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -75,7 +79,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    # 'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -108,7 +112,6 @@ WSGI_APPLICATION = 'kidney.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
 
 DATABASES = {
     'default': {
