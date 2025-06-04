@@ -252,7 +252,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 size_in_mb = size_in_bytes / (1024 * 1024)
 
                 if size_in_mb >= 20:
-                    await self.send_error_to_websocket("The image upload is too big")
+                    await self.send(text_data=json.dumps({"error": "The image upload is too big."}))
                     return
 
                 format, img_str = image_data.split(';base64,')
