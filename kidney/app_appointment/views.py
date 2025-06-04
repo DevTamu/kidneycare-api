@@ -26,7 +26,7 @@ from kidney.utils import (
 from datetime import timedelta
 from rest_framework.permissions import IsAuthenticated
 from .models import AssignedAppointment
-from kidney.pagination.appointment_pagination import AppointmentPagination
+from kidney.pagination.appointment_pagination import Pagination
 
 class CreateAppointmentView(generics.CreateAPIView):
 
@@ -108,7 +108,7 @@ class GetAppointmentInProviderView(generics.ListAPIView):
 
     permission_classes = [IsAuthenticated]
     serializer_class = GetAppointmentsInProviderSerializer
-    pagination_class = AppointmentPagination
+    pagination_class = Pagination
 
     def get(self, request, *args, **kwargs):  
         try:
@@ -187,7 +187,7 @@ class GetAllAppointsmentsInAdminView(generics.ListAPIView):
 
     permission_classes = [IsAuthenticated]
     serializer_class = GetAllAppointsmentsInAdminSerializer
-    pagination_class = AppointmentPagination
+    pagination_class = Pagination
     lookup_field = 'status'
 
     def get(self, request, *args, **kwargs):
