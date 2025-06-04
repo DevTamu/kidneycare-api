@@ -81,7 +81,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
         image_data = data.get("image_data", None)
         
-        message_content = data["message"]
+        message_content = data.get('message', None)
         #if message not provided
         # if not message_content:
         #     await self.send(text_data=json.dumps({"error": "Message is required."}))
