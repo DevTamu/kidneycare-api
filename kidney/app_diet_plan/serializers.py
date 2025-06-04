@@ -48,13 +48,13 @@ class CreatePatientHealthStatusSerializer(serializers.ModelSerializer):
         try:
             user = User.objects.get(id=pk)
         except User.DoesNotExist:
-            raise serializers.ValidationError({"patient": "User not found."})
+            raise serializers.ValidationError({"message": "User not found."})
 
-        diet_plan_obj, _ = DietPlan.objects.get_or_create(
+        diet_plan_obj, _ = DietPlan.objects.update_or_create(
             patient=user,
             defaults={
-                "patient_status": validated_data.get('patient_status', None),
-                "medication": validated_data.get('medication', None)
+                "patient_status": validated_data.get('patient_status'),
+                "medication": validated_data.get('medication')
             }
         )
 
