@@ -33,11 +33,18 @@ class CreatePatientHealthStatusSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
 
+        pk = self.context.get('pk')
+
         if is_field_empty(attrs.get('patient_status')):
             raise serializers.ValidationError({"message": "Patient Status is required"})
         
         if is_field_empty(attrs.get('medication')):
             raise serializers.ValidationError({"message": "Medication is required"})
+        
+        user = User.objects.filter(id=pk).first()
+
+        if not user:
+            raise serializers.ValidationError({"message": "patient not found"})
         
         return attrs
 
@@ -45,10 +52,7 @@ class CreatePatientHealthStatusSerializer(serializers.ModelSerializer):
 
         pk = self.context.get('pk')
 
-        try:
-            user = User.objects.get(id=pk)
-        except User.DoesNotExist:
-            raise serializers.ValidationError({"message": "User not found."})
+        user = User.objects.get(id=pk)
 
         diet_plan_obj, _ = DietPlan.objects.update_or_create(
             patient=user,
@@ -88,7 +92,9 @@ class CreateDietPlanSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
-            
+        
+        pk = self.context.get('pk')
+
         if is_field_empty(attrs.get('meal_type')):
             raise serializers.ValidationError({"message": "Meal type is required"})
         
@@ -103,6 +109,11 @@ class CreateDietPlanSerializer(serializers.Serializer):
         
         if is_field_empty(attrs.get('dish_image', None)):
             raise serializers.ValidationError({"message": "Image is required"})
+        
+        user = User.objects.filter(id=pk).first()
+
+        if not user:
+            raise serializers.ValidationError({"message": "patient not found"})
         
         return attrs
     
@@ -125,13 +136,9 @@ class CreateDietPlanSerializer(serializers.Serializer):
 
         start_time, end_time = meal_times_mapping[meal_type]
 
-        try:
-            user = User.objects.get(id=pk)
-        except User.DoesNotExist:
-            raise serializers.ValidationError({"patient": "User not found."})
+        user = User.objects.get(id=pk)
 
         diet_plan_obj, _ = DietPlan.objects.get_or_create(patient=user)
-
 
         SubDietPlan.objects.create(
             diet_plan=diet_plan_obj,
