@@ -4,6 +4,8 @@ from app_authentication.models import Profile, User
 from django.db.models import Q
 from datetime import datetime
 from django.utils import timezone
+from django.db import connection
+import pprint
 class GetUsersMessageSerializer(serializers.ModelSerializer):
     
     created_at = serializers.SerializerMethodField()
@@ -166,7 +168,51 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'user_image']
+        fields = ['id', 'first_name', 'last_name', 'user_image']
+
+    def to_representation(self, instance):
+
+        user_id = self.context.get('user_id')
+
+        data = super().to_representation(instance)
+
+        #rename keys
+        data["provider_id"] = str(data.pop('id'))
+        data["provider_first_name"] = data.pop('first_name')
+        data["provider_last_name"] = data.pop('last_name')
+        data["provider_image"] = data.pop('user_image')
+
+        #get the patient as a single object
+        patient = User.objects.filter(id=user_id, role='patient').first()
+
+        messages_list = None
+
+        if patient:
+            #get the provider as a single object
+            provider = User.objects.filter(id=instance.id, role__in=['nurse', 'head nurse']).first()
+
+            if provider:
+
+                #get all messages between the patient and provider
+                messages = Message.objects.prefetch_related('sender', 'receiver').filter(
+                    sender=patient, receiver=provider
+                ).values('content', 'status', 'sender', 'receiver', 'date_sent').union(
+                    Message.objects.prefetch_related('sender', 'receiver').filter(sender=provider, receiver=patient).values(
+                        'content', 'status', 'sender', 'receiver', 'date_sent'
+                    )
+                )  
+
+                messages_list = [{
+                    "message": str(message["content"]).lower(),
+                    "sent": str(message["status"]).lower(),
+                    "sender_id": str(message["sender"]),
+                    "receiver_id": str(message["receiver"]),
+                    "time_sent": timezone.localtime(message["date_sent"]).strftime('%I:%M')
+                } for message in messages]
+
+        data["messages"] = messages_list
+
+        return data
 
     def get_user_image(self, obj):
         return getattr(getattr(obj, 'user_profile', None), 'picture', None).url if getattr(getattr(obj, 'user_profile', None), 'picture', None) else None

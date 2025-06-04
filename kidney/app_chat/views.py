@@ -141,9 +141,11 @@ class GetProviderChatInformationView(generics.RetrieveAPIView):
 
         try:
 
+            user_id = get_token_user_id(request)
+
             queryset = self.get_queryset()
 
-            serializer = self.get_serializer(queryset)
+            serializer = self.get_serializer(queryset, context={'user_id': user_id})
 
             return ResponseMessageUtils(
                 message="Provider Chat",
