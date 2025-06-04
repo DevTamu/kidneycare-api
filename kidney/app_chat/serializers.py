@@ -47,6 +47,19 @@ class UpdateNotificationChatInProviderSerializer(serializers.ModelSerializer):
 
         return instance
     
+# class UpdateChatStatusInPatientSerializer(serializers.ModelSerializer):
+
+#     class Meta:
+#         model = Message
+#         fields = ['id']
+
+#     def update(self, instance, validated_data):
+
+#         instance.read = True
+#         instance.save()
+
+#         return instance
+    
 
 class GetProvidersChatSerializer(serializers.ModelSerializer):
     class Meta:
@@ -62,32 +75,33 @@ class GetProvidersChatSerializer(serializers.ModelSerializer):
 
         provider_information = {
             "provider_id": provider.id,
-            "role": getattr(provider, 'role', 'unknown').lower(),
-            "status": getattr(provider, 'status', 'offline').lower(),
-            "first_name": provider.first_name,
-            "user_image": getattr(getattr(provider, 'user_profile', None), 'picture', None).url if getattr(getattr(provider, 'user_profile', None), 'picture', None) else None
+            "chat_id": int(data.pop('id'))
+            
         }
 
         #rename key
-        data["chat_id"] = data.pop('id')
-
         #removed from the response
         data.pop('sender')
         data.pop('receiver')
         data.pop('read')
         data.pop('status')
         data.pop('date_sent')
+        data.pop('content')
 
         local_time = timezone.localtime(instance.date_sent)
 
         data.update(provider_information)
         data["last_message"] = {
+            "provider_status": getattr(provider, 'status', 'offline').lower(),
+            "provider_first_name": provider.first_name,
+            "provider_image": getattr(getattr(provider, 'user_profile', None), 'picture', None).url if getattr(getattr(provider, 'user_profile', None), 'picture', None) else None,
+            "provider_role": getattr(provider, 'role', None).lower(),
             "message": instance.content,
             "status": instance.status.lower(),
             "is_read": instance.read,
             "sender_id": str(instance.sender.id),
             "receiver_id": str(instance.receiver.id),
-            "time_sent": local_time.strftime('%I:%M')
+            "time_sent": local_time.strftime('%I:%M %p')
         }
 
         return data
@@ -107,11 +121,12 @@ class GetPatientsChatSerializer(serializers.ModelSerializer):
 
         patient_information = {
             "patient_id": patient.id,
+            "chat_id": int(data.pop('id'))
             # "role": getattr(patient, 'role', 'unknown').lower(),  
         }
 
         #rename key
-        data["chat_id"] = data.pop('id')
+        # data["chat_id"] = data.pop('id')
 
         #removed from the response
         data.pop('sender')
@@ -125,16 +140,16 @@ class GetPatientsChatSerializer(serializers.ModelSerializer):
 
         data.update(patient_information )
         data["latest_message"] = {
-            "first_name": patient.first_name,
-            "last_name": patient.last_name,
-            "user_image": getattr(getattr(patient, 'user_profile', None), 'picture', None).url if getattr(getattr(patient, 'user_profile', None), 'picture', None) else None,
-            "status": getattr(patient, 'status', 'offline').lower(),
+            "patient_first_name": patient.first_name,
+            "patient_last_name": patient.last_name,
+            "patient_image": getattr(getattr(patient, 'user_profile', None), 'picture', None).url if getattr(getattr(patient, 'user_profile', None), 'picture', None) else None,
+            "patient_status": getattr(patient, 'status', 'offline').lower(),
             "message": instance.content,
             "message_status": instance.status.lower(),
             "is_read": instance.read,
             "sender_id": str(instance.sender.id),
             "receiver_id": str(instance.receiver.id),
-            "time_sent": local_time.strftime('%I:%M')
+            "time_sent": local_time.strftime('%I:%M %p')
         }
 
         return data
@@ -170,13 +185,13 @@ class GetPatientChatInformationSerializer(serializers.ModelSerializer):
 
             messages = Message.objects.select_related('sender', 'receiver').filter(
                 sender=patient, receiver=admin
-            ).values('content', 'status', 'sender', 'receiver', 'date_sent', 'read').union(
+            ).values('content', 'status', 'sender', 'receiver', 'date_sent', 'read', 'id').union(
                 Message.objects.select_related('sender', 'receiver').filter(
                     (
                         Q(sender=patient, receiver=admin) |
                         Q(sender=admin, receiver=patient)
                     )
-                ).values('content', 'status', 'sender', 'receiver', 'date_sent', 'read')
+                ).values('content', 'status', 'sender', 'receiver', 'date_sent', 'read', 'id')
             )
 
             messages_list = [{
@@ -186,6 +201,7 @@ class GetPatientChatInformationSerializer(serializers.ModelSerializer):
                 "is_read": message["read"],
                 "sender_id": str(message["sender"]),
                 "receiver_id": str(message["receiver"]),
+                "chat_id": int(message["id"]),
                 "time_sent": timezone.localtime(message["date_sent"]).strftime("%I:%M")
 
             }for message in messages]
@@ -202,7 +218,7 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'user_image', 'status']
+        fields = ['id', 'first_name', 'user_image', 'status', 'role']
 
     def to_representation(self, instance):
 
@@ -213,8 +229,10 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
         #rename keys
         data["provider_id"] = str(data.pop('id'))
         data["provider_first_name"] = data.pop('first_name')
-        data["provider_last_name"] = data.pop('last_name')
+        data["provider_status"] = str(data.pop('status')).lower()
+        # data["provider_last_name"] = data.pop('last_name')
         data["provider_image"] = data.pop('user_image')
+        data["provider_role"] = data.pop('role')
 
         #get the patient as a single object
         patient = User.objects.filter(id=user_id, role='patient').first()
@@ -230,14 +248,14 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
                 #get all messages between the patient and provider
                 messages = Message.objects.prefetch_related('sender', 'receiver').filter(
                     sender=patient, receiver=provider
-                ).values('content', 'status', 'sender', 'receiver', 'date_sent', 'read').union(
+                ).values('content', 'status', 'sender', 'receiver', 'date_sent', 'read', 'id').union(
                     Message.objects.prefetch_related('sender', 'receiver').filter(
                         (
                             Q(sender=provider, receiver=patient) |
                             Q(sender=patient, receiver=provider)
                         )
                     ).values(
-                        'content', 'status', 'sender', 'receiver', 'date_sent', 'read'
+                        'content', 'status', 'sender', 'receiver', 'date_sent', 'read', 'id'
                     )
                 )  
 
@@ -247,6 +265,7 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
                     "is_read": message["read"],
                     "sender_id": str(message["sender"]),
                     "receiver_id": str(message["receiver"]),
+                    "chat_id": int(message["id"]),
                     "time_sent": timezone.localtime(message["date_sent"]).strftime('%I:%M')
                 } for message in messages]
 

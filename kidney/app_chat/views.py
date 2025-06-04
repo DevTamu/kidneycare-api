@@ -10,7 +10,8 @@ from .serializers import (
     GetProviderChatInformationSerializer,
     GetPatientsChatSerializer,
     GetPatientChatInformationSerializer,
-    UpdateNotificationChatInProviderSerializer
+    UpdateNotificationChatInProviderSerializer,
+    # UpdateChatStatusInPatientSerializer
 )
 from .models import Message
 
@@ -97,7 +98,6 @@ class GetProvidersChatView(generics.ListAPIView):
             if not providers_who_messaged_patient.exists():
                 return ResponseMessageUtils(
                     message="No messages found",
-                    data=[],
                     status_code=status.HTTP_404_NOT_FOUND
                 )
 
@@ -154,7 +154,7 @@ class GetProviderChatInformationView(generics.RetrieveAPIView):
 
         except Exception as e:
             return ResponseMessageUtils(
-                message="Something went wrong while processing your request",
+                message=f"Something went wrong while processing your request {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -210,6 +210,40 @@ class GetPatientsChatView(generics.ListAPIView):
                 message=f"Something went wrong while processing your request. {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+
+# class UpdateChatStatusInPatientView(generics.UpdateAPIView):
+
+#     permission_classes = [IsAuthenticated]
+#     serializer_class     = UpdateChatStatusInPatientSerializer
+#     lookup_field = 'pk'
+#     queryset = Message.objects.all()
+
+#     def patch(self, request, *args, **kwargs):
+
+#         try:
+
+#             instance = self.get_object()
+
+#             serializer = self.get_serializer(instance=instance, data=request.data, partial=True)
+            
+#             if serializer.is_valid():
+#                 serializer.save()
+#                 return ResponseMessageUtils(
+#                     message="Successfully update the notification status",
+#                     status_code=status.HTTP_200_OK
+#                 )
+            
+#             return ResponseMessageUtils(
+#                 message=extract_first_error_message(serializer.errors),
+#                 status_code=status.HTTP_400_BAD_REQUEST
+#             )
+
+#         except Exception as e:
+#             return ResponseMessageUtils(
+#                 message=f"Something went wrong while processing your request. {e}",
+#                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+#             )
         
 class GetPatientChatInformationView(generics.RetrieveAPIView):
 
