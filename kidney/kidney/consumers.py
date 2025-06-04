@@ -230,7 +230,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             print(f"[ERROR] Failed to send to inbox group: {e}")
 
-    async def save_message(self, message_content, image_data=None):
+    async def save_message(self, message_content=None, image_data=None):
         from app_chat.models import Message
         """Saves a new message to the database."""
         receiver_user = await self.get_user(self.receiver_id)
@@ -239,7 +239,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = Message(
             sender=sender_user,
             receiver=receiver_user,
-            content=message_content if message_content else None,    
+            content=message_content,    
             status='sent', #initially set status to 'sent',
             date_sent=timezone.now()
         )
