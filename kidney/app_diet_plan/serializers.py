@@ -48,13 +48,13 @@ class CreatePatientHealthStatusSerializer(serializers.ModelSerializer):
         try:
             user = User.objects.get(id=pk)
         except User.DoesNotExist:
-            raise serializers.ValidationError({"patient": "User not found."})
+            raise serializers.ValidationError({"message": "User not found."})
 
-        diet_plan_obj, _ = DietPlan.objects.get_or_create(
+        diet_plan_obj, _ = DietPlan.objects.update_or_create(
             patient=user,
             defaults={
-                "patient_status": validated_data.get('patient_status', None),
-                "medication": validated_data.get('medication', None)
+                "patient_status": validated_data.get('patient_status'),
+                "medication": validated_data.get('medication')
             }
         )
 
@@ -104,18 +104,6 @@ class CreateDietPlanSerializer(serializers.Serializer):
         if is_field_empty(attrs.get('dish_image', None)):
             raise serializers.ValidationError({"message": "Image is required"})
         
-        try:
-            user = User.objects.get(id=self.context.get('pk'))
-        except User.DoesNotExist:
-            raise serializers.ValidationError({"patient": "User not found."})
-
-        diet_plan_obj, _ = DietPlan.objects.get_or_create(patient=user)
-
-
-        if SubDietPlan.objects.filter(diet_plan=diet_plan_obj, meal_type=attrs.get('meal_type')).exists():
-            raise serializers.ValidationError({"message": f"{attrs.get('meal_type').capitalize()} already exists for this patient."})
-
-
         return attrs
     
     def create(self, validated_data):
