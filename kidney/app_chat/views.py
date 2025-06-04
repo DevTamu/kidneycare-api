@@ -2,36 +2,31 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
 from rest_framework import status
 from app_authentication.models import User
-from kidney.utils import ResponseMessageUtils, get_token_user_id
+from kidney.utils import ResponseMessageUtils, get_token_user_id, extract_first_error_message
 from django.db.models import Q
 from .serializers import (
     GetNotificationChatsToProviderSerializer,
     GetProvidersChatSerializer,
     GetProviderChatInformationSerializer,
     GetPatientsChatSerializer,
-    GetPatientChatInformationSerializer
+    GetPatientChatInformationSerializer,
+    UpdateNotificationChatInProviderSerializer
 )
-from django.shortcuts import get_object_or_404
 from .models import Message
-import logging
-logger = logging.getLogger(__name__)
-
-
 
 class GetNotificationChatsToProviderView(generics.ListAPIView):
 
     permission_classes = [IsAuthenticated]
     serializer_class = GetNotificationChatsToProviderSerializer
-       
+    lookup_field = 'pk'
     
     def get_queryset(self):
-        return Message.objects.all()
-
+        return Message.objects.filter(receiver=self.request.user)
 
     def get(self, request, *args, **kwargs):
 
         try:
-            messages = self.get_queryset().filter(receiver=request.user)
+            messages = self.get_queryset()
 
             serializer = self.get_serializer(messages, many=True)
 
@@ -46,6 +41,39 @@ class GetNotificationChatsToProviderView(generics.ListAPIView):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
+
+class UpdateNotificationChatInProviderView(generics.UpdateAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class     = UpdateNotificationChatInProviderSerializer
+    lookup_field = 'pk'
+    queryset = Message.objects.all()
+
+    def patch(self, request, *args, **kwargs):
+
+        try:
+
+            instance = self.get_object()
+
+            serializer = self.get_serializer(instance=instance, data=request.data, partial=True)
+            
+            if serializer.is_valid():
+                serializer.save()
+                return ResponseMessageUtils(
+                    message="Successfully update the notification status",
+                    status_code=status.HTTP_200_OK
+                )
+            
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        except Exception as e:
+            return ResponseMessageUtils(
+                message=f"Something went wrong while processing your request. {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class GetProvidersChatView(generics.ListAPIView):
 
@@ -94,7 +122,7 @@ class GetProvidersChatView(generics.ListAPIView):
 
         except Exception as e:
             return ResponseMessageUtils(
-                message=f"Something went wrong while processing your request. {e}",
+                message="Something went wrong while processing your request",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         

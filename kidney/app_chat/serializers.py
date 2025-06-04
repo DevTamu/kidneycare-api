@@ -10,26 +10,42 @@ from django.db import connection
 
 class GetNotificationChatsToProviderSerializer(serializers.ModelSerializer):
 
-    created_at = serializers.DateTimeField(format='%Y-%m-%d %H:%M %p', input_formats=['%Y-%m-%d %H:%M %p'])
+    time_sent = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
-        fields = '__all__'
+        fields = ['content', 'sender', 'receiver', 'id', 'time_sent', 'read', 'status']
+
+    def get_time_sent(self, obj):
+
+        return timezone.localtime(getattr(obj, 'date_sent', None)).strftime('%I:%M %p')
 
     def to_representation(self, instance):
 
         data = super().to_representation(instance)
 
-        #removed from the response
-        data.pop('updated_at')
-
         #rename keys
+        data["message"] = str(data.pop('content')).lower()
+        data["sent"] = str(data.pop('status')).lower()
         data["sender_id"] = str(data.pop('sender'))
         data["receiver_id"] = str(data.pop('receiver'))
         data["chat_id"] = data.pop('id')
-        data["created_at"] = str(data.pop('created_at'))[10:].strip()
 
         return data
+    
+
+class UpdateNotificationChatInProviderSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Message
+        fields = ['id']
+
+    def update(self, instance, validated_data):
+
+        instance.read = True
+        instance.save()
+
+        return instance
     
 
 class GetProvidersChatSerializer(serializers.ModelSerializer):
