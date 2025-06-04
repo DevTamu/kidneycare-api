@@ -6,6 +6,8 @@ from app_authentication.models import User, Profile, UserInformation
 from app_schedule.models import Schedule 
 from datetime import datetime, timedelta
 from app_notification.models import Notification
+from django.utils import timezone
+import uuid
 
 class CreateAppointmentSerializer(serializers.ModelSerializer):
 
@@ -159,7 +161,7 @@ class UpdateAppointmentInPatientSerializer(serializers.ModelSerializer):
         
         instance.date = validated_data["date"]
         instance.time = validated_data["time"]
-        instance.status = "Rescheduled"
+        instance.status = "rescheduled"
         instance.save()
 
         return instance
@@ -173,6 +175,8 @@ class AddAssignedMachineSerializer(serializers.ModelSerializer):
 
 
 class AddAssignedProviderSerializer(serializers.ModelSerializer):
+
+    assigned_provider = serializers.CharField(write_only=True)
 
     class Meta:
         model = AssignedProvider
@@ -191,10 +195,10 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
     def validate(self, attrs):
         
         #extract the assigned machine data
-        assigned_machine_data = attrs.get('assigned_machine', [])
+        assigned_machine_data = attrs.get('assigned_machine', None)
 
         #extract the assigned provider data
-        assigned_provider_data = attrs.get('assigned_provider', [])
+        assigned_provider_data = attrs.get('assigned_provider', None)
 
         if is_field_empty(attrs.get('status')):
             raise serializers.ValidationError({"message": "Status is required"})
@@ -204,6 +208,9 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
         
         if is_field_empty(assigned_provider_data):
             raise serializers.ValidationError({"message": "Please assign a provider"})
+        
+        if not User.objects.filter(id=assigned_provider_data["assigned_provider"]).exists():
+            raise serializers.ValidationError({"message": "No provider found"})
 
         return attrs
     
@@ -217,7 +224,7 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
 
         #extract the assigned provider data
         assigned_providers_data = validated_data.pop('assigned_provider')
-        
+
         appointment = self.context.get('appointment_pk')
 
         #create assigned machine object instance linked to the appointment
@@ -225,13 +232,18 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
             assigned_machine_appointment=appointment,
             defaults={
                 "assigned_machine":assigned_machines_data["assigned_machine"],
-                "status":'in use'
+                "status":'In use'
             }
         )
 
+        try:
+            user_provider = User.objects.filter(id=assigned_providers_data["assigned_provider"]).first()
+        except User.DoesNotExist:
+            raise serializers.ValidationError({"message": "No provider found"})
+
         #create assigned provider object instance linked to the appointment
         assigned_provider_obj, _ = AssignedProvider.objects.update_or_create(
-            assigned_provider=assigned_providers_data["assigned_provider"],
+            assigned_provider=user_provider,
             defaults={
                 "assigned_patient_appointment":appointment
             }
@@ -242,7 +254,7 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
             appointment=appointment,
             defaults={
                 "assigned_machine":assigned_machine_obj,
-                "assigned_provider":assigned_provider_obj
+                "assigned_provider":assigned_provider_obj   
             }
         )
 
@@ -300,6 +312,7 @@ class GetAssignedAppointmentSerializer(serializers.ModelSerializer):
 
 #DONE
 class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
+
     first_name = serializers.SerializerMethodField()
     last_name = serializers.SerializerMethodField()
     user_id = serializers.SerializerMethodField()
@@ -307,59 +320,62 @@ class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
     time = serializers.SerializerMethodField()
     machine = serializers.SerializerMethodField()
     provider = serializers.SerializerMethodField()
+    user_image = serializers.SerializerMethodField()
 
     class Meta:
-        model = AssignedAppointment
-        fields = ['first_name', 'last_name', 'user_id', 'date', 'time', 'machine', 'provider']
+        model = Appointment
+        fields = ['first_name', 'last_name', 'user_image', 'user_id', 'date', 'time', 'machine', 'provider']
 
 
-    def to_representation(self, instance):
-
-        #get the request from the serializer context
+    def get_user_image(self, obj):
+        #get the request object from the serializer context
         request = self.context.get('request')
-
-        #get the default serialized data from the parent class
-        data = super().to_representation(instance)
-
-        user_id = data.get('user_id')
-
-
         try:
-            user_profile = Profile.objects.get(user=user_id)
-        except Exception as e:
-            user_profile = None
+            user_profile = Profile.objects.get(user=obj.user)
+            return request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+        except Profile.DoesNotExist:
+            return None
 
-        data["user_image"] = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
-
-        return data
-    
-    #get the assigned provider of the patient from the related appointment
+    # # get the assigned provider of the patient from the related appointment
     def get_provider(self, obj):
-        return str(obj.assigned_provider.assigned_provider)
+        
+        try:
+            assigned_provider = AssignedProvider.objects.get(
+                assigned_patient_appointment=obj
+            )
+            return f"{assigned_provider.assigned_provider.first_name} {assigned_provider.assigned_provider.last_name}"
+        except AssignedProvider.DoesNotExist:
+            return None
     
-    #get the assigned machine of the patient from the related appointment
+    # #get the assigned machine of the patient from the related appointment
     def get_machine(self, obj):
-        return int(obj.assigned_machine.assigned_machine)
+        try:
+            assigned_machine = AssignedMachine.objects.get(
+                assigned_machine_appointment=obj
+            )
+            return int(assigned_machine.assigned_machine)
+        except AssignedMachine.DoesNotExist:
+            return None
     
-    #get the firstname of the patient from the related appointment
+    # #get the firstname of the patient from the related appointment
     def get_first_name(self, obj):
-        return obj.appointment.user.first_name
+        return obj.user.first_name
 
-    #get the lastname of the patient from the related appointment
+    # #get the lastname of the patient from the related appointment
     def get_last_name(self, obj):
-        return obj.appointment.user.last_name
+        return obj.user.last_name
 
-    #get the id of the patient from the related appointment
+    # #get the id of the patient from the related appointment
     def get_user_id(self, obj):
-        return str(obj.appointment.user.id)
+        return str(obj.user.id)
        
-    #format the appointment date in a readable format (May 25, 2025
+    # #format the appointment date in a readable format (May 25, 2025
     def get_date(self, obj):
-        return obj.appointment.date.strftime('%B %d, %Y')
+        return obj.date.strftime('%B %d, %Y')
 
-    #format the appointment time in a readable format (May 25, 2025
+    # #format the appointment time in a readable format (May 25, 2025
     def get_time(self, obj):
-        return obj.appointment.time.strftime('%I:%M %p')
+        return obj.time.strftime('%I:%M %p')
     
     
 
@@ -427,7 +443,7 @@ class GetPatientAppointmentHistorySerializer(serializers.ModelSerializer):
 
         data["user_id"] = str(user_id)
         data["appointment_id"] = appointment_id
-        data["status"] = data.pop('status').lower()
+        data["status"] = str(data.pop('status')).lower()
 
         #fetch all assigned appointments related to the specific appointment
         #and get the related assigned machine, provider
@@ -442,7 +458,7 @@ class GetPatientAppointmentHistorySerializer(serializers.ModelSerializer):
             assigned_provider = assigned_appointments.assigned_provider.assigned_provider
             data["first_name"] = assigned_appointments.assigned_provider.assigned_provider.first_name
             data["last_name"] = assigned_appointments.assigned_provider.assigned_provider.last_name
-            data["role"] = assigned_appointments.assigned_provider.assigned_provider.role
+            data["role"] = str(assigned_appointments.assigned_provider.assigned_provider.role).lower()
         else:
             assigned_provider = None
             data["first_name"] = None
@@ -500,7 +516,7 @@ class GetAllAppointsmentsInAdminSerializer(serializers.ModelSerializer):
         return obj.time.strftime('%I:%M %p')
     
     def get_status(self, obj):
-        return str(obj.status.lower())
+        return str(obj.status).lower()
     
     def get_picture(self, obj):
 
@@ -537,10 +553,10 @@ class CancelAppointmentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Appointment
-        fields = ['id']
+        fields = '__all__'
 
     def update(self, instance, validated_data):
-        instance.status = 'Cancelled'
+        instance.status = 'cancelled'
         instance.save()
         return instance
 
@@ -712,6 +728,7 @@ class GetPatientAppointmentDetailsInAdminSerializer(serializers.ModelSerializer)
         #renamey keys
         data["appointment_id"] = data.pop('id')
         data["user_id"] = str(data.pop('user'))
+        data["status"] = str(data.pop('status')).lower()
 
         try:
             assigned_appointment = AssignedAppointment.objects.select_related('appointment').filter(appointment=data.get('appointment_id')).first()
