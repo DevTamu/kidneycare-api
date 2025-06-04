@@ -7,7 +7,7 @@ from kidney.utils import ResponseMessageUtils
 from django.db.models.functions import TruncDate
 from app_authentication.models import User, UserInformation
 from django.db.models.aggregates import Count
-from django.db.models.functions import ExtractMonth
+from django.db.models.functions import ExtractMonth, ExtractYear
 from calendar import month_abbr
 
 class GetPatientAnalyticsView(generics.ListAPIView):
@@ -270,27 +270,39 @@ class GetAppointmentStatusBreakdownView(generics.ListAPIView):
 class GetPatientTrackingGenderView(generics.ListAPIView):
 
     permission_classes = [IsAuthenticated]
+    lookup_field = 'year'
 
     def list(self, request, *args, **kwargs):
 
         try:
 
-            data_output = {}
+            data_output = {
+                "male_tracking_data": {"gender": "male", "count": 0},
+                "female_tracking_data": {"gender": "female", "count": 0}
+            }
 
-            gender_month_counts = (
-                UserInformation.objects.filter(user__role="patient")
-                .annotate(month=ExtractMonth('created_at'))
-                .values('gender', 'month')
-                .annotate(count=Count('user_id'))
-                .order_by('month')
-            )
+            if kwargs.get('year') in (None, ""):
+                gender_month_counts = (
+                    UserInformation.objects.filter(user__role="patient")
+                    .annotate(month=ExtractMonth('created_at'), year=ExtractYear('created_at'))
+                    .values('gender', 'month', 'year')
+                    .annotate(count=Count('user_id'))
+                    .order_by('month').filter(year=timezone.now().year)
+                )
+            else:
+                gender_month_counts = (
+                    UserInformation.objects.filter(user__role="patient")
+                    .annotate(month=ExtractMonth('created_at'), year=ExtractYear('created_at'))
+                    .values('gender', 'month', 'year')
+                    .annotate(count=Count('user_id'))
+                    .order_by('month').filter(year=kwargs.get('year'))
+                )
 
             data_labels = {
                 "labels": [month_abbr[m] for m in range(1, 13)],
                 "male": [0] * 12,
                 "female": [0] * 12
             }
-            
 
             for data in gender_month_counts:
                 gender_value = str(data["gender"]).lower()
