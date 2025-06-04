@@ -53,16 +53,16 @@ class GetPatientAnalyticsView(generics.ListAPIView):
                     message = f"Patients decreased by {abs(int(percent_change))}% in 7 days"
 
             else:
-                # percent_change = 0  # or "N/A" if no baseline data
-                # growth_multiplier = 1.0
+                percent_change = 0  # or "N/A" if no baseline data
+                growth_multiplier = 1.0
 
-                percent_change = round((calculate_diff_patients / this_week_patients) * 100, 2)
-                growth_multiplier = round(this_week_patients / last_week_patients, 3) 
+                # percent_change = round((calculate_diff_patients / this_week_patients) * 100, 2)
+                # growth_multiplier = round(this_week_patients / last_week_patients, 3) 
 
-                if percent_change > 0:
-                    message = f"Patients increased by {abs(int(percent_change))}% in 7 days"
-                else:
-                    message = f"Patients decreased by {abs(int(percent_change))}% in 7 days"
+                # if percent_change > 0:
+                #     message = f"Patients increased by {abs(int(percent_change))}% in 7 days"
+                # else:
+                #     message = f"Patients decreased by {abs(int(percent_change))}% in 7 days"
 
             daily_appointments = (
                 Appointment.objects
@@ -149,15 +149,15 @@ class GetAppointmentAnalyticsView(generics.ListAPIView):
                     message = f"Appointment decreased by {abs(int(percent_change))}% in 7 days."
             else:
                 
-                percent_change = round((calculate_diff_appointments / this_week_appointments) * 100, 2)
-                growth_multiplier = round(this_week_appointments / last_week_appointments, 3) 
+                # percent_change = round((calculate_diff_appointments / this_week_appointments) * 100, 2)
+                # growth_multiplier = round(this_week_appointments / last_week_appointments, 3) 
 
-                if percent_change > 0:
-                    message = f"Appointment increased by {abs(int(percent_change))}% in 7 days."
-                else:
-                    message = f"Appointment decreased by {abs(int(percent_change))}% in 7 days."
-                # percent_change = 0
-                # growth_multiplier = 1.0
+                # if percent_change > 0:
+                #     message = f"Appointment increased by {abs(int(percent_change))}% in 7 days."
+                # else:
+                    # message = f"Appointment decreased by {abs(int(percent_change))}% in 7 days."
+                percent_change = 0
+                growth_multiplier = 1.0
 
 
             daily_appointments = (
@@ -176,7 +176,7 @@ class GetAppointmentAnalyticsView(generics.ListAPIView):
                 entry_data = next((item for item in daily_appointments if item["created_date"] == date_cursor), None)
                 count = entry_data["appointment_count"] if entry_data else 0
                 graph_data.append({
-                    "values": count
+                    "value": count
                 })
                 #increment the date cursor by 1 day
                 date_cursor += timedelta(days=1)
