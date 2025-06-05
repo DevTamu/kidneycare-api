@@ -12,6 +12,8 @@ import string
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
 from rest_framework import status
 from asgiref.sync import sync_to_async
+from django.db import OperationalError
+from django.contrib.auth import get_user_model
 
 def ResponseMessageUtils(
     message:str=None,
@@ -250,11 +252,16 @@ def get_token_user_id(request):
     
 @sync_to_async
 def get_user_by_id(user_id):
-    from django.contrib.auth import get_user_model
     try:
         User = get_user_model()
         return User.objects.get(id=user_id)
     except User.DoesNotExist:
+        return None
+    except OperationalError as e:
+        print(f"[DB ERROR] OperationalError while fetching user {user_id}: {e}")
+        return None
+    except Exception as e:
+        print(f"[UNEXPECTED ERROR] Failed to fetch user {user_id}: {e}")
         return None
     
 def get_base64_file_size(base64_data: str) -> int:
