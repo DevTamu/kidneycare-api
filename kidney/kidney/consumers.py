@@ -104,7 +104,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "receiver_id": str(message.receiver.id),
                 "chat_id": int(message.id),
                 "date_sent": timezone.localtime(message.date_sent).strftime('%I:%M'),
-                "status": str(message.status).lower(),
+                "message_status": str(message.status).lower(),
                 "image": message.image.url if message.image else None
             }
         )
@@ -120,7 +120,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "receiver_id": str(event["receiver_id"]),
             "chat_id": event["chat_id"],
             "date_sent": event["date_sent"],
-            "status": event["status"],
+            "message_status": event["message_status"],
             "image": event["image"]
         }))
 
