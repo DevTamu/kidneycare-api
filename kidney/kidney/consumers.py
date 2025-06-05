@@ -266,6 +266,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "first_name": event["first_name"],
             "last_name": event["last_name"],
             "status": event["status"],
+            "message": event["message"],
             "time_sent": event["time_sent"],
             "picture": event["picture"],
             "message_status": event["message_status"]
@@ -282,6 +283,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "first_name": str(sender.first_name).lower(),
                 "last_name": str(sender.last_name).lower(),
                 "status": str(sender.status).lower(),
+                "message": str(message.content).lower(),
                 "time_sent": timezone.localtime(message.date_sent).strftime("%I:%M %p"),
                 "picture": user_profile,
                 "message_status": str(message.status).lower()
