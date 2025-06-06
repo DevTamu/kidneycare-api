@@ -604,6 +604,7 @@ class GetPatientUpcomingAppointmentsSerializer(serializers.ModelSerializer):
         if assigned_provider_upcoming_appointment and assigned_provider_upcoming_appointment.assigned_provider:
             provider = assigned_provider_upcoming_appointment.assigned_provider
             data["assigned_provider_name"] = f'{str(provider.role.lower())} {str(provider.first_name.lower())}'
+            data["nurse_id"] = assigned_provider_upcoming_appointment.assigned_provider.id
         else:
             data["assigned_provider_name"] = None
 
