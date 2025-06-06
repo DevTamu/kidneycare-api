@@ -8,6 +8,10 @@ from asgiref.sync import sync_to_async
 import uuid
 import base64
 from django.core.files.base import ContentFile
+from app_chat.models import Message
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ChatConsumer(AsyncWebsocketConsumer):
 
@@ -253,8 +257,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     }
                 )
                   
-            
-          
             print("[DEBUG] Successfully sent to inbox group")
         except Exception as e:
             print(f"[ERROR] Failed to send to inbox group: {e}")
@@ -291,10 +293,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def save_message(self, message_content=None, image_data=None):
-        from app_chat.models import Message
-        import logging
 
-        logger = logging.getLogger(__name__)
 
         """Saves a new message to the database."""
         receiver_user = await self.get_user(self.receiver_id)
@@ -308,7 +307,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = Message(
             sender=sender_user,
             receiver=receiver_user,
-            content=None if message_content is None else message_content,    
+            content=message_content,    
             status='sent', #initially set status to 'sent',
             date_sent=timezone.now()
         )
@@ -330,18 +329,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
             except Exception as e:
                 logger.exception(f"[WS] Failed to decode image: {e}")
                 print(f"[ERROR] Failed to decode image: {e}")
+        else:
+            message.image = None
 
         
-        try:
-            await database_sync_to_async(message.save)()
-            #return the message
-            return message
-        except Exception as e:
-            logger.exception(f"[WS] Failed to save message to DB: {e}")
-            await self.send_error_to_websocket("Failed to save message. Please try again.")
-            return
-
-
+        await database_sync_to_async(message.save)()
+        return message
+     
     # async def mark_message_as_read(self, message_id):
     #     from app_chat.models import Message
     #     try:
@@ -379,9 +373,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return user_profile.picture.url if user_profile and user_profile.picture else None
         except Profile.DoesNotExist:
             return None
-
-        
-
 
 
 
