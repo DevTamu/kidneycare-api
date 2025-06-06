@@ -20,6 +20,7 @@ from .serializers import (
     RegisterCaregiverSerializer,
     CaregiverListSerializer,
 )
+from kidney.pagination.appointment_pagination import Pagination
 from rest_framework import serializers
 from django.core.cache import cache
 from rest_framework.exceptions import AuthenticationFailed
@@ -353,16 +354,19 @@ class ChangePasswordHealthCareProviderView(generics.UpdateAPIView):
 class GetUsersView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GetUsersSeriaizer
-    
+    pagination_class = Pagination
     
     def get(self, request, *args, **kwargs):
 
         try:
             user = User.objects.filter(role='patient')
-            serializer = self.get_serializer(user, many=True, context={'request': request})
+            paginator = self.pagination_class()
+            paginated_data = paginator.paginate_queryset(user, request)
+            serializer = self.get_serializer(paginated_data, many=True, context={'request': request})
+            paginated_response = paginator.get_paginated_response(serializer.data)
             return ResponseMessageUtils(
                 message="List of Patients",
-                data=serializer.data,
+                data=paginated_response.data,
                 status_code=status.HTTP_200_OK
             )
         except Exception as e:
