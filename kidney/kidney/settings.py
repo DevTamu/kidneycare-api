@@ -29,19 +29,19 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG')    
 
-ALLOWED_HOSTS = ["*"]
+# ALLOWED_HOSTS = ["*"]
 
-# ALLOWED_HOSTS = ["kidneycare-api.onrender.com", "www.kidneycare-api.onrender.com", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["kidneycare-api.onrender.com", "www.kidneycare-api.onrender.com", "localhost", "127.0.0.1"]
 
-# CSRF_TRUSTED_ORIGINS = [
-#     'https://kidneycare-api.onrender.com',
-# ]
+CSRF_TRUSTED_ORIGINS = [
+    'https://kidneycare-api.onrender.com',
+]
 
-# CORS_ALLOWED_ORIGINS = [
-#     'https://kidneycare-api.onrender.com',
-#     'http://localhost:8000',
-#     'http://192.168.100.11:8000'
-# ]
+CORS_ALLOWED_ORIGINS = [
+    'https://kidneycare-api.onrender.com',
+    'http://localhost:8000',
+    'http://192.168.100.11:8000'
+]
 
 # CORS_ALLOW_CREDENTIALS = True
 
