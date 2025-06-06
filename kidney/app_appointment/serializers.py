@@ -483,8 +483,8 @@ class GetAllAppointsmentsInAdminSerializer(serializers.ModelSerializer):
 
     first_name = serializers.SerializerMethodField()
     last_name = serializers.SerializerMethodField()
-    date = serializers.SerializerMethodField()
-    time = serializers.SerializerMethodField()
+    date = serializers.DateField(format="%b %d, %Y", input_formats=["%b %d, %Y"])
+    time = serializers.TimeField(format="%I:%M %p", input_formats=["%I:%M %p"])
     status = serializers.SerializerMethodField()
     picture = serializers.SerializerMethodField()
     assigned_provider = serializers.SerializerMethodField()
@@ -508,12 +508,6 @@ class GetAllAppointsmentsInAdminSerializer(serializers.ModelSerializer):
     
     def get_last_name(self, obj):
         return str(obj.user.last_name)
-    
-    def get_date(self, obj):
-        return obj.date.strftime('%b %d, %Y')
-    
-    def get_time(self, obj):
-        return obj.time.strftime('%I:%M %p')
     
     def get_status(self, obj):
         return str(obj.status).lower()
