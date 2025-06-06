@@ -188,18 +188,18 @@ class GetAllAppointsmentsInAdminView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GetAllAppointsmentsInAdminSerializer
     pagination_class = Pagination
-    lookup_field = 'status'
+    # lookup_field = 'status'
 
     def get(self, request, *args, **kwargs):
-        appointment_status = kwargs.get('status')
+        # appointment_status = kwargs.get('status')
         try:
 
             #if no status path parameter is provided, display all appointments
-            if appointment_status in (None, ""):
-                appointment = Appointment.objects.all()
-            else:
+            # if appointment_status in (None, ""):
+            #     appointment = Appointment.objects.all()
+            # else:
                 #filter appointments based on the status path parameter value
-                appointment = Appointment.objects.filter(status=appointment_status)
+            appointment = Appointment.objects.filter(status='pending')
 
             paginator = self.pagination_class()
             paginated_data = paginator.paginate_queryset(appointment, request)
