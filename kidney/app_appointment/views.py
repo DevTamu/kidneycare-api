@@ -113,8 +113,13 @@ class GetAppointmentInProviderView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):  
         try:
             
+            user = User.objects.filter(
+                id=request.user.id,
+                role__in=['nurse', 'head nurse']
+            ).first()
+
             assigned_appointments_to_provider = Appointment.objects.select_related('user').filter(
-                Q(assigned_patient_appointment__assigned_provider=request.user) |
+                Q(assigned_patient_appointment__assigned_provider=user) |
                 Q(assigned_patient_appointment__assigned_provider__isnull=True),
                 status__in=['pending', 'approved', 'check-in', 'in-progress', 'no show', 'rescheduled']
             )
@@ -128,6 +133,7 @@ class GetAppointmentInProviderView(generics.ListAPIView):
             
             return ResponseMessageUtils(message="List of Appointments", data=paginated_response.data, status_code=status.HTTP_200_OK)
         except Exception as e:
+            print(f"WHAT WENT WRONG?")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
