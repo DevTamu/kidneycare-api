@@ -320,14 +320,14 @@ class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
     time = serializers.SerializerMethodField()
     machine = serializers.SerializerMethodField()
     provider = serializers.SerializerMethodField()
-    user_image = serializers.SerializerMethodField()
+    picture = serializers.SerializerMethodField()
 
     class Meta:
         model = Appointment
-        fields = ['first_name', 'last_name', 'user_image', 'user_id', 'date', 'time', 'machine', 'provider', 'status']
+        fields = ['id', 'first_name', 'last_name', 'picture', 'user_id', 'date', 'time', 'machine', 'provider', 'status']
 
 
-    def get_user_image(self, obj):
+    def get_picture(self, obj):
         #get the request object from the serializer context
         request = self.context.get('request')
         try:
@@ -376,6 +376,13 @@ class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
     # #format the appointment time in a readable format (May 25, 2025
     def get_time(self, obj):
         return obj.time.strftime('%I:%M %p')
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        data["appointment_id"] = data.pop('id')
+
+        return data
     
     
 
