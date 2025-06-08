@@ -168,10 +168,11 @@ def generate_otp():
     return f"{random.randint(100000, 999999)}"
 
 #password generator
-def generate_password(password_length=32):
+def generate_password(password_length=8):
 
     #define the possible characters for the password
-    alphabet = string.ascii_letters + string.digits + string.punctuation.replace('/', '').replace('\\', '').replace('"', '')
+    alphabet = string.digits
+    # alphabet = string.ascii_letters + string.digits + string.punctuation.replace('/', '').replace('\\', '').replace('"', '')
 
     #generate a random password by joining randomly chosen characters
     password = ''.join(secrets.choice(alphabet) for _ in range(password_length))
