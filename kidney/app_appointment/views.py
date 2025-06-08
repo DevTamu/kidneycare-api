@@ -113,8 +113,13 @@ class GetAppointmentInProviderView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):  
         try:
             
+            user = User.objects.filter(
+                id=request.user,
+                role__in=['nurse', 'head nurse']
+            )
+
             assigned_appointments_to_provider = Appointment.objects.select_related('user').filter(
-                Q(assigned_patient_appointment__assigned_provider=request.user) |
+                Q(assigned_patient_appointment__assigned_provider=user) |
                 Q(assigned_patient_appointment__assigned_provider__isnull=True),
                 status__in=['pending', 'approved', 'check-in', 'in-progress', 'no show', 'rescheduled']
             )
