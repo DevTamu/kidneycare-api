@@ -324,7 +324,7 @@ class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Appointment
-        fields = ['first_name', 'last_name', 'user_image', 'user_id', 'date', 'time', 'machine', 'provider']
+        fields = ['first_name', 'last_name', 'user_image', 'user_id', 'date', 'time', 'machine', 'provider', 'status']
 
 
     def get_user_image(self, obj):
