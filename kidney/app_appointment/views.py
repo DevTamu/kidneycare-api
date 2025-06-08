@@ -115,8 +115,8 @@ class GetAppointmentInProviderView(generics.ListAPIView):
             
             assigned_appointments_to_provider = Appointment.objects.select_related('user').filter(
                 Q(assigned_patient_appointment__assigned_provider=request.user) |
-                Q(assigned_patient_appointment__assigned_provider__isnull=True)
-                # status__in=['approved', 'in-progress']
+                Q(assigned_patient_appointment__assigned_provider__isnull=True),
+                status__in=['pending', 'approved', 'check-in', 'in-progress', 'no show', 'rescheduled']
             )
 
             #create an instance of the paginator
