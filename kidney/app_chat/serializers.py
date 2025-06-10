@@ -261,7 +261,7 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
 
                 messages_list = [{
                     "message": str(message["content"]).lower(),
-                    "sent": str(message["status"]).lower(),
+                    "message_status": str(message["status"]).lower(),
                     "is_read": message["read"],
                     "sender_id": str(message["sender"]),
                     "receiver_id": str(message["receiver"]),
