@@ -1,6 +1,4 @@
 import uuid
 
+print(str(uuid.UUID("ca3e1f3b63124c18a074211290b1e93b")))
 
-hex = uuid.UUID(hex="73a00db73b2b47679abf07a0595867a5")
-
-print(hex)

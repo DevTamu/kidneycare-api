@@ -14,7 +14,7 @@ from datetime import timedelta
 from django.core.cache import cache
 from django.contrib.auth.hashers import make_password
 
-OTP_VALIDITY_SECONDS = 180  # 3 minutes otp validity
+OTP_VALIDITY_SECONDS = 600  # 3 minutes otp validity
 MAX_ATTEMPT = 5 #max attempt to send code
 
 class RefreshTokenSerializer(TokenRefreshSerializer):
@@ -199,7 +199,7 @@ class VerifyOTPSerializer(serializers.Serializer):
         instance.save()
 
         #clean up caches
-        cache.delete(f" {username}")
+        cache.delete(f"{username}")
         cache.delete(f"otp_token_to_username_{otp_token}")
         cache.delete(f"otp_timer_{username}")
 
@@ -230,23 +230,42 @@ class ResendOTPSerializer(serializers.Serializer):
 
 
     def update(self, instance, validated_data):
+
+        #get current username from cache using the OLD token
+        old_token = str(instance.otp_token)
+
+        #get the username associated with the previous OTP token
+        username = cache.get(f'otp_token_to_username_{old_token}')
+
+        if not username:
+            raise serializers.ValidationError({"message": "Could not determine username to send OTP to."})
+
         #generate new otp
         otp = generate_otp()
+
         #set the new generated otp
         instance.otp_code = otp
+
         #set new otp token
         instance.otp_token = uuid.uuid4()
+
         #update the timestamp
         instance.created_at = timezone.now()
+
         #save the updated otp
         instance.save()
+
+        #cache the new OTP token to username mapping
+        cache.set(f'otp_token_to_username_{str(instance.otp_token)}', username.lower(), timeout=OTP_VALIDITY_SECONDS)
+        
         #send otp to email
         send_otp_to_email(
             subject='Your OTP Code',
             message=f'Your OTP is {otp}',
-            recipient_list=[f'{instance.user.username}'],
+            recipient_list=[str(username).lower()],
             otp=otp
         )
+
         #return the updated instance
         return instance
 

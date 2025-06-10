@@ -128,6 +128,7 @@ class GetAssignedPatientHealthMonitoringView(generics.ListAPIView):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+
 class GetPatientsTreatmentHistoryView(generics.ListAPIView):
 
     permission_classes = [IsAuthenticated]
@@ -222,4 +223,5 @@ class DeletePatientsTreatmentHistoryView(generics.DestroyAPIView):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
+
 

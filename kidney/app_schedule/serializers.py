@@ -80,7 +80,7 @@ class GetScheduleSerializer(serializers.ModelSerializer):
             current_time += interval
 
         #sort by datetime before formatting
-        time_slots.sort()
+        time_slots.sort()   
 
         #format the time to 12-hour strings
         formatted_slots = [slot.strftime("%I:%M %p") for slot in time_slots]

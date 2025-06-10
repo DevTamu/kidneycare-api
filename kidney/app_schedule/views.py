@@ -40,7 +40,6 @@ class GetScheduleView(generics.ListAPIView):
         try:
             queryset = Schedule.objects.all()
             serializer = self.get_serializer(queryset, many=True)
-
             return ResponseMessageUtils(message="List of Schedules", data=serializer.data, status_code=status.HTTP_200_OK)
         except Exception as e:
             return ResponseMessageUtils(
