@@ -13,7 +13,16 @@ from .serializers import (
     UpdateNotificationChatInProviderSerializer,
     # UpdateChatStatusInPatientSerializer
 )
+from rest_framework.exceptions import ParseError, NotFound
+import json
 from .models import Message
+from rest_framework.pagination import PageNumberPagination
+
+class ChatPagination(PageNumberPagination):
+    page_size = 10  #define how many appointments to show per page
+    page_size_query_param = 'limit'  # Allow custom page size via query params
+    max_page_size = 10  # Maximum allowed page size
+    page_query_param = 'page'
 
 class GetNotificationChatsToProviderView(generics.ListAPIView):
 
@@ -104,8 +113,8 @@ class GetProvidersChatView(generics.ListAPIView):
             latest_messages = []
             for provider in providers_who_messaged_patient:
                 message = Message.objects.filter(
-                    sender=provider,
-                    receiver=patient
+                    Q(sender=provider, receiver=patient) |
+                    Q(sender=patient, receiver=provider)
                 ).order_by('-created_at').first()
                 if message:
                     latest_messages.append(message)
@@ -131,10 +140,16 @@ class GetProviderChatInformationView(generics.RetrieveAPIView):
     
     permission_classes = [IsAuthenticated]
     serializer_class = GetProviderChatInformationSerializer
-    lookup_field = 'pk'
+    pagination_class = ChatPagination
 
     def get_queryset(self):
-        return User.objects.get(id=self.kwargs.get('pk'))
+        try:
+            provider_id = self.request.data.get('provider_id')
+            if not provider_id:
+                raise ParseError("provider_id is required")
+            return User.objects.filter(id=provider_id)
+        except User.DoesNotExist:
+            raise NotFound("User not found")
 
     def get(self, request, *args, **kwargs):
 
@@ -143,12 +158,15 @@ class GetProviderChatInformationView(generics.RetrieveAPIView):
             user_id = get_token_user_id(request)
 
             queryset = self.get_queryset()
-
-            serializer = self.get_serializer(queryset, context={'user_id': user_id})
+            #create instance of pagination class
+            paginator = self.pagination_class()
+            paginated_data = paginator.paginate_queryset(queryset, request)
+            serializer = self.get_serializer(paginated_data, many=True, context={'user_id': user_id})
+            paginated_response = paginator.get_paginated_response(serializer.data)
 
             return ResponseMessageUtils(
                 message="Chat messages",
-                data=serializer.data,
+                data=paginated_response.data,
                 status_code=status.HTTP_200_OK
             )
 
