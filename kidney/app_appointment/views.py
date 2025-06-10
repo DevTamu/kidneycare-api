@@ -26,13 +26,7 @@ from kidney.utils import (
 from datetime import timedelta
 from rest_framework.permissions import IsAuthenticated
 from .models import AssignedAppointment
-from rest_framework.pagination import PageNumberPagination
-
-
-class AppointmentPagination(PageNumberPagination):
-    page_size = 20  #define how many appointments to show per page
-    page_size_query_param = 'page'  # Allow custom page size via query params
-    max_page_size = 25  # Maximum allowed page size
+from kidney.pagination.appointment_pagination import Pagination
 
 class CreateAppointmentView(generics.CreateAPIView):
 
@@ -114,15 +108,20 @@ class GetAppointmentInProviderView(generics.ListAPIView):
 
     permission_classes = [IsAuthenticated]
     serializer_class = GetAppointmentsInProviderSerializer
-    pagination_class = AppointmentPagination
+    pagination_class = Pagination
 
     def get(self, request, *args, **kwargs):  
         try:
             
+            user = User.objects.filter(
+                id=request.user.id,
+                role__in=['nurse', 'head nurse']
+            ).first()
+
             assigned_appointments_to_provider = Appointment.objects.select_related('user').filter(
-                Q(assigned_patient_appointment__assigned_provider=request.user) |
+                Q(assigned_patient_appointment__assigned_provider=user) |
                 Q(assigned_patient_appointment__assigned_provider__isnull=True),
-                status__in=['approved', 'in-progress']
+                status__in=['pending', 'approved', 'check-in', 'in-progress', 'no show', 'rescheduled']
             )
 
             #create an instance of the paginator
@@ -134,6 +133,7 @@ class GetAppointmentInProviderView(generics.ListAPIView):
             
             return ResponseMessageUtils(message="List of Appointments", data=paginated_response.data, status_code=status.HTTP_200_OK)
         except Exception as e:
+            print(f"WHAT WENT WRONG?")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -193,19 +193,19 @@ class GetAllAppointsmentsInAdminView(generics.ListAPIView):
 
     permission_classes = [IsAuthenticated]
     serializer_class = GetAllAppointsmentsInAdminSerializer
-    pagination_class = AppointmentPagination
-    lookup_field = 'status'
+    pagination_class = Pagination
+    # lookup_field = 'status'
 
     def get(self, request, *args, **kwargs):
-        appointment_status = kwargs.get('status')
+        # appointment_status = kwargs.get('status')
         try:
 
             #if no status path parameter is provided, display all appointments
-            if appointment_status in (None, ""):
-                appointment = Appointment.objects.all()
-            else:
+            # if appointment_status in (None, ""):
+            #     appointment = Appointment.objects.all()
+            # else:
                 #filter appointments based on the status path parameter value
-                appointment = Appointment.objects.filter(status=appointment_status)
+            appointment = Appointment.objects.filter(status='pending')
 
             paginator = self.pagination_class()
             paginated_data = paginator.paginate_queryset(appointment, request)
@@ -218,6 +218,7 @@ class GetAllAppointsmentsInAdminView(generics.ListAPIView):
                 status_code=status.HTTP_200_OK
             )
         except Exception as e:
+            print(f"WHAT WENT WRONG? {e}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR

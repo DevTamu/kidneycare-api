@@ -320,14 +320,14 @@ class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
     time = serializers.SerializerMethodField()
     machine = serializers.SerializerMethodField()
     provider = serializers.SerializerMethodField()
-    user_image = serializers.SerializerMethodField()
+    picture = serializers.SerializerMethodField()
 
     class Meta:
         model = Appointment
-        fields = ['first_name', 'last_name', 'user_image', 'user_id', 'date', 'time', 'machine', 'provider']
+        fields = ['id', 'first_name', 'last_name', 'picture', 'user_id', 'date', 'time', 'machine', 'provider', 'status']
 
 
-    def get_user_image(self, obj):
+    def get_picture(self, obj):
         #get the request object from the serializer context
         request = self.context.get('request')
         try:
@@ -376,6 +376,13 @@ class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
     # #format the appointment time in a readable format (May 25, 2025
     def get_time(self, obj):
         return obj.time.strftime('%I:%M %p')
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        data["appointment_id"] = data.pop('id')
+
+        return data
     
     
 
@@ -483,8 +490,8 @@ class GetAllAppointsmentsInAdminSerializer(serializers.ModelSerializer):
 
     first_name = serializers.SerializerMethodField()
     last_name = serializers.SerializerMethodField()
-    date = serializers.SerializerMethodField()
-    time = serializers.SerializerMethodField()
+    date = serializers.DateField(format="%b %d, %Y", input_formats=["%b %d, %Y"])
+    time = serializers.TimeField(format="%I:%M %p", input_formats=["%I:%M %p"])
     status = serializers.SerializerMethodField()
     picture = serializers.SerializerMethodField()
     assigned_provider = serializers.SerializerMethodField()
@@ -508,12 +515,6 @@ class GetAllAppointsmentsInAdminSerializer(serializers.ModelSerializer):
     
     def get_last_name(self, obj):
         return str(obj.user.last_name)
-    
-    def get_date(self, obj):
-        return obj.date.strftime('%b %d, %Y')
-    
-    def get_time(self, obj):
-        return obj.time.strftime('%I:%M %p')
     
     def get_status(self, obj):
         return str(obj.status).lower()
@@ -610,6 +611,7 @@ class GetPatientUpcomingAppointmentsSerializer(serializers.ModelSerializer):
         if assigned_provider_upcoming_appointment and assigned_provider_upcoming_appointment.assigned_provider:
             provider = assigned_provider_upcoming_appointment.assigned_provider
             data["assigned_provider_name"] = f'{str(provider.role.lower())} {str(provider.first_name.lower())}'
+            data["nurse_id"] = assigned_provider_upcoming_appointment.assigned_provider.id
         else:
             data["assigned_provider_name"] = None
 
