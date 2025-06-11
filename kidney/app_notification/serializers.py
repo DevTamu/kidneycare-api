@@ -16,10 +16,6 @@ class NotificationsInPatientSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
 
-        #removed from the response
-        data.pop('created_at')
-        data.pop('updated_at')
-
         # dt = datetime.fromisoformat(data.pop('sent_at'))
 
         # data["sent_at"] = dt.timestamp()
