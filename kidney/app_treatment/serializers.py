@@ -338,7 +338,7 @@ class GetPatientTreatmentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Treatment
-        fields = ['user', 'id', 'diagnosis', 'last_treatment_date', 'treatment_prescription', 'treatment_access_type', 'treatment_details', 'treatment_pre_dialysis', 'treatment_post_dialysis']
+        fields = ['user', 'id', 'diagnosis', 'nephrologist', 'last_treatment_date', 'treatment_prescription', 'treatment_access_type', 'treatment_details', 'treatment_pre_dialysis', 'treatment_post_dialysis']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
