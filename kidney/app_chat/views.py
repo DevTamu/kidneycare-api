@@ -11,6 +11,7 @@ from .serializers import (
     GetPatientsChatSerializer,
     GetPatientChatInformationSerializer,
     UpdateNotificationChatInProviderSerializer,
+    SingleToSingleChatHistorySerializer
     # UpdateChatStatusInPatientSerializer
 )
 from kidney.pagination.appointment_pagination import Pagination
@@ -178,7 +179,6 @@ class GetPatientsChatView(generics.ListAPIView):
             #get the current authenticated user_id from the token
             user_id = get_token_user_id(request)
 
-
             admin = User.objects.get(id=user_id)
 
             patient = User.objects.filter(role='patient')
@@ -197,8 +197,8 @@ class GetPatientsChatView(generics.ListAPIView):
             latest_messages = []
             for patient in patient_who_messaged_admin:
                 message = Message.objects.filter(
-                    sender=patient,
-                    receiver=admin
+                    Q(sender=patient, receiver=admin) |
+                    Q(sender=admin, receiver=patient)
                 ).order_by('-created_at').first()
                 if message:
                     latest_messages.append(message)
@@ -270,7 +270,7 @@ class GetPatientChatInformationView(generics.RetrieveAPIView):
 
             queryset = self.get_queryset()
 
-            serializer = self.get_serializer(queryset, context={"user_id": user_id})
+            serializer = self.get_serializer(queryset, context={"user_id": user_id, "request": request})
 
             return ResponseMessageUtils(
                 message="Chat messages",
@@ -283,3 +283,55 @@ class GetPatientChatInformationView(generics.RetrieveAPIView):
                 message=f"Something went wrong while processing your request. {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+
+class SingleToSingleChatHistoryView(generics.ListAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = SingleToSingleChatHistorySerializer
+    lookup_field = 'pk'
+
+    def get(self, request, *args, **kwargs):
+
+        try:
+
+            current_user = request.user
+
+            # Check if the other user exists
+            try:
+                other_user = User.objects.get(id=kwargs.get('pk'))
+            except User.DoesNotExist:
+                return ResponseMessageUtils(
+                    message="No user found",
+                    status_code=status.HTTP_404_NOT_FOUND
+                )
+            
+
+            # Get all messages between current_user and other_user
+            messages = Message.objects.filter(
+                Q(sender=current_user, receiver=other_user) |
+                Q(sender=other_user, receiver=current_user)
+            ).order_by('date_sent')
+
+            # Optionally mark messages as read
+            Message.objects.filter(
+                sender=other_user,
+                receiver=current_user,
+                read=False
+            ).update(read=True, status='Read')
+
+            serializer = self.get_serializer(messages, many=True)
+
+            return ResponseMessageUtils(
+                message="Chat history",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
+
+
+        except Exception as e:
+            return ResponseMessageUtils(
+                message=f"Something went wrong while processing your request. {e}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
