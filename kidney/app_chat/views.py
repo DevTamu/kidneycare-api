@@ -13,16 +13,11 @@ from .serializers import (
     UpdateNotificationChatInProviderSerializer,
     # UpdateChatStatusInPatientSerializer
 )
+from kidney.pagination.appointment_pagination import Pagination
 from rest_framework.exceptions import ParseError, NotFound
 import json
 from .models import Message
 from rest_framework.pagination import PageNumberPagination
-
-class ChatPagination(PageNumberPagination):
-    page_size = 10  #define how many appointments to show per page
-    page_size_query_param = 'limit'  # Allow custom page size via query params
-    max_page_size = 10  # Maximum allowed page size
-    page_query_param = 'page'
 
 class GetNotificationChatsToProviderView(generics.ListAPIView):
 
@@ -136,11 +131,10 @@ class GetProvidersChatView(generics.ListAPIView):
             )
         
 
-class GetProviderChatInformationView(generics.RetrieveAPIView):
+class GetProviderChatInformationView(generics.ListAPIView):
     
     permission_classes = [IsAuthenticated]
     serializer_class = GetProviderChatInformationSerializer
-    pagination_class = ChatPagination
 
     def get_queryset(self):
         try:
@@ -158,15 +152,11 @@ class GetProviderChatInformationView(generics.RetrieveAPIView):
             user_id = get_token_user_id(request)
 
             queryset = self.get_queryset()
-            #create instance of pagination class
-            paginator = self.pagination_class()
-            paginated_data = paginator.paginate_queryset(queryset, request)
-            serializer = self.get_serializer(paginated_data, many=True, context={'user_id': user_id})
-            paginated_response = paginator.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True, context={'user_id': user_id, 'request': request})
 
             return ResponseMessageUtils(
                 message="Chat messages",
-                data=paginated_response.data,
+                data=serializer.data,
                 status_code=status.HTTP_200_OK
             )
 

@@ -5,7 +5,7 @@ from django.db.models import Q
 from datetime import datetime
 from django.utils import timezone
 from django.db import connection
-
+from kidney.pagination.appointment_pagination import Pagination
     
 
 class GetNotificationChatsToProviderSerializer(serializers.ModelSerializer):
@@ -221,23 +221,23 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
         fields = ['id', 'first_name', 'user_image', 'status', 'role']
 
     def to_representation(self, instance):
-
+        
         user_id = self.context.get('user_id')
+        #get the request object from the serializer context
+        request  = self.context.get('request')
 
         data = super().to_representation(instance)
         
+        paginator = Pagination()
+
         #rename keys
-        data["provider_id"] = str(data.pop('id'))
-        data["provider_first_name"] = data.pop('first_name')
-        data["provider_status"] = str(data.pop('status')).lower()
-        # data["provider_last_name"] = data.pop('last_name')
-        data["provider_image"] = data.pop('user_image')
-        data["provider_role"] = data.pop('role')
+ 
 
         #get the patient as a single object
         patient = User.objects.filter(id=user_id, role='patient').first()
 
-        messages_list = None
+        messages_list = []
+        paginated_messages = []
 
         if patient:
             #get the provider as a single object
@@ -269,7 +269,18 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
                     "created_at": message["created_at"]
                 } for message in messages]
 
-        data["messages"] = messages_list
+            paginated_messages = paginator.paginate_queryset(messages_list, request)
+
+        data["count"] = paginator.page.paginator.count if paginated_messages else 0
+        data["next"] = paginator.get_next_link() if paginated_messages else None
+        data["previous"] = paginator.get_previous_link() if paginated_messages else None
+        data["provider_id"] = str(data.pop('id'))
+        data["provider_first_name"] = data.pop('first_name')
+        data["provider_status"] = str(data.pop('status')).lower()
+        data["provider_image"] = data.pop('user_image')
+        data["provider_role"] = data.pop('role')
+        data["messages"] = paginated_messages
+
 
         return data
 
