@@ -1,7 +1,7 @@
 from datetime import datetime
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 from app_authentication.models import User, OTP
-from .models import Profile, UserInformation, User
+from .models import Profile, UserInformation, User, Caregiver
 from rest_framework import serializers
 from django.contrib.auth import authenticate, login
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError, AccessToken
@@ -39,8 +39,7 @@ class RefreshTokenSerializer(TokenRefreshSerializer):
         except TokenError as e:
             raise serializers.ValidationError({"message": "Token has expired or invalid"})
         
-
-
+        
 class SendOTPSerializer(serializers.Serializer):
 
     username = serializers.CharField(write_only=True)
@@ -90,7 +89,7 @@ class SendOTPSerializer(serializers.Serializer):
                     remaining_time = max(0, OTP_VALIDITY_SECONDS - int(elapsed_time))
                     return {
                         "is_verified": "Unverified",
-                        "otp_token": str(otp_obj.otp_token).replace("-", ""),
+                        "otp_token": str(otp_obj.otp_token),
                         "timer": remaining_time
                     }
  
@@ -99,14 +98,11 @@ class SendOTPSerializer(serializers.Serializer):
             otp = generate_otp()
             otp_token = uuid.uuid4()
             
-            #save otp no user assigned yet
-            otp_obj, _ = OTP.objects.update_or_create(
+            otp_obj = OTP.objects.create(
                 user=None,
-                defaults={
-                    "otp_code":otp,
-                    "is_verified":False,
-                    "otp_token":otp_token
-                }
+                otp_code=otp,
+                is_verified=False,
+                otp_token=otp_token
             )
 
             #send otp via email
@@ -131,7 +127,7 @@ class SendOTPSerializer(serializers.Serializer):
             cache.set(f"otp_token_to_username_{str(otp_token)}", username.lower(), timeout=OTP_VALIDITY_SECONDS)
 
             return {
-                "otp_token": str(otp_obj.otp_token).replace("-", ""),
+                "otp_token": str(otp_obj.otp_token),
                 "timer": int(timedelta(minutes=3).total_seconds())
             }
         
@@ -192,7 +188,7 @@ class VerifyOTPSerializer(serializers.Serializer):
         user = User.objects.create(
             username=user_data["username"],
             password=user_data["password"],
-            role="Patient" 
+            role="patient" 
         )
 
         #update OTP to be verified and attach user
@@ -417,7 +413,6 @@ class RegisterSerializer(serializers.Serializer):
         #get the request object from the request
         request = self.context.get('request')
 
-        
         user = None
 
         #get the id param
@@ -435,7 +430,7 @@ class RegisterSerializer(serializers.Serializer):
         user.first_name = validated_data["first_name"]
         user.middlename = validated_data["middlename"]
         user.last_name = validated_data["last_name"]
-        user.status = 'Online'
+        user.status = 'online'
         user.save()
     
         # Create or update User information
@@ -477,7 +472,7 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
             raise serializers.ValidationError({"message": "Username does not exist"})
 
         #OTP Verification (applicable only for PATIENT role)
-        if user.role == 'Patient':
+        if user.role == 'patient':
             otp = OTP.objects.filter(user__username=username).first()
             if not otp:
                 raise serializers.ValidationError({"message": "OTP not found"})
@@ -511,7 +506,7 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
         except UserInformation.DoesNotExist:
             pass
 
-        user.status = 'Online'
+        user.status = 'online'
         user.save()
 
         default_data = {
@@ -531,24 +526,30 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
             "data": {
                 "access_token": str(refresh.access_token),
                 "refresh_token": str(refresh),
-                "user_id": str(user.id).replace("-", ""),
+                "user_id": str(user.id),
                 "first_name": user.first_name,
                 "middle_name": user.middlename if user.middlename else None,
                 "last_name": user.last_name,
                 "user_email": user.username,
                 "user_image": picture,  
-                "user_role": user.role,
+                "user_role": str(user.role).lower(),
                 "birth_date": user_information.birthdate.strftime('%m/%d/%Y') if user_information and user_information.birthdate else None,
-                "gender": user_information.gender if user_information and user_information.gender else None,
+                "gender": user_information.gender.lower() if user_information and user_information.gender else None,
                 "contact_number": user_information.contact if user_information and user_information.contact else None,
-                "user_status": user.status.capitalize()
+                "is_online": user.status.lower()
             },
         }
 
         user_data = {**default_data, **data}
 
-        if user.role == 'Patient':
+        if user.role == 'patient':
             user_data["data"]["is_verified"] = self.is_verified
+        elif user.role ==  'caregiver':
+            user_data["data"].pop('user_image')
+            user_data["data"].pop('birth_date')
+            user_data["data"].pop('gender')
+            user_data["data"].pop('contact_number')
+            user_data["data"].pop('middle_name')
         else:
             #removed this response from the admin user
             user_data["data"].pop('birth_date')
@@ -657,7 +658,7 @@ class LogoutSerializer(serializers.Serializer):
                 raise serializers.ValidationError({"message": "No user found"})
             
             #update the status of the user once logged out
-            user.status = 'Offline'
+            user.status = 'offline'
             user.save()
 
             #format datetime fields are correctly formatted as strings
@@ -750,7 +751,7 @@ class GetUsersSeriaizer(serializers.ModelSerializer):
         data = super().to_representation(instance)
 
         #rename keys
-        data["user_id"] = str(data.pop('id')).replace("-", "")
+        data["user_id"] = str(data.pop('id'))
 
         #default keys from user_information
         default_user_info = {
@@ -797,7 +798,7 @@ class GetUserSeriaizer(serializers.ModelSerializer):
         data = super().to_representation(instance)
 
         #rename keys
-        data["user_id"] = str(data.pop('id')).replace("-", "")
+        data["user_id"] = str(data.pop('id'))
         
         #default keys from user_information
         default_user_info = {
@@ -889,7 +890,7 @@ class GetHealthCareProvidersSerializer(serializers.ModelSerializer):
 
         #rename keys
         data["contact_number"] = data.pop('contact', None)
-        data["user_id"] = str(data.pop('id')).replace("-", "")
+        data["user_id"] = str(data.pop('id'))
 
         return data
 
@@ -977,8 +978,6 @@ class EditProfileInPatientSerializer(serializers.Serializer):
         user_information.contact = validated_data.get('contact_number', None)
         user_information.save() #save the user information object
 
-
-        
         #save the profile object
         if picture_updated:
             instance.save()
@@ -1024,7 +1023,7 @@ class GetAllRegisteredProvidersSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
 
-        data["user_id"] = str(data.pop('id')).replace("-", "")
+        data["user_id"] = str(data.pop('id'))
 
         return data
 
@@ -1039,5 +1038,77 @@ class GetAllRegisteredProvidersSerializer(serializers.ModelSerializer):
             pass
 
         return request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
-
     
+
+class RegisterCaregiverSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'username']
+
+
+    def validate(self, attrs):
+        
+        #get the request object from the serializer context
+        request = self.context.get('request')
+
+        if is_field_empty(attrs.get("first_name", None)):
+            raise serializers.ValidationError({"message": "Firstname is required"})
+        
+        if is_field_empty(attrs.get("last_name", None)):
+            raise serializers.ValidationError({"message": "Lastname is required"})
+        
+        if not validate_email(attrs.get("username", None)):
+            raise serializers.ValidationError({"message": "Must be a valid email address"})
+        
+        if User.objects.filter(username=attrs.get('username')).exists():
+            raise serializers.ValidationError({"message": "Email already used"})
+        
+        if Caregiver.objects.filter(added_by=request.user).count() >= 2:
+            raise serializers.ValidationError({"message": "You can only add up to 2 caregivers per patient"})
+
+        return attrs
+    
+    def create(self, validated_data):
+
+        #get the request object from the serializer context
+        request = self.context.get('request')
+
+        #generate a password
+        generated_password = generate_password(6)
+
+        #create the user object
+        user = User.objects.create_user(
+            username=validated_data.get('username'),
+            password=generated_password,
+            first_name=validated_data.get('first_name'),
+            last_name=validated_data.get('last_name'),
+            role='caregiver'
+        )
+
+        #create the caregiver object
+        Caregiver.objects.create(user=user, added_by=request.user)
+
+        if user:
+            #send password to the gmail
+            send_password_to_email(
+                subject='Generated Password',
+                message=f'Your Password is {generated_password}',
+                recipient_list=[validated_data.get('username')],
+                password=generated_password  
+            )
+
+        return user
+    
+class CaregiverListSerializer(serializers.ModelSerializer):
+
+    username = serializers.CharField(source='user.username')
+    first_name = serializers.CharField(source='user.first_name')
+    last_name = serializers.CharField(source='user.last_name')
+
+    class Meta:
+        model = Caregiver
+        fields = ['id', 'username', 'first_name', 'last_name'] 
+
+
+

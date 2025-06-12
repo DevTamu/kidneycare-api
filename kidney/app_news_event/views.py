@@ -24,8 +24,14 @@ class AddNewsEventView(generics.CreateAPIView):
 
             if serializer.is_valid():
                 serializer.save()
-                return ResponseMessageUtils(message="Successfully Added News Event", status_code=status.HTTP_201_CREATED)
-            return ResponseMessageUtils(message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+                return ResponseMessageUtils(
+                    message="Successfully Added News Event",
+                    status_code=status.HTTP_201_CREATED
+                )
+            return ResponseMessageUtils(
+                message=serializer.errors,
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
                 
         except Exception as e:
             return ResponseMessageUtils(
@@ -42,7 +48,11 @@ class GetNewsEventView(generics.RetrieveAPIView):
         try:     
             events = NewsEvent.objects.all()       
             serializer = self.get_serializer(events, many=True, context={'request': request})
-            return ResponseMessageUtils(message="List of News Event Data",data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(
+                message="List of News Event Data",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
         except NewsEvent.DoesNotExist:
             return ResponseMessageUtils(
                 message=f"Something went wrong while processing your request.",
@@ -66,11 +76,18 @@ class GetNewsEventWithIDView(generics.RetrieveAPIView):
             news_event = self.get_queryset()
 
             if not news_event:
-                return ResponseMessageUtils(message="No news event found", status_code=status.HTTP_404_NOT_FOUND)
+                return ResponseMessageUtils(
+                    message="No news event found",
+                    status_code=status.HTTP_404_NOT_FOUND
+                )
 
             serializer = self.get_serializer(news_event)
 
-            return ResponseMessageUtils(message="News Event", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(
+                message="News Event",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
 
         except Exception as e:
             return ResponseMessageUtils(
@@ -86,7 +103,11 @@ class GetNewsEventLimitByTwoView(generics.RetrieveAPIView):
             #limit the display of the events
             events = NewsEvent.objects.all().order_by('created_at')[0:2]
             serializer = self.get_serializer(events, many=True, context={'request': request})
-            return ResponseMessageUtils(message="List of News Event Data",data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(
+                message="List of News Event Data",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
         except NewsEvent.DoesNotExist:
             return ResponseMessageUtils(
                 message=f"Something went wrong while processing your request.",

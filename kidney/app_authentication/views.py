@@ -16,7 +16,9 @@ from .serializers import (
     GetHealthCareProvidersSerializer,
     EditProfileInPatientSerializer,
     GetProfileProfileInPatientSerializer,
-    GetAllRegisteredProvidersSerializer
+    GetAllRegisteredProvidersSerializer,
+    RegisterCaregiverSerializer,
+    CaregiverListSerializer,
 )
 from rest_framework import serializers
 from django.core.cache import cache
@@ -26,11 +28,13 @@ from kidney.utils import ResponseMessageUtils, get_tokens_for_user, extract_firs
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from rest_framework_simplejwt.tokens import TokenError, AccessToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth import logout
-from .models import OTP, User, Profile, UserInformation
+from .models import OTP, User, Profile, UserInformation, Caregiver
+from django.http import JsonResponse
 
+def ping(request):
+    return JsonResponse({"status": "ok"})
 
 class SendOTPView(generics.CreateAPIView):
 
@@ -65,8 +69,15 @@ class VerifyOTPView(generics.UpdateAPIView):
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
                 result = serializer.save()
-                return ResponseMessageUtils(message="Account verified successfully, you may now log in.",data={'user_id': str(result.user.id).replace('-', '').strip()}, status_code=status.HTTP_200_OK)
-            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+                return ResponseMessageUtils(
+                    message="Account verified successfully, you may now log in.",
+                    data={'user_id': str(result.user.id)},
+                    status_code=status.HTTP_200_OK
+                )
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -83,8 +94,15 @@ class ResendOTPView(generics.UpdateAPIView):
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
                 result = serializer.save()
-                return ResponseMessageUtils(message="Successfully Resend the OTP", data={"otp_token": result.otp_token}, status_code=status.HTTP_200_OK)
-            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+                return ResponseMessageUtils(
+                    message="Successfully Resend the OTP",
+                    data={"otp_token": result.otp_token},
+                    status_code=status.HTTP_200_OK
+                )
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -116,21 +134,24 @@ class RegisterView(generics.CreateAPIView):
                     data={
                         "access_token": token["access_token"],
                         "refresh_token": token["refresh_token"],
-                        "user_id": str(user.id).replace("-", ""),
+                        "user_id": str(user.id),
                         "user_email": user.username,
                         "first_name": user.first_name,
                         "middle_name": user.middlename if user.middlename else None,
                         "last_name": user.last_name,
                         "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None,
-                        "user_role": user.role,
+                        "user_role": str(user.role).lower(),
                         "birth_date": user_information.birthdate.strftime('%m/%d/%Y') if user_information.birthdate else None,
-                        "gender": user_information.gender,
+                        "gender": user_information.gender.lower(),
                         "contact_number":  user_information.contact,
-                        "user_status": user.status.capitalize()
+                        "is_online": str(user.status).lower()
                     },
                     status_code=status.HTTP_201_CREATED
                 )
-            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -159,17 +180,20 @@ class RegisterAdminView(generics.CreateAPIView):
                     data={
                         "access_token": token["access_token"],
                         "refresh_token": token["refresh_token"],
-                        "user_id": str(user.id).replace("-", ""),
+                        "user_id": str(user.id),
                         "user_email": user.username,
                         "first_name": user.first_name,
                         "last_name": user.last_name,
                         "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None,
-                        "user_role": user.role,
-                        "user_status": user.status.capitalize()
+                        "user_role": str(user.role).lower(),
+                        "user_status": str(user.status).lower()
                     },
                     status_code=status.HTTP_201_CREATED
                 )
-            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
 
         except Exception as e:
             return ResponseMessageUtils(
@@ -189,8 +213,14 @@ class AddAccountHealthCareProviderView(generics.CreateAPIView):
 
             if serializer.is_valid():
                 serializer.save()
-                return ResponseMessageUtils(message="Added Account Successfully", status_code=status.HTTP_201_CREATED)
-            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+                return ResponseMessageUtils(
+                    message="Added Account Successfully",
+                    status_code=status.HTTP_201_CREATED
+                )
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
 
         except Exception as e:
             return ResponseMessageUtils(
@@ -199,10 +229,8 @@ class AddAccountHealthCareProviderView(generics.CreateAPIView):
             )
 
 
-
 class LoginView(TokenObtainPairView):
     serializer_class = LoginObtainPairSerializer
-
 
 class RefreshTokenView(TokenRefreshView):
 
@@ -214,8 +242,15 @@ class RefreshTokenView(TokenRefreshView):
             serializer = self.get_serializer(data=request.data)
 
             if serializer.is_valid():
-                return ResponseMessageUtils(message="Successfully Refresh your token", data=serializer.data, status_code=status.HTTP_200_OK)
-            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+                return ResponseMessageUtils(
+                    message="Successfully Refresh your token",
+                    data=serializer.data,
+                    status_code=status.HTTP_200_OK
+                )
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -236,8 +271,14 @@ class ChangePasswordView(generics.UpdateAPIView):
 
             if serializer.is_valid():
                 serializer.save()
-                return ResponseMessageUtils(message="Password updated Successfully", status_code=status.HTTP_200_OK)
-            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+                return ResponseMessageUtils(
+                    message="Password updated Successfully",
+                    status_code=status.HTTP_200_OK
+                )
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -259,8 +300,14 @@ class LogoutView(generics.CreateAPIView):
             if serializer.is_valid():
                 serializer.save()
                 logout(request)
-                return ResponseMessageUtils(message="Successfully logged out", status_code=status.HTTP_200_OK) 
-            return ResponseMessageUtils(message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST) 
+                return ResponseMessageUtils(
+                    message="Successfully logged out",
+                    status_code=status.HTTP_200_OK
+                ) 
+            return ResponseMessageUtils(
+                message=serializer.errors,
+                status_code=status.HTTP_400_BAD_REQUEST
+            ) 
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -283,10 +330,19 @@ class ChangePasswordHealthCareProviderView(generics.UpdateAPIView):
 
             if serializer.is_valid():
                 serializer.save()
-                return ResponseMessageUtils(message="Password updated Successfully", status_code=status.HTTP_200_OK)
-            return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
+                return ResponseMessageUtils(
+                    message="Password updated Successfully",
+                    status_code=status.HTTP_200_OK
+                )
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
         except AuthenticationFailed as e:
-            return ResponseMessageUtils(message="Token has expired or is invalid. Please log in again.", status_code=status.HTTP_401_UNAUTHORIZED)
+            return ResponseMessageUtils(
+                message="Token has expired or is invalid. Please log in again.",
+                status_code=status.HTTP_401_UNAUTHORIZED
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -302,9 +358,13 @@ class GetUsersView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
 
         try:
-            user = User.objects.filter(role='Patient')
+            user = User.objects.filter(role='patient')
             serializer = self.get_serializer(user, many=True, context={'request': request})
-            return ResponseMessageUtils(message="List of Patients", data=serializer.data)
+            return ResponseMessageUtils(
+                message="List of Patients",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -328,22 +388,9 @@ class GetUserRoleView(generics.ListAPIView):
 
         try:
             
-            auth_header = request.headers.get('Authorization')
+            user_id = get_token_user_id(request)
 
-            #check if the authorization is empty or not starts with Bearer
-            if not auth_header or not auth_header.startswith('Bearer '):
-                return ResponseMessageUtils(message="Authorization is missing or invalid", status_code=status.HTTP_401_UNAUTHORIZED)
-            
-            #get the token part
-            token = auth_header.split(' ')[1]
-
-            try:
-                #parse the token
-                access_token = AccessToken(token)
-            except TokenError as e: 
-                return ResponseMessageUtils(message="token is Invalid or expired", status_code=status.HTTP_400_BAD_REQUEST) 
-
-            user = User.objects.get(id=str(access_token["user_id"]))
+            user = User.objects.get(id=user_id)
 
             serializer = self.get_serializer(user, data=request.data)
 
@@ -362,14 +409,18 @@ class GetHealthCareProvidersView(generics.ListAPIView):
     serializer_class = GetHealthCareProvidersSerializer
 
     def get_queryset(self):
-        return User.objects.filter(role__in=['Nurse', 'Head Nurse'])
+        return User.objects.filter(role__in=['nurse', 'head nurse'])
 
     def get(self, request, *args, **kwargs):
 
         try:
             user = self.get_queryset()  
             serializer = self.get_serializer(user, many=True)
-            return ResponseMessageUtils(message="List of Providers", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(
+                message="List of Providers",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -440,11 +491,12 @@ class EditProfileInPatientView(generics.UpdateAPIView):
                     "middle_name": user.middlename,
                     "last_name": user.last_name,
                     "birth_date": user_information.birthdate.strftime('%m/%d/%Y'),
-                    "gender": user_information.gender,
+                    "gender": str(user_information.gender).lower(),
                     "contact_number": user_information.contact,
                     "user_image": request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
                 }, status_code=status.HTTP_200_OK)
-                return ResponseMessageUtils(message="Successfully updated your profile", status_code=status.HTTP_200_OK)
+            
+                # return ResponseMessageUtils(message="Successfully updated your profile", status_code=status.HTTP_200_OK)
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return ResponseMessageUtils(
@@ -467,9 +519,16 @@ class GetUserProfileInformationView(generics.ListAPIView):
             user_profile = Profile.objects.get(user_id=user_id)
             
             serializer = self.get_serializer(user_profile)
-            return ResponseMessageUtils(message="Profile Information", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(
+                message="Profile Information",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
         except Profile.DoesNotExist:
-            return ResponseMessageUtils(message="No Profile information found", status_code=status.HTTP_404_NOT_FOUND)
+            return ResponseMessageUtils(
+                message="No Profile information found",
+                status_code=status.HTTP_404_NOT_FOUND
+            )
         except Exception as e:
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
@@ -486,24 +545,28 @@ class GetAllRegisteredProvidersView(generics.ListAPIView):
 
         try:
 
-            data_cache_key = 'all_registered_providers'
+            # data_cache_key = 'all_registered_providers'
 
-            #check if data is already in cache
-            cached_data = cache.get(data_cache_key)
-            if cached_data is not None:
-                return ResponseMessageUtils(
-                    message="List of registered providers",
-                    data=cached_data,
-                    status_code=status.HTTP_200_OK
-                )
+            # #check if data is already in cache
+            # cached_data = cache.get(data_cache_key)
+            # if cached_data is not None:
+            #     return ResponseMessageUtils(
+            #         message="List of registered providers",
+            #         data=cached_data,
+            #         status_code=status.HTTP_200_OK
+            #     )
 
-            queryset = User.objects.filter(role__in=['Nurse', 'Head Nurse'])
+            queryset = User.objects.filter(role__in=['nurse', 'head nurse'])
             serializer = self.get_serializer(queryset, many=True)
 
-            # cache the serialized data for 10 minutes (600 seconds)
-            cache.set(data_cache_key, serializer.data, timeout=600)
+            # # cache the serialized data for 10 minutes (600 seconds)
+            # cache.set(data_cache_key, serializer.data, timeout=600)
 
-            return ResponseMessageUtils(message="List of registered providers", data=serializer.data, status_code=status.HTTP_200_OK)
+            return ResponseMessageUtils(
+                message="List of registered providers",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
 
         except Exception as e:
             return ResponseMessageUtils(
@@ -511,7 +574,97 @@ class GetAllRegisteredProvidersView(generics.ListAPIView):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
+
+class RegisterCaregiverSerializer(generics.RetrieveUpdateDestroyAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = RegisterCaregiverSerializer
+        
+    def post(self, request, *args, **kwargs):
+
+        try:
+
+            serializer = self.get_serializer(data=request.data)
+
+            if serializer.is_valid():
+                serializer.save()
+                return ResponseMessageUtils(
+                    message="Account created successfully",
+                    status_code=status.HTTP_201_CREATED
+                )
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        except Exception as e:
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+class CaregiverListView(generics.RetrieveDestroyAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = CaregiverListSerializer
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        user_id = get_token_user_id(self.request)
+        return Caregiver.objects.filter(added_by=user_id)
     
+    def get_object(self):
+        return Caregiver.objects.filter(id=self.kwargs.get('pk')).first()
 
+    def destroy(self, request, *args, **kwargs):
+        
+        try:
 
+            instance = self.get_object()
+
+            if not instance:
+                return ResponseMessageUtils(
+                message="No caregiver found",
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+
+            instance.user.delete()
+
+            return ResponseMessageUtils(
+                message="Successfully deleted",
+                status_code=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )   
+
+    def get(self, request, *args, **kwargs):
+
+        try:
+
+            queryset = self.get_queryset()
+
+            if not queryset.exists():
+                return ResponseMessageUtils(
+                    message="No caregiver found",
+                    status_code=status.HTTP_404_NOT_FOUND
+                )
+            
+            serializer = self.get_serializer(queryset, many=True)
+
+            return ResponseMessageUtils(
+                message="List of caregivers",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
 
