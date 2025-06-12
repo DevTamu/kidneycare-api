@@ -13,7 +13,7 @@ class NotificationsInPatientSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Notification
-        fields = ['id', 'title', 'image', 'description', 'is_read', 'date', 'time', 'appointment'   ]
+        fields = ['id', 'title', 'image', 'description', 'is_read', 'date', 'time', 'appointment']
 
     def get_date(self, obj):
         return getattr(obj, 'created_at', None).strftime("%m/%d/%Y")
@@ -22,13 +22,26 @@ class NotificationsInPatientSerializer(serializers.ModelSerializer):
         return getattr(obj, 'created_at', None).strftime("%I:%M %p")
     
     def get_title(self, obj):
-        return f"appointment {getattr(obj.appointment, "status", None)}"
+
+        appointment_status =  getattr(obj.appointment, "status")
+
+        if appointment_status == "cancelled":
+            return f"Appointment Declined"
+        elif appointment_status == "rescheduled":
+            return f"Machine Under Maintenance"
+        else:
+            status = getattr(obj.appointment, "status", None)
+            return f"Appointment {str(status[0]).upper()}{status[1:]}"
     
     def get_image(self, obj):
 
         assigned_appointment = getattr(obj.appointment, "id", None)
 
-        assigned_provider = AssignedProvider.objects.get(assigned_patient_appointment=assigned_appointment)
+        try:
+            assigned_provider = AssignedProvider.objects.get(assigned_patient_appointment=assigned_appointment)
+        except AssignedProvider.DoesNotExist:
+            assigned_provider = None
+
 
         return (
             getattr(getattr(getattr(assigned_provider, 'assigned_provider', None), 'user_profile', None), 'picture', None).url
@@ -42,7 +55,10 @@ class NotificationsInPatientSerializer(serializers.ModelSerializer):
 
         if appointment_status == "approved":
             return "Congratulations - your apppointment is confirmed! We’re looking forward to meeting with you."
-            
+        elif appointment_status == "cancelled":
+            return "Your appointment request has been declined. Please reschedule or choose a different time."
+        elif appointment_status == "rescheduled":
+            return "Maintenance is currently in progress. Please reschedule your appointment. We apologize for any inconvenience caused."
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

@@ -19,7 +19,7 @@ class NotificationsInPatientView(generics.ListAPIView):
             #get the user id from the token
             user_id = get_token_user_id(request)
 
-            notification = self.get_queryset().filter(appointment__user=user_id)
+            notification = self.get_queryset().filter(appointment__user=user_id, appointment__status__in=['approved', 'cancelled', 'rescheduled'])
 
             if not notification:
                 return ResponseMessageUtils(message="No notifications found", status_code=status.HTTP_404_NOT_FOUND)
