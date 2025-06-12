@@ -5,7 +5,7 @@ from django.db.models import Q
 from datetime import datetime
 from django.utils import timezone
 from django.db import connection
-
+from kidney.pagination.appointment_pagination import Pagination
     
 
 class GetNotificationChatsToProviderSerializer(serializers.ModelSerializer):
@@ -121,7 +121,7 @@ class GetPatientsChatSerializer(serializers.ModelSerializer):
 
         patient_information = {
             "patient_id": patient.id,
-            "chat_id": int(data.pop('id'))
+            "id": int(data.pop('id'))
             # "role": getattr(patient, 'role', 'unknown').lower(),  
         }
 
@@ -138,7 +138,7 @@ class GetPatientsChatSerializer(serializers.ModelSerializer):
 
         local_time = timezone.localtime(instance.date_sent)
 
-        data.update(patient_information )
+        data.update(patient_information)
         data["latest_message"] = {
             "patient_first_name": patient.first_name,
             "patient_last_name": patient.last_name,
@@ -149,7 +149,8 @@ class GetPatientsChatSerializer(serializers.ModelSerializer):
             "is_read": instance.read,
             "sender_id": str(instance.sender.id),
             "receiver_id": str(instance.receiver.id),
-            "time_sent": local_time.strftime('%I:%M %p')
+            "time_sent": local_time.strftime('%I:%M %p'),
+            "image": str(instance.image)
         }
 
         return data
@@ -168,9 +169,14 @@ class GetPatientChatInformationSerializer(serializers.ModelSerializer):
     
     def to_representation(self, instance):
 
+        paginator = Pagination()
+
         data = super().to_representation(instance)
 
-        messages_list = None
+        request = self.context.get('request')
+
+        messages_list = []
+        pagination_messages_list = []
 
         #rename key
         data["patient_id"] = data.pop('id')
@@ -185,32 +191,57 @@ class GetPatientChatInformationSerializer(serializers.ModelSerializer):
 
             messages = Message.objects.select_related('sender', 'receiver').filter(
                 sender=patient, receiver=admin
-            ).values('content', 'status', 'sender', 'receiver', 'date_sent', 'read', 'id').union(
+            ).values('content', 'status', 'sender', 'receiver', 'date_sent', 'read', 'id', 'image').union(
                 Message.objects.select_related('sender', 'receiver').filter(
                     (
                         Q(sender=patient, receiver=admin) |
                         Q(sender=admin, receiver=patient)
                     )
-                ).values('content', 'status', 'sender', 'receiver', 'date_sent', 'read', 'id')
+                ).values('content', 'status', 'sender', 'receiver', 'date_sent', 'read', 'id', 'image')
             )
 
             messages_list = [{
-
+                "id": int(message["id"]),
                 "message": str(message["content"]).lower(),
-                "sent": str(message["status"]).lower(),
+                "message_status": str(message["status"]).lower(),
                 "is_read": message["read"],
                 "sender_id": str(message["sender"]),
                 "receiver_id": str(message["receiver"]),
-                "chat_id": int(message["id"]),
-                "time_sent": timezone.localtime(message["date_sent"]).strftime("%I:%M")
-
+                "time_sent": timezone.localtime(message["date_sent"]).strftime("%I:%M"),
+                "image": str(message["image"])
             }for message in messages]
+            
+            pagination_messages_list = paginator.paginate_queryset(messages_list, request)
 
-            data["messages"] = messages_list
+            data["count"] = paginator.page.paginator.count if pagination_messages_list else 0
+            data["next"] = paginator.get_next_link() if pagination_messages_list else None
+            data["previous"] = paginator.get_previous_link() if pagination_messages_list else None
+
+            data["messages"] = pagination_messages_list
+
 
         return data
 
-        
+class SingleToSingleChatHistorySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Message
+        fields = ['content', 'image', 'read', 'status', 'date_sent', 'sender', 'receiver', 'id', 'image']  
+
+    def to_representation(self, instance):
+
+        data = super().to_representation(instance)
+
+        #renamed keys
+        data["id"] = data.pop('id')
+        data["message"] = data.pop('content')
+        data["sent"] = data.pop('status').lower()
+        data["is_read"] = data.pop('read')
+        data["sender_id"] = data.pop('sender')
+        data["receiver_id"] = data.pop('receiver')
+        data["image"] = data.pop('image')
+
+        return data
 
 class GetProviderChatInformationSerializer(serializers.ModelSerializer):
 
@@ -221,23 +252,23 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
         fields = ['id', 'first_name', 'user_image', 'status', 'role']
 
     def to_representation(self, instance):
-
+        
         user_id = self.context.get('user_id')
+        #get the request object from the serializer context
+        request  = self.context.get('request')
 
         data = super().to_representation(instance)
         
+        paginator = Pagination()
+
         #rename keys
-        data["provider_id"] = str(data.pop('id'))
-        data["provider_first_name"] = data.pop('first_name')
-        data["provider_status"] = str(data.pop('status')).lower()
-        # data["provider_last_name"] = data.pop('last_name')
-        data["provider_image"] = data.pop('user_image')
-        data["provider_role"] = data.pop('role')
+ 
 
         #get the patient as a single object
         patient = User.objects.filter(id=user_id, role='patient').first()
 
-        messages_list = None
+        messages_list = []
+        paginated_messages = []
 
         if patient:
             #get the provider as a single object
@@ -269,16 +300,24 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
                     "created_at": message["created_at"]
                 } for message in messages]
 
-        data["messages"] = messages_list
+            paginated_messages = paginator.paginate_queryset(messages_list, request)
+
+        data["count"] = paginator.page.paginator.count if paginated_messages else 0
+        data["next"] = paginator.get_next_link() if paginated_messages else None
+        data["previous"] = paginator.get_previous_link() if paginated_messages else None
+        data["provider_id"] = str(data.pop('id'))
+        data["provider_first_name"] = data.pop('first_name')
+        data["provider_status"] = str(data.pop('status')).lower()
+        data["provider_image"] = data.pop('user_image')
+        data["provider_role"] = data.pop('role')
+        data["messages"] = paginated_messages
+
 
         return data
 
     def get_user_image(self, obj):
         return getattr(getattr(obj, 'user_profile', None), 'picture', None).url if getattr(getattr(obj, 'user_profile', None), 'picture', None) else None
-
-
     
 
 
 
-    
