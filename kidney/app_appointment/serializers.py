@@ -656,7 +656,7 @@ class GetPatientUpcomingAppointmentSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
 
         #rename keys
-        data["user_id"] = str(data.pop('user'))
+        data["patient_id"] = str(data.pop('user'))
         data["appointment_id"] = data.pop('id')
         data["status"] = str(data.pop('status')).lower()
 
@@ -685,9 +685,9 @@ class GetPatientUpcomingAppointmentSerializer(serializers.ModelSerializer):
         #safe access to provider data
         if assigned_provider_upcoming_appointment and assigned_provider_upcoming_appointment.assigned_provider:
             provider = assigned_provider_upcoming_appointment.assigned_provider
-            data["assigned_provider_name"] = f'{str(provider.role.lower())} {str(provider.first_name).lower()}'
+            data["provider_name"] = str(provider.first_name).lower()
         else:
-            data["assigned_provider_name"] = None
+            data["provider_name"] = None
 
         if provider:
             #get the provider's profile safely
@@ -697,9 +697,9 @@ class GetPatientUpcomingAppointmentSerializer(serializers.ModelSerializer):
                 pass
 
         if provider_profile and provider_profile.picture:
-            data["user_image"] = request.build_absolute_uri(provider_profile.picture.url)
+            data["provider_image"] = request.build_absolute_uri(provider_profile.picture.url)
         else:
-            data["user_image"] = None  
+            data["provider_image"] = None  
 
 
         return data
