@@ -157,8 +157,8 @@ class GetProviderChatInformationView(generics.ListAPIView):
 
             user_id = get_token_user_id(request)
 
-            queryset = self.get_queryset()
-            serializer = self.get_serializer(queryset, many=True, context={'user_id': user_id, 'request': request})
+            queryset = self.get_queryset().first()
+            serializer = self.get_serializer(queryset, context={'user_id': user_id, 'request': request})
 
             return ResponseMessageUtils(
                 message="Chat messages",

@@ -216,6 +216,11 @@ class GetPatientChatInformationSerializer(serializers.ModelSerializer):
             data["count"] = paginator.page.paginator.count if pagination_messages_list else 0
             data["next"] = paginator.get_next_link() if pagination_messages_list else None
             data["previous"] = paginator.get_previous_link() if pagination_messages_list else None
+            data["first_name"] = data.pop('first_name')
+            data["last_name"] = data.pop('last_name')
+            data["user_image"] = data.pop('user_image')
+            data["status"] = data.pop('status')
+            data["patient_id"] = data.pop('patient_id')
 
             data["messages"] = pagination_messages_list
 
@@ -303,8 +308,6 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
             paginated_messages = paginator.paginate_queryset(messages_list, request)
 
         data["count"] = paginator.page.paginator.count if paginated_messages else 0
-        data["next"] = paginator.get_next_link() if paginated_messages else None
-        data["previous"] = paginator.get_previous_link() if paginated_messages else None
         data["provider_id"] = str(data.pop('id'))
         data["provider_first_name"] = data.pop('first_name')
         data["provider_status"] = str(data.pop('status')).lower()
