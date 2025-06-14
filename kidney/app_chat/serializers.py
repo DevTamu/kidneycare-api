@@ -122,11 +122,8 @@ class GetPatientsChatSerializer(serializers.ModelSerializer):
         patient_information = {
             "patient_id": patient.id,
             "id": int(data.pop('id'))
-            # "role": getattr(patient, 'role', 'unknown').lower(),  
         }
 
-        #rename key
-        # data["chat_id"] = data.pop('id')
 
         #removed from the response
         data.pop('sender')
@@ -155,6 +152,21 @@ class GetPatientsChatSerializer(serializers.ModelSerializer):
 
         return data
     
+
+class UpdateChatStatusInAdminSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ['id']
+
+    def update(self, instance, validated_data):
+        
+        chat_id = self.context.get('id')
+
+        Message.objects.filter(sender=instance, id=chat_id).update(read=True, status='read')
+
+        return instance
+
 
 class GetPatientChatInformationSerializer(serializers.ModelSerializer):
 
@@ -216,32 +228,17 @@ class GetPatientChatInformationSerializer(serializers.ModelSerializer):
             data["count"] = paginator.page.paginator.count if pagination_messages_list else 0
             data["next"] = paginator.get_next_link() if pagination_messages_list else None
             data["previous"] = paginator.get_previous_link() if pagination_messages_list else None
+            data["first_name"] = data.pop('first_name')
+            data["last_name"] = data.pop('last_name')
+            data["user_image"] = data.pop('user_image')
+            data["status"] = data.pop('status')
+            data["patient_id"] = data.pop('patient_id')
 
             data["messages"] = pagination_messages_list
 
 
         return data
 
-class SingleToSingleChatHistorySerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Message
-        fields = ['content', 'image', 'read', 'status', 'date_sent', 'sender', 'receiver', 'id', 'image']  
-
-    def to_representation(self, instance):
-
-        data = super().to_representation(instance)
-
-        #renamed keys
-        data["id"] = data.pop('id')
-        data["message"] = data.pop('content')
-        data["sent"] = data.pop('status').lower()
-        data["is_read"] = data.pop('read')
-        data["sender_id"] = data.pop('sender')
-        data["receiver_id"] = data.pop('receiver')
-        data["image"] = data.pop('image')
-
-        return data
 
 class GetProviderChatInformationSerializer(serializers.ModelSerializer):
 
@@ -303,8 +300,6 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
             paginated_messages = paginator.paginate_queryset(messages_list, request)
 
         data["count"] = paginator.page.paginator.count if paginated_messages else 0
-        data["next"] = paginator.get_next_link() if paginated_messages else None
-        data["previous"] = paginator.get_previous_link() if paginated_messages else None
         data["provider_id"] = str(data.pop('id'))
         data["provider_first_name"] = data.pop('first_name')
         data["provider_status"] = str(data.pop('status')).lower()
