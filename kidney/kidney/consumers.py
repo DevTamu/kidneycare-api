@@ -50,6 +50,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             # await self.send_message_introduction(user, user_receiver)
             
         except Exception as e:
+            print(f"[ERROR] Connect failed {e}")
             await self.close(code=4003)
         
     async def disconnect(self, close_code):
