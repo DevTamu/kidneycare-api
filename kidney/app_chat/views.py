@@ -9,10 +9,9 @@ from .serializers import (
     GetProvidersChatSerializer,
     GetProviderChatInformationSerializer,
     GetPatientsChatSerializer,
+    UpdateChatStatusInAdminSerializer,
     GetPatientChatInformationSerializer,
     UpdateNotificationChatInProviderSerializer,
-    SingleToSingleChatHistorySerializer
-    # UpdateChatStatusInPatientSerializer
 )
 from rest_framework.exceptions import ParseError, NotFound
 import json
@@ -157,8 +156,8 @@ class GetProviderChatInformationView(generics.ListAPIView):
 
             user_id = get_token_user_id(request)
 
-            queryset = self.get_queryset()
-            serializer = self.get_serializer(queryset, many=True, context={'user_id': user_id, 'request': request})
+            queryset = self.get_queryset().first()
+            serializer = self.get_serializer(queryset, context={'user_id': user_id, 'request': request})
 
             return ResponseMessageUtils(
                 message="Chat messages",
@@ -202,8 +201,9 @@ class GetPatientsChatView(generics.ListAPIView):
             latest_messages = []
             for patient in patient_who_messaged_admin:
                 message = Message.objects.filter(
-                    Q(sender=patient, receiver=admin) |
-                    Q(sender=admin, receiver=patient)
+                    sender=patient, receiver=admin
+                    # Q(sender=patient, receiver=admin) |
+                    # Q(sender=admin, receiver=patient)
                 ).order_by('-created_at').first()
                 if message:
                     latest_messages.append(message)
@@ -213,50 +213,61 @@ class GetPatientsChatView(generics.ListAPIView):
 
 
             return ResponseMessageUtils(
-                message="List of chat users",
+                message="List of chats",
                 data=serializer.data,
                 status_code=status.HTTP_200_OK
             )
 
         except Exception as e:
             return ResponseMessageUtils(
-                message=f"Something went wrong while processing your request. {e}",
+                message="Something went wrong while processing your request",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
 
-# class UpdateChatStatusInPatientView(generics.UpdateAPIView):
+class UpdateChatStatusInAdminView(generics.UpdateAPIView):
 
-#     permission_classes = [IsAuthenticated]
-#     serializer_class     = UpdateChatStatusInPatientSerializer
-#     lookup_field = 'pk'
-#     queryset = Message.objects.all()
+    serializer_class = UpdateChatStatusInAdminSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'pk'
 
-#     def patch(self, request, *args, **kwargs):
+    def get_queryset(self):
+        return User.objects.get(id=self.kwargs.get('pk'))
 
-#         try:
+    def patch(self, request, *args, **kwargs):
 
-#             instance = self.get_object()
+        try:
 
-#             serializer = self.get_serializer(instance=instance, data=request.data, partial=True)
+            instance = self.get_queryset()
+
+            serializer = self.get_serializer(instance=instance, data=request.data, context={'id': self.kwargs.get('id')}, partial=True)
             
-#             if serializer.is_valid():
-#                 serializer.save()
-#                 return ResponseMessageUtils(
-#                     message="Successfully update the notification status",
-#                     status_code=status.HTTP_200_OK
-#                 )
-            
-#             return ResponseMessageUtils(
-#                 message=extract_first_error_message(serializer.errors),
-#                 status_code=status.HTTP_400_BAD_REQUEST
-#             )
+            if serializer.is_valid():
+                serializer.save()
 
-#         except Exception as e:
-#             return ResponseMessageUtils(
-#                 message=f"Something went wrong while processing your request. {e}",
-#                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-#             )
+                return ResponseMessageUtils(
+                    message="Successfully updated",
+                    status_code=status.HTTP_200_OK
+                )
+            
+            return ResponseMessageUtils(
+                message=extract_first_error_message(serializer.errors),
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+            
+
+        except User.DoesNotExist:
+            return ResponseMessageUtils(
+                message="No user found",
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            print(f"WHAT WENT WRONG? {e}")
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
         
 class GetPatientChatInformationView(generics.RetrieveAPIView):
 
@@ -266,7 +277,7 @@ class GetPatientChatInformationView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         return User.objects.get(id=self.kwargs.get('pk'))
-
+        
     def get(self, request, *args, **kwargs):
 
         try:
@@ -285,58 +296,10 @@ class GetPatientChatInformationView(generics.RetrieveAPIView):
 
         except Exception as e:
             return ResponseMessageUtils(
-                message=f"Something went wrong while processing your request. {e}",
+                message="Something went wrong while processing your request",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
 
-class SingleToSingleChatHistoryView(generics.ListAPIView):
 
-    permission_classes = [IsAuthenticated]
-    serializer_class = SingleToSingleChatHistorySerializer
-    lookup_field = 'pk'
-
-    def get(self, request, *args, **kwargs):
-
-        try:
-
-            current_user = request.user
-
-            # Check if the other user exists
-            try:
-                other_user = User.objects.get(id=kwargs.get('pk'))
-            except User.DoesNotExist:
-                return ResponseMessageUtils(
-                    message="No user found",
-                    status_code=status.HTTP_404_NOT_FOUND
-                )
-            
-
-            # Get all messages between current_user and other_user
-            messages = Message.objects.filter(
-                Q(sender=current_user, receiver=other_user) |
-                Q(sender=other_user, receiver=current_user)
-            ).order_by('date_sent')
-
-            # Optionally mark messages as read
-            Message.objects.filter(
-                sender=other_user,
-                receiver=current_user,
-                read=False
-            ).update(read=True, status='Read')
-
-            serializer = self.get_serializer(messages, many=True)
-
-            return ResponseMessageUtils(
-                message="Chat history",
-                data=serializer.data,
-                status_code=status.HTTP_200_OK
-            )
-
-
-        except Exception as e:
-            return ResponseMessageUtils(
-                message=f"Something went wrong while processing your request. {e}",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
 
