@@ -122,11 +122,8 @@ class GetPatientsChatSerializer(serializers.ModelSerializer):
         patient_information = {
             "patient_id": patient.id,
             "id": int(data.pop('id'))
-            # "role": getattr(patient, 'role', 'unknown').lower(),  
         }
 
-        #rename key
-        # data["chat_id"] = data.pop('id')
 
         #removed from the response
         data.pop('sender')
@@ -155,6 +152,21 @@ class GetPatientsChatSerializer(serializers.ModelSerializer):
 
         return data
     
+
+class UpdateChatStatusInAdminSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ['id']
+
+    def update(self, instance, validated_data):
+        
+        chat_id = self.context.get('id')
+
+        Message.objects.filter(sender=instance, id=chat_id).update(read=True, status='read')
+
+        return instance
+
 
 class GetPatientChatInformationSerializer(serializers.ModelSerializer):
 
@@ -227,26 +239,6 @@ class GetPatientChatInformationSerializer(serializers.ModelSerializer):
 
         return data
 
-class SingleToSingleChatHistorySerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Message
-        fields = ['content', 'image', 'read', 'status', 'date_sent', 'sender', 'receiver', 'id', 'image']  
-
-    def to_representation(self, instance):
-
-        data = super().to_representation(instance)
-
-        #renamed keys
-        data["id"] = data.pop('id')
-        data["message"] = data.pop('content')
-        data["sent"] = data.pop('status').lower()
-        data["is_read"] = data.pop('read')
-        data["sender_id"] = data.pop('sender')
-        data["receiver_id"] = data.pop('receiver')
-        data["image"] = data.pop('image')
-
-        return data
 
 class GetProviderChatInformationSerializer(serializers.ModelSerializer):
 
