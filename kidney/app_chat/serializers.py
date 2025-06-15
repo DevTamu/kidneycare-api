@@ -79,7 +79,6 @@ class GetProvidersChatSerializer(serializers.ModelSerializer):
             
         }
 
-        #rename key
         #removed from the response
         data.pop('sender')
         data.pop('receiver')
@@ -94,14 +93,14 @@ class GetProvidersChatSerializer(serializers.ModelSerializer):
         data["last_message"] = {
             "provider_status": getattr(provider, 'status', 'offline').lower(),
             "provider_first_name": provider.first_name,
-            "provider_image": getattr(getattr(provider, 'user_profile', None), 'picture', None).url if getattr(getattr(provider, 'user_profile', None), 'picture', None) else None,
+            "provider_image": request.build_absolute_uri(getattr(getattr(provider, 'user_profile', None), 'picture', None).url) if getattr(getattr(provider, 'user_profile', None), 'picture', None) else None,
             "provider_role": getattr(provider, 'role', None).lower(),
             "message": instance.content,
             "status": instance.status.lower(),
             "is_read": instance.read,
             "sender_id": str(instance.sender.id),
             "receiver_id": str(instance.receiver.id),
-            "time_sent": local_time.strftime('%I:%M %p')
+            "created_at": str(instance.created_at)
         }
 
         return data
@@ -124,7 +123,6 @@ class GetPatientsChatSerializer(serializers.ModelSerializer):
             "id": int(data.pop('id'))
         }
 
-
         #removed from the response
         data.pop('sender')
         data.pop('receiver')
@@ -146,7 +144,7 @@ class GetPatientsChatSerializer(serializers.ModelSerializer):
             "is_read": instance.read,
             "sender_id": str(instance.sender.id),
             "receiver_id": str(instance.receiver.id),
-            "time_sent": local_time.strftime('%I:%M %p'),
+            "created_at": str(instance.created_at),
             "image": str(instance.image)
         }
 
@@ -203,13 +201,13 @@ class GetPatientChatInformationSerializer(serializers.ModelSerializer):
 
             messages = Message.objects.select_related('sender', 'receiver').filter(
                 sender=patient, receiver=admin
-            ).values('content', 'status', 'sender', 'receiver', 'date_sent', 'read', 'id', 'image').union(
+            ).values('content', 'status', 'sender', 'receiver', 'created_at', 'read', 'id', 'image').union(
                 Message.objects.select_related('sender', 'receiver').filter(
                     (
                         Q(sender=patient, receiver=admin) |
                         Q(sender=admin, receiver=patient)
                     )
-                ).values('content', 'status', 'sender', 'receiver', 'date_sent', 'read', 'id', 'image')
+                ).values('content', 'status', 'sender', 'receiver', 'created_at', 'read', 'id', 'image')
             )
 
             messages_list = [{
@@ -219,8 +217,8 @@ class GetPatientChatInformationSerializer(serializers.ModelSerializer):
                 "is_read": message["read"],
                 "sender_id": str(message["sender"]),
                 "receiver_id": str(message["receiver"]),
-                "time_sent": timezone.localtime(message["date_sent"]).strftime("%I:%M"),
-                "image": str(message["image"])
+                "created_at": str(message["created_at"]),
+                "image": request.build_absolute_uri(message["image"]) if message["image"] else None
             }for message in messages]
             
             pagination_messages_list = paginator.paginate_queryset(messages_list, request)
@@ -291,8 +289,8 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
                     "sender_id": str(message["sender"]),
                     "receiver_id": str(message["receiver"]),
                     "chat_id": int(message["id"]),
-                    "image": message["image"],
-                    "created_at": message["created_at"]
+                    "image": request.build_absolute_uri(message["image"]) if message["image"] else None,
+                    "created_at": str(message["created_at"])
                 } for message in messages]
 
             paginated_messages = paginator.paginate_queryset(messages_list, request)
