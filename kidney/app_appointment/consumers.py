@@ -15,7 +15,7 @@ class AppointmentConsumer(AsyncWebsocketConsumer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.room_group_name = None
+        self.room_name = None
 
     async def connect(self):
         """Handles the WebSocket connection."""
@@ -45,9 +45,18 @@ class AppointmentConsumer(AsyncWebsocketConsumer):
             print(f"[ERROR] Disconnect failed")
 
     async def receive(self, text_data):
-        pass
+        
+        print(f"TEXT_DATA: {text_data}")
 
     
+    # async def send_upcoming_appointment(self, appointment):
+
+    #     await self.channel_layer.group_send(
+    #         self.room_name,
+    #         {}
+    #     )
+
+
     async def upcoming_appointments(self, event):
         await self.send(text_data=json.dumps({
             "patient_id": event["patient_id"],

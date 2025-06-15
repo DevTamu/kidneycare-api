@@ -184,8 +184,8 @@ class AddAssignedProviderSerializer(serializers.ModelSerializer):
 
 class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
     
-    assigned_machine = AddAssignedMachineSerializer(many=False)
-    assigned_provider = AddAssignedProviderSerializer(many=False)
+    assigned_machine = AddAssignedMachineSerializer()
+    assigned_provider = AddAssignedProviderSerializer()
     status = serializers.CharField(allow_null=True, allow_blank=True)
 
     class Meta:
@@ -227,6 +227,13 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
 
         appointment = self.context.get('appointment_pk')
 
+        Appointment.objects.update_or_create(
+            id=appointment.id,
+            defaults={
+                "status": validated_data.get('status', None)
+            }
+        )
+
         #create assigned machine object instance linked to the appointment
         assigned_machine_obj, _ = AssignedMachine.objects.update_or_create(
             assigned_machine_appointment=appointment,
@@ -236,14 +243,14 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
             }
         )
 
-        try:
-            user_provider = User.objects.filter(id=assigned_providers_data["assigned_provider"]).first()
-        except User.DoesNotExist:
+        provider = User.objects.filter(id=assigned_providers_data["assigned_provider"]).first()
+        
+        if not provider:
             raise serializers.ValidationError({"message": "No provider found"})
 
         #create assigned provider object instance linked to the appointment
         assigned_provider_obj, _ = AssignedProvider.objects.update_or_create(
-            assigned_provider=user_provider,
+            assigned_provider=provider,
             assigned_patient_appointment=appointment,
             defaults={}
         )
@@ -251,17 +258,13 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
         #create assigned appointment object instance linked to the appointment
         assigned_appointment_obj, _ = AssignedAppointment.objects.update_or_create(
             appointment=appointment,
-            defaults={
-                "assigned_machine":assigned_machine_obj,
-                "assigned_provider":assigned_provider_obj   
-            }
-        )
-
-        Appointment.objects.update_or_create(
-            id=appointment.id,
-            defaults={
-                "status": validated_data.get('status', None)
-            }
+            assigned_machine=assigned_machine_obj,
+            assigned_provider=assigned_provider_obj,
+            defaults={}
+            # defaults={
+            #     "assigned_machine":assigned_machine_obj,
+            #     "assigned_provider":assigned_provider_obj   
+            # }
         )
 
         return assigned_appointment_obj
