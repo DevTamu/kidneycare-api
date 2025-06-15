@@ -554,7 +554,7 @@ class CancelAppointmentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Appointment
-        fields = ['id']
+        fields = '__all__'
 
     def update(self, instance, validated_data):
         instance.status = 'cancelled'
