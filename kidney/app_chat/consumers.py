@@ -1,7 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from .utils import get_user_by_id, get_base64_file_size
+from kidney.utils import get_user_by_id, get_base64_file_size
 from app_authentication.models import User
 from django.utils import timezone
 from asgiref.sync import sync_to_async
@@ -192,7 +192,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "chat_id": event["chat_id"],
             "sender_id": str(event["sender_id"]),
             "receiver_id": str(event["receiver_id"]),
-            "time_sent": event["time_sent"],
+            "created_at": event["created_at"],
             "image": event["image"]
         }))
 
@@ -231,7 +231,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         "chat_id": int(message.id),
                         "sender_id": str(message.sender.id),
                         "receiver_id": str(message.receiver.id),
-                        "time_sent": timezone.localtime(message.date_sent).strftime("%I:%M %p"),
+                        "created_at": message.created_at,
                         "image": message.image.url if message.image else None
                     }
                 )
@@ -252,7 +252,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         "chat_id": int(message.id),
                         "sender_id": str(message.sender.id),
                         "receiver_id": str(message.receiver.id),
-                        "time_sent": timezone.localtime(message.date_sent).strftime("%I:%M %p"),
+                        "created_at": message.created_at,
                         "image": message.image.url if message.image else None
                     }
                 )
@@ -269,7 +269,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "last_name": event["last_name"],
             "status": event["status"],
             "message": event["message"],
-            "time_sent": event["time_sent"],
+            "created_at": event["created_at"],
             "picture": event["picture"],
             "message_status": event["message_status"]
         }))
@@ -286,7 +286,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "last_name": str(sender.last_name).lower(),
                 "status": str(sender.status).lower(),
                 "message": str(message.content).lower(),
-                "time_sent": timezone.localtime(message.date_sent).strftime("%I:%M %p"),
+                "created_at": message.created_at,
                 "picture": user_profile,
                 "message_status": str(message.status).lower()
             }
