@@ -8,3 +8,6 @@ class Schedule(TimestampModel):
     start_time = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(null=True, blank=True)
     date_created = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Schedule: {self.id}"
