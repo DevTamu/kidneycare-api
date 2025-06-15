@@ -272,3 +272,12 @@ def get_base64_file_size(base64_data: str) -> int:
     if ";base64," in base64_data:
         base64_data = base64_data.split(";base64,")[1]
     return len(base64.b64decode(base64_data))
+
+
+def get_absolute_image_url(scope, image_url):
+
+    scheme = "http"
+
+    host_header = dict(scope["headers"]).get(b"host", b"").decode()
+
+    return f"{scheme}://{host_header}{image_url}"
