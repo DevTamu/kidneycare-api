@@ -70,7 +70,7 @@ class JWTAuthMiddleware(BaseMiddleware):
         try:
             User = get_user_model()
             return User.objects.get(id=user_id)
-        except Exception:
+        except Exception as e:
             print(f"[DB ERROR] Failed to fetch user {user_id}: {e}")
             return AnonymousUser()
         
