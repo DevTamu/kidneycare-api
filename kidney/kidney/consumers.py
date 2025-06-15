@@ -25,7 +25,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             #user is already authenticated by middleware
             user = self.scope["user"]
-            if not user:
+            if not user.is_authenticated:
                 await self.close(code=4003)
                 return
             
