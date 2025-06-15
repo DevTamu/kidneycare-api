@@ -258,9 +258,6 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
         
         paginator = Pagination()
 
-        #rename keys
- 
-
         #get the patient as a single object
         patient = User.objects.filter(id=user_id, role='patient').first()
 
