@@ -223,11 +223,11 @@ class UpdateChatStatusInView(generics.UpdateAPIView):
 
     serializer_class = UpdateChatStatusInAdminSerializer
     permission_classes = [IsAuthenticated]
-    lookup_field = 'id'
+    lookup_field = 'pk'
 
     def get_queryset(self):
         return User.objects.get(id=self.kwargs.get('pk'))
-
+            
     def patch(self, request, *args, **kwargs):
 
         try:
@@ -249,14 +249,8 @@ class UpdateChatStatusInView(generics.UpdateAPIView):
                 status_code=status.HTTP_400_BAD_REQUEST
             )
             
-
-        except User.DoesNotExist:
-            return ResponseMessageUtils(
-                message="No user found",
-                status_code=status.HTTP_404_NOT_FOUND
-            )
         except Exception as e:
-            print(f"WHAT WENT WRONG? {e}")
+            print(f"WHAT WENT WRORNG? {e}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
