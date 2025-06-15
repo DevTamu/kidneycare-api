@@ -135,15 +135,9 @@ class GetProviderChatInformationView(generics.ListAPIView):
     
     permission_classes = [IsAuthenticated]
     serializer_class = GetProviderChatInformationSerializer
+    lookup_field = 'pk'
 
-    def get_queryset(self):
-        try:
-            provider_id = self.request.data.get('provider_id')
-            if not provider_id:
-                raise ParseError("provider_id is required")
-            return User.objects.filter(id=provider_id)
-        except User.DoesNotExist:
-            raise NotFound("User not found")
+        
 
     def get(self, request, *args, **kwargs):
 
@@ -151,9 +145,9 @@ class GetProviderChatInformationView(generics.ListAPIView):
 
             user_id = get_token_user_id(request)
 
-            queryset = self.get_queryset().first()
-            serializer = self.get_serializer(queryset, context={'user_id': user_id, 'request': request})
+            queryset = User.objects.get(id=kwargs.get('pk'))
 
+            serializer = self.get_serializer(queryset, context={'user_id': user_id, 'request': request})
             return ResponseMessageUtils(
                 message="Chat messages",
                 data=serializer.data,
@@ -220,7 +214,7 @@ class GetPatientsChatView(generics.ListAPIView):
             )
         
 
-class UpdateChatStatusInAdminView(generics.UpdateAPIView):
+class UpdateChatStatusInView(generics.UpdateAPIView):
 
     serializer_class = UpdateChatStatusInAdminSerializer
     permission_classes = [IsAuthenticated]
@@ -228,14 +222,14 @@ class UpdateChatStatusInAdminView(generics.UpdateAPIView):
 
     def get_queryset(self):
         return User.objects.get(id=self.kwargs.get('pk'))
-
+            
     def patch(self, request, *args, **kwargs):
 
         try:
 
             instance = self.get_queryset()
 
-            serializer = self.get_serializer(instance=instance, data=request.data, context={'id': self.kwargs.get('id')}, partial=True)
+            serializer = self.get_serializer(instance=instance, data=request.data, context={'id': kwargs.get('id')}, partial=True)
             
             if serializer.is_valid():
                 serializer.save()
@@ -250,14 +244,8 @@ class UpdateChatStatusInAdminView(generics.UpdateAPIView):
                 status_code=status.HTTP_400_BAD_REQUEST
             )
             
-
-        except User.DoesNotExist:
-            return ResponseMessageUtils(
-                message="No user found",
-                status_code=status.HTTP_404_NOT_FOUND
-            )
         except Exception as e:
-            print(f"WHAT WENT WRONG? {e}")
+            print(f"WHAT WENT WRORNG? {e}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
