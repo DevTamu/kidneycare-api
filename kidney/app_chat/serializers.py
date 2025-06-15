@@ -282,7 +282,7 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
                     ).values(
                         'content', 'status', 'sender', 'receiver', 'created_at', 'read', 'id'
                     )
-                ).order_by('created_at')
+                ).order_by('-created_at')
 
                 messages_list = [{
                     "message": str(message["content"]).lower(),
