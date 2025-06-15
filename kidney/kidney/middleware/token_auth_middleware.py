@@ -17,17 +17,13 @@ class JWTAuthMiddleware(BaseMiddleware):
 
             if not token:
                 print("[AUTH] No token provided, using AnonymousUser.")
-                scope["user"] = AnonymousUser()
-                return await self.inner(scope, receive, send)
-                # raise TokenError("Authorization token not provided")
+                raise TokenError("Authorization token not provided")
 
             user_id = await self.get_user_from_token(token)
 
             if not user_id:
                 print("[AUTH] Invalid or expired token.")
-                scope["user"] = AnonymousUser()
-                return await self.inner(scope, receive, send)
-                # raise TokenError("Invalid or expired token. Please log in again.")
+                raise TokenError("Invalid or expired token. Please log in again.")
             scope["user"] = await self.get_user(user_id) 
 
         except TokenError as e:
