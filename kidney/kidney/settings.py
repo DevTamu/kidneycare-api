@@ -39,8 +39,9 @@ CSRF_TRUSTED_ORIGINS = [
 
 CORS_ALLOWED_ORIGINS = [
     'https://kidneycare-api.onrender.com',
-    'http://localhost:8000',
     'http://localhost:3000',
+    'http://localhost:8000',
+    'https://kidneycare-web.vercel.app',
     'http://192.168.100.11:8000'
 ]
 
