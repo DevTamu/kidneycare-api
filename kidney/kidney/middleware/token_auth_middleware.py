@@ -16,15 +16,26 @@ class JWTAuthMiddleware(BaseMiddleware):
             token = self.get_token_from_scope(scope)
 
             if not token:
-                raise TokenError("Authorization token not provided")
+                print("[AUTH] No token provided, using AnonymousUser.")
+                scope["user"] = AnonymousUser()
+                return await self.inner(scope, receive, send)
+                # raise TokenError("Authorization token not provided")
 
             user_id = await self.get_user_from_token(token)
 
             if not user_id:
-                raise TokenError("Invalid or expired token. Please log in again.")
+                print("[AUTH] Invalid or expired token.")
+                scope["user"] = AnonymousUser()
+                return await self.inner(scope, receive, send)
+                # raise TokenError("Invalid or expired token. Please log in again.")
             scope["user"] = await self.get_user(user_id) 
 
+        except TokenError as e:
+            print(f"[JWT ERROR] {str(e)}")
+            await self.close_connection(send, code=4003)
+            return
         except Exception as e:
+            print(f"[UNEXPECTED ERROR] {str(e)}")
             await self.close_connection(send, code=4003)
             return
         
@@ -45,8 +56,12 @@ class JWTAuthMiddleware(BaseMiddleware):
     def get_user_from_token(self, token):
         try:
             access_token = AccessToken(token)
-            return access_token["user_id"]  
-        except:
+            return access_token["user_id"]
+        except TokenError as e:
+            print(f"[TOKEN ERROR] {e}")
+            return None
+        except Exception as e:
+            print(f"[TOKEN PARSE ERROR] {e}")
             return None
         
     @database_sync_to_async
@@ -56,6 +71,7 @@ class JWTAuthMiddleware(BaseMiddleware):
             User = get_user_model()
             return User.objects.get(id=user_id)
         except Exception:
+            print(f"[DB ERROR] Failed to fetch user {user_id}: {e}")
             return AnonymousUser()
         
 
