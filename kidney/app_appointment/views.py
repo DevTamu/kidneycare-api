@@ -116,18 +116,19 @@ class AddAppointmentDetailsInAdminView(generics.CreateAPIView):
                     else None
                 )
 
-                async_to_sync(channel_layer.group_send)(
-                    f"appointment_user_{user.id}",
-                    {
-                        "type": "upcoming_appointments",
-                        "patient_id": str(user.id),
-                        "appointment_id": updated_appointment.appointment.id,
-                        "status": str(updated_appointment.appointment.status).lower(),
-                        "machine": f"machine #{assigned_machine}",
-                        "provider_name": str(assigned_provider.first_name).lower(),
-                        "provider_image": get_provider_profile
-                    }
-                )
+                if appointment.status == "approved":
+                    async_to_sync(channel_layer.group_send)(
+                        f"appointment_user_{user.id}",
+                        {
+                            "type": "upcoming_appointments",
+                            "patient_id": str(user.id),
+                            "appointment_id": updated_appointment.appointment.id,
+                            "status": str(updated_appointment.appointment.status).lower(),
+                            "machine": f"machine #{assigned_machine}",
+                            "provider_name": str(assigned_provider.first_name).lower(),
+                            "provider_image": get_provider_profile
+                        }
+                    )   
 
                 return ResponseMessageUtils(message="Successfully added Appointment details", status_code=status.HTTP_201_CREATED)
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
