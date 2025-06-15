@@ -273,14 +273,14 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
                 #get all messages between the patient and provider
                 messages = Message.objects.prefetch_related('sender', 'receiver').filter(
                     sender=patient, receiver=provider
-                ).values('content', 'status', 'sender', 'receiver', 'created_at', 'read', 'id').union(
+                ).values('content', 'status', 'sender', 'receiver', 'created_at', 'read', 'id', 'image').union(
                     Message.objects.prefetch_related('sender', 'receiver').filter(
                         (
                             Q(sender=provider, receiver=patient) |
                             Q(sender=patient, receiver=provider)
                         )
                     ).values(
-                        'content', 'status', 'sender', 'receiver', 'created_at', 'read', 'id'
+                        'content', 'status', 'sender', 'receiver', 'created_at', 'read', 'id', 'image'
                     )
                 ).order_by('-created_at')
 
@@ -291,6 +291,7 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
                     "sender_id": str(message["sender"]),
                     "receiver_id": str(message["receiver"]),
                     "chat_id": int(message["id"]),
+                    "image": message["image"],
                     "created_at": message["created_at"]
                 } for message in messages]
 
