@@ -184,8 +184,8 @@ class AddAssignedProviderSerializer(serializers.ModelSerializer):
 
 class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
     
-    assigned_machine = AddAssignedMachineSerializer()
-    assigned_provider = AddAssignedProviderSerializer()
+    assigned_machine = AddAssignedMachineSerializer(many=False)
+    assigned_provider = AddAssignedProviderSerializer(many=False)
     status = serializers.CharField(allow_null=True, allow_blank=True)
 
     class Meta:
@@ -244,9 +244,8 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
         #create assigned provider object instance linked to the appointment
         assigned_provider_obj, _ = AssignedProvider.objects.update_or_create(
             assigned_provider=user_provider,
-            defaults={
-                "assigned_patient_appointment":appointment
-            }
+            assigned_patient_appointment=appointment,
+            defaults={}
         )
 
         #create assigned appointment object instance linked to the appointment
@@ -266,6 +265,7 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
         )
 
         return assigned_appointment_obj
+
 
 class GetAssignedMachineSerializer(serializers.ModelSerializer):
     
