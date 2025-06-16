@@ -231,10 +231,13 @@ class UpdateChatStatusInView(generics.UpdateAPIView):
     def patch(self, request, *args, **kwargs):
 
         try:
+            
+            sender_id = get_token_user_id(request)
+            receiver_id = kwargs.get('pk')
 
             instance = self.get_queryset()
 
-            serializer = self.get_serializer(instance=instance, data=request.data, context={'id': kwargs.get('id')}, partial=True)
+            serializer = self.get_serializer(instance=instance, data=request.data, context={"sender_id": sender_id, "receiver_id": receiver_id}, partial=True)
             
             if serializer.is_valid():
                 serializer.save()

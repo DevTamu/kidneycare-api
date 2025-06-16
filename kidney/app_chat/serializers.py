@@ -64,7 +64,7 @@ class UpdateNotificationChatInProviderSerializer(serializers.ModelSerializer):
 class GetProvidersChatSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ['id', 'sender', 'receiver', 'content', 'read', 'status', 'date_sent']
+        fields = ['id', 'sender', 'receiver', 'content', 'read', 'status', 'date_sent', 'image']
 
     def to_representation(self, instance):
         request = self.context.get('request')
@@ -98,6 +98,7 @@ class GetProvidersChatSerializer(serializers.ModelSerializer):
             "message": instance.content,
             "status": instance.status.lower(),
             "is_read": instance.read,
+            "image": str(instance.image.url) if instance.image else None,
             "sender_id": str(instance.sender.id),
             "receiver_id": str(instance.receiver.id),
             "created_at": str(instance.created_at)
@@ -157,11 +158,14 @@ class UpdateChatStatusInAdminSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id']
 
-    def update(self, instance, validated_data):
-        
-        chat_id = self.context.get('id')
+    def update(self, instance, validated_data):        
 
-        Message.objects.filter(sender=instance, id=chat_id).update(read=True, status='read')
+        sender_id = self.context.get('sender_id')
+        receiver_id = self.context.get('receiver_id')
+
+        Message.objects.filter(
+           sender=sender_id, receiver=receiver_id
+        ).update(read=True, status='read')
 
         return instance
 
@@ -271,26 +275,24 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
                 #get all messages between the patient and provider
                 messages = Message.objects.prefetch_related('sender', 'receiver').filter(
                     sender=patient, receiver=provider
-                ).values('content', 'status', 'sender', 'receiver', 'created_at', 'read', 'id', 'image').union(
+                ).union(
                     Message.objects.prefetch_related('sender', 'receiver').filter(
                         (
                             Q(sender=provider, receiver=patient) |
                             Q(sender=patient, receiver=provider)
                         )
-                    ).values(
-                        'content', 'status', 'sender', 'receiver', 'created_at', 'read', 'id', 'image'
                     )
                 ).order_by('-created_at')
 
                 messages_list = [{
-                    "message": str(message["content"]).lower(),
-                    "message_status": str(message["status"]).lower(),
-                    "is_read": message["read"],
-                    "sender_id": str(message["sender"]),
-                    "receiver_id": str(message["receiver"]),
-                    "chat_id": int(message["id"]),
-                    "image": request.build_absolute_uri(message["image"]) if message["image"] else None,
-                    "created_at": str(message["created_at"])
+                    "message": str(message.content).lower(),
+                    "message_status": str(message.status).lower(),
+                    "is_read": message.read,
+                    "sender_id": str(message.sender.id),
+                    "receiver_id": str(message.receiver.id),
+                    "chat_id": int(message.id),
+                    "image": str(message.image.url) if message.image else None,
+                    "created_at": str(message.created_at)
                 } for message in messages]
 
             paginated_messages = paginator.paginate_queryset(messages_list, request)
