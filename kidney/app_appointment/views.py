@@ -116,7 +116,7 @@ class AddAppointmentDetailsInAdminView(generics.CreateAPIView):
                     else None
                 )
 
-                if appointment.status == "approved":
+                if updated_appointment.appointment.status == "approved":
                     async_to_sync(channel_layer.group_send)(
                         f"appointment_user_{user.id}",
                         {
