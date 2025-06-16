@@ -158,11 +158,14 @@ class UpdateChatStatusInAdminSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id']
 
-    def update(self, instance, validated_data):
-        
-        chat_id = self.context.get('id')
+    def update(self, instance, validated_data):        
 
-        Message.objects.filter(sender=instance, id=chat_id).update(read=True, status='read')
+        sender_id = self.context.get('sender_id')
+        receiver_id = self.context.get('receiver_id')
+
+        Message.objects.filter(
+           sender=sender_id, receiver=receiver_id
+        ).update(read=True, status='read')
 
         return instance
 
