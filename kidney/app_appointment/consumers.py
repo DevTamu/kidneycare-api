@@ -59,8 +59,11 @@ class AppointmentConsumer(AsyncWebsocketConsumer):
 
     async def upcoming_appointments(self, event):
         await self.send(text_data=json.dumps({
+            "date": event["date"],
+            "time": event["time"],
             "patient_id": event["patient_id"],
             "appointment_id": event["appointment_id"],
+            "nurse_id": event["nurse_id"],
             "status": event["status"],
             "machine": event["machine"],
             "provider_name": event["provider_name"],
