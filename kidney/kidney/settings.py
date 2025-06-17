@@ -6,10 +6,12 @@ import os
 from django.core.files.storage import default_storage
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv()
 import dj_database_url
 import urllib.parse
 
+
+
+load_dotenv()
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
 #cloudinary configurations
