@@ -86,17 +86,17 @@ class GetProvidersChatSerializer(serializers.ModelSerializer):
         data.pop('status')
         data.pop('date_sent')
         data.pop('content')
+        data.pop('image')
 
         local_time = timezone.localtime(instance.date_sent)
 
         data.update(provider_information)
         data["last_message"] = {
-            "provider_status": getattr(provider, 'status', 'offline').lower(),
             "provider_first_name": provider.first_name,
+            "provider_status": getattr(provider, 'status', 'offline').lower(),
             "provider_image": request.build_absolute_uri(getattr(getattr(provider, 'user_profile', None), 'picture', None).url) if getattr(getattr(provider, 'user_profile', None), 'picture', None) else None,
-            "provider_role": getattr(provider, 'role', None).lower(),
             "message": instance.content,
-            "status": instance.status.lower(),
+            "message_status": instance.status.lower(),
             "is_read": instance.read,
             "image": str(instance.image.url) if instance.image else None,
             "sender_id": str(instance.sender.id),
@@ -248,7 +248,7 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'user_image', 'status', 'role']
+        fields = ['id', 'first_name', 'user_image', 'status']
 
     def to_representation(self, instance):
         
@@ -288,10 +288,10 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
                     "message": str(message.content).lower(),
                     "message_status": str(message.status).lower(),
                     "is_read": message.read,
+                    "image": str(message.image.url) if message.image else None,
+                    "chat_id": int(message.id),
                     "sender_id": str(message.sender.id),
                     "receiver_id": str(message.receiver.id),
-                    "chat_id": int(message.id),
-                    "image": str(message.image.url) if message.image else None,
                     "created_at": str(message.created_at)
                 } for message in messages]
 
@@ -302,7 +302,6 @@ class GetProviderChatInformationSerializer(serializers.ModelSerializer):
         data["provider_first_name"] = data.pop('first_name')
         data["provider_status"] = str(data.pop('status')).lower()
         data["provider_image"] = data.pop('user_image')
-        data["provider_role"] = data.pop('role')
         data["messages"] = paginated_messages
 
 
