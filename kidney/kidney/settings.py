@@ -4,6 +4,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 from django.core.files.storage import default_storage
+
 import dj_database_url
 import urllib.parse
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -15,6 +16,9 @@ load_dotenv(os.path.join(BASE_DIR, f".env.{env_mode}"))
 
 print(f"RUNNING AT ENV: .env.{env_mode}")
 
+
+
+load_dotenv()
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
 #cloudinary configurations
