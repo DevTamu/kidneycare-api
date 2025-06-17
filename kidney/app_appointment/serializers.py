@@ -589,8 +589,9 @@ class GetPatientUpcomingAppointmentsSerializer(serializers.ModelSerializer):
         #get the default serialized data from the parent class
         data = super().to_representation(instance)
 
+
         #rename keys
-        data["user_id"] = str(data.pop('user'))
+        data["patient_id"] = str(data.pop('user'))
         data["appointment_id"] = data.pop('id')
         data["status"] = str(data.pop('status')).lower()
 
@@ -609,14 +610,15 @@ class GetPatientUpcomingAppointmentsSerializer(serializers.ModelSerializer):
         assigned_provider_upcoming_appointment = AssignedProvider.objects.filter(
             assigned_patient_appointment=data.get('appointment_id', None)
         ).first()
-        
+
         #safe access to provider data
         if assigned_provider_upcoming_appointment and assigned_provider_upcoming_appointment.assigned_provider:
             provider = assigned_provider_upcoming_appointment.assigned_provider
-            data["assigned_provider_name"] = f'{str(provider.role.lower())} {str(provider.first_name.lower())}'
+            data["provider_name"] = f'{str(provider.first_name.lower())}'
             data["nurse_id"] = assigned_provider_upcoming_appointment.assigned_provider.id
         else:
-            data["assigned_provider_name"] = None
+            data["provider_name"] = None
+            data["nurse_id"] = None
 
 
         if provider:
@@ -627,10 +629,9 @@ class GetPatientUpcomingAppointmentsSerializer(serializers.ModelSerializer):
 
         #safe access to profile data
         if provider_profile and provider_profile.picture:
-            data["picture"] = request.build_absolute_uri(provider_profile.picture.url)
+            data["provider_image"] = request.build_absolute_uri(provider_profile.picture.url)
         else:
-            data["picture"] = None
-
+            data["provider_image"] = None
 
         return data
 
@@ -679,21 +680,22 @@ class GetPatientUpcomingAppointmentSerializer(serializers.ModelSerializer):
 
         #get the assigned provider to the related appointment of the patient upcoming appointment
         try:
-            assigned_provider_upcoming_appointment = AssignedProvider.objects.filter(
+            assigned_provider = AssignedProvider.objects.filter(
                 assigned_patient_appointment=data.get('appointment_id', None)
             ).first()
         except AssignedProvider.DoesNotExist:
             pass
         
-        #safe access to provider data
-        if assigned_provider_upcoming_appointment and assigned_provider_upcoming_appointment.assigned_provider:
-            provider = assigned_provider_upcoming_appointment.assigned_provider
+        #check if assigned provider exist
+        if assigned_provider and assigned_provider.assigned_provider:
+            provider = assigned_provider.assigned_provider
             data["provider_name"] = str(provider.first_name).lower()
+            data["nurse_id"] = provider.id
         else:
             data["provider_name"] = None
+            data["nurse_id"] = None
 
         if provider:
-            #get the provider's profile safely
             try:
                 provider_profile = Profile.objects.filter(user=provider.id).first()
             except Profile.DoesNotExist:
@@ -842,7 +844,8 @@ class GetUpcomingAppointmentDetailsInPatientSerializer(serializers.ModelSerializ
         data = super().to_representation(instance)
 
         #rename key
-        data["user_id"] = str(data.pop("user"))
+        data["patient_id"] = str(data.pop("user"))
+        data["appointment_id"] = data.pop('id')
         data["status"] = str(data.pop('status')).lower()
 
         try:
@@ -851,26 +854,30 @@ class GetUpcomingAppointmentDetailsInPatientSerializer(serializers.ModelSerializ
         except AssignedAppointment.DoesNotExist:
             assigned_appointment = None
 
-        if assigned_appointment and assigned_appointment.assigned_provider:
-            data["assigned_provider_name"] = f"{str(assigned_appointment.assigned_provider.assigned_provider.role).lower()} {str(assigned_appointment.assigned_provider.assigned_provider.first_name).lower()}"
-        else:
-            data["assigned_provider_name"] = None
 
         if assigned_appointment and assigned_appointment.assigned_machine:
-            data["assigned_machine"] = f"machine #{assigned_appointment.assigned_machine.assigned_machine}"
+            data["machine"] = f"machine #{assigned_appointment.assigned_machine.assigned_machine}"
         else:
-            data["assigned_machine"] = None
+            data["machine"] = None
+
+        if assigned_appointment and assigned_appointment.assigned_provider:
+            provider = assigned_appointment.assigned_provider.assigned_provider
+            data["provider_name"] = f"{str(provider.first_name).lower()}"
+            data["nurse_id"] = str(provider.id)
+        else:
+            data["provider_name"] = None
+            data["nurse_id"] = None
 
         if assigned_appointment:
             try:
-                user_profile = Profile.objects.get(user=assigned_appointment.assigned_provider.assigned_provider)
+                provider_profile = Profile.objects.get(user=assigned_appointment.assigned_provider.assigned_provider)
             except Profile.DoesNotExist:
-                user_profile = None
+                provider_profile = None
         
-        if assigned_appointment and user_profile:
-            data["user_image"] = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+        if assigned_appointment and provider_profile:
+            data["prvoider_image"] = request.build_absolute_uri(provider_profile.picture.url) if provider_profile.picture else None
         else:
-            data["user_image"] = None
+            data["prvoider_image"] = None
 
         return data
     
