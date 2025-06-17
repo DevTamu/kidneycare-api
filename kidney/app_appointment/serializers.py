@@ -6,6 +6,7 @@ from app_authentication.models import User, Profile, UserInformation
 from app_schedule.models import Schedule 
 from datetime import datetime, timedelta
 from app_notification.models import Notification
+from django.utils import timezone
 import uuid
 
 class CreateAppointmentSerializer(serializers.ModelSerializer):
@@ -226,6 +227,13 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
 
         appointment = self.context.get('appointment_pk')
 
+        Appointment.objects.update_or_create(
+            id=appointment.id,
+            defaults={
+                "status": validated_data.get('status', None)
+            }
+        )
+
         #create assigned machine object instance linked to the appointment
         assigned_machine_obj, _ = AssignedMachine.objects.update_or_create(
             assigned_machine_appointment=appointment,
@@ -235,36 +243,32 @@ class AddAppointmentDetailsInAdminSerializer(serializers.Serializer):
             }
         )
 
-        try:
-            user_provider = User.objects.filter(id=assigned_providers_data["assigned_provider"]).first()
-        except User.DoesNotExist:
+        provider = User.objects.filter(id=assigned_providers_data["assigned_provider"]).first()
+        
+        if not provider:
             raise serializers.ValidationError({"message": "No provider found"})
 
         #create assigned provider object instance linked to the appointment
         assigned_provider_obj, _ = AssignedProvider.objects.update_or_create(
-            assigned_provider=user_provider,
-            defaults={
-                "assigned_patient_appointment":appointment
-            }
+            assigned_provider=provider,
+            assigned_patient_appointment=appointment,
+            defaults={}
         )
 
         #create assigned appointment object instance linked to the appointment
         assigned_appointment_obj, _ = AssignedAppointment.objects.update_or_create(
             appointment=appointment,
-            defaults={
-                "assigned_machine":assigned_machine_obj,
-                "assigned_provider":assigned_provider_obj   
-            }
-        )
-
-        Appointment.objects.update_or_create(
-            id=appointment.id,
-            defaults={
-                "status": validated_data.get('status', None)
-            }
+            assigned_machine=assigned_machine_obj,
+            assigned_provider=assigned_provider_obj,
+            defaults={}
+            # defaults={
+            #     "assigned_machine":assigned_machine_obj,
+            #     "assigned_provider":assigned_provider_obj   
+            # }
         )
 
         return assigned_appointment_obj
+
 
 class GetAssignedMachineSerializer(serializers.ModelSerializer):
     
@@ -311,6 +315,7 @@ class GetAssignedAppointmentSerializer(serializers.ModelSerializer):
 
 #DONE
 class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
+
     first_name = serializers.SerializerMethodField()
     last_name = serializers.SerializerMethodField()
     user_id = serializers.SerializerMethodField()
@@ -318,59 +323,69 @@ class GetAppointmentsInProviderSerializer(serializers.ModelSerializer):
     time = serializers.SerializerMethodField()
     machine = serializers.SerializerMethodField()
     provider = serializers.SerializerMethodField()
+    picture = serializers.SerializerMethodField()
 
     class Meta:
-        model = AssignedAppointment
-        fields = ['first_name', 'last_name', 'user_id', 'date', 'time', 'machine', 'provider']
+        model = Appointment
+        fields = ['id', 'first_name', 'last_name', 'picture', 'user_id', 'date', 'time', 'machine', 'provider', 'status']
 
 
-    def to_representation(self, instance):
-
-        #get the request from the serializer context
+    def get_picture(self, obj):
+        #get the request object from the serializer context
         request = self.context.get('request')
+        try:
+            user_profile = Profile.objects.get(user=obj.user)
+            return request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+        except Profile.DoesNotExist:
+            return None
 
-        #get the default serialized data from the parent class
+    # # get the assigned provider of the patient from the related appointment
+    def get_provider(self, obj):
+        
+        try:
+            assigned_provider = AssignedProvider.objects.get(
+                assigned_patient_appointment=obj
+            )
+            return f"{assigned_provider.assigned_provider.first_name} {assigned_provider.assigned_provider.last_name}"
+        except AssignedProvider.DoesNotExist:
+            return None
+    
+    # #get the assigned machine of the patient from the related appointment
+    def get_machine(self, obj):
+        try:
+            assigned_machine = AssignedMachine.objects.get(
+                assigned_machine_appointment=obj
+            )
+            return int(assigned_machine.assigned_machine)
+        except AssignedMachine.DoesNotExist:
+            return None
+    
+    # #get the firstname of the patient from the related appointment
+    def get_first_name(self, obj):
+        return obj.user.first_name
+
+    # #get the lastname of the patient from the related appointment
+    def get_last_name(self, obj):
+        return obj.user.last_name
+
+    # #get the id of the patient from the related appointment
+    def get_user_id(self, obj):
+        return str(obj.user.id)
+       
+    # #format the appointment date in a readable format (May 25, 2025
+    def get_date(self, obj):
+        return obj.date.strftime('%B %d, %Y')
+
+    # #format the appointment time in a readable format (May 25, 2025
+    def get_time(self, obj):
+        return obj.time.strftime('%I:%M %p')
+    
+    def to_representation(self, instance):
         data = super().to_representation(instance)
 
-        user_id = data.get('user_id')
-
-
-        try:
-            user_profile = Profile.objects.get(user=user_id)
-        except Exception as e:
-            user_profile = None
-
-        data["user_image"] = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+        data["appointment_id"] = data.pop('id')
 
         return data
-    
-    #get the assigned provider of the patient from the related appointment
-    def get_provider(self, obj):
-        return str(obj.assigned_provider.assigned_provider)
-    
-    #get the assigned machine of the patient from the related appointment
-    def get_machine(self, obj):
-        return int(obj.assigned_machine.assigned_machine)
-    
-    #get the firstname of the patient from the related appointment
-    def get_first_name(self, obj):
-        return obj.appointment.user.first_name
-
-    #get the lastname of the patient from the related appointment
-    def get_last_name(self, obj):
-        return obj.appointment.user.last_name
-
-    #get the id of the patient from the related appointment
-    def get_user_id(self, obj):
-        return str(obj.appointment.user.id)
-       
-    #format the appointment date in a readable format (May 25, 2025
-    def get_date(self, obj):
-        return obj.appointment.date.strftime('%B %d, %Y')
-
-    #format the appointment time in a readable format (May 25, 2025
-    def get_time(self, obj):
-        return obj.appointment.time.strftime('%I:%M %p')
     
     
 
@@ -478,8 +493,8 @@ class GetAllAppointsmentsInAdminSerializer(serializers.ModelSerializer):
 
     first_name = serializers.SerializerMethodField()
     last_name = serializers.SerializerMethodField()
-    date = serializers.SerializerMethodField()
-    time = serializers.SerializerMethodField()
+    date = serializers.DateField(format="%b %d, %Y", input_formats=["%b %d, %Y"])
+    time = serializers.TimeField(format="%I:%M %p", input_formats=["%I:%M %p"])
     status = serializers.SerializerMethodField()
     picture = serializers.SerializerMethodField()
     assigned_provider = serializers.SerializerMethodField()
@@ -503,12 +518,6 @@ class GetAllAppointsmentsInAdminSerializer(serializers.ModelSerializer):
     
     def get_last_name(self, obj):
         return str(obj.user.last_name)
-    
-    def get_date(self, obj):
-        return obj.date.strftime('%b %d, %Y')
-    
-    def get_time(self, obj):
-        return obj.time.strftime('%I:%M %p')
     
     def get_status(self, obj):
         return str(obj.status).lower()
@@ -548,7 +557,7 @@ class CancelAppointmentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Appointment
-        fields = ['id']
+        fields = '__all__'
 
     def update(self, instance, validated_data):
         instance.status = 'cancelled'
@@ -580,8 +589,9 @@ class GetPatientUpcomingAppointmentsSerializer(serializers.ModelSerializer):
         #get the default serialized data from the parent class
         data = super().to_representation(instance)
 
+
         #rename keys
-        data["user_id"] = str(data.pop('user'))
+        data["patient_id"] = str(data.pop('user'))
         data["appointment_id"] = data.pop('id')
         data["status"] = str(data.pop('status')).lower()
 
@@ -600,13 +610,15 @@ class GetPatientUpcomingAppointmentsSerializer(serializers.ModelSerializer):
         assigned_provider_upcoming_appointment = AssignedProvider.objects.filter(
             assigned_patient_appointment=data.get('appointment_id', None)
         ).first()
-        
+
         #safe access to provider data
         if assigned_provider_upcoming_appointment and assigned_provider_upcoming_appointment.assigned_provider:
             provider = assigned_provider_upcoming_appointment.assigned_provider
-            data["assigned_provider_name"] = f'{str(provider.role.lower())} {str(provider.first_name.lower())}'
+            data["provider_name"] = f'{str(provider.first_name.lower())}'
+            data["nurse_id"] = assigned_provider_upcoming_appointment.assigned_provider.id
         else:
-            data["assigned_provider_name"] = None
+            data["provider_name"] = None
+            data["nurse_id"] = None
 
 
         if provider:
@@ -617,10 +629,9 @@ class GetPatientUpcomingAppointmentsSerializer(serializers.ModelSerializer):
 
         #safe access to profile data
         if provider_profile and provider_profile.picture:
-            data["picture"] = request.build_absolute_uri(provider_profile.picture.url)
+            data["provider_image"] = request.build_absolute_uri(provider_profile.picture.url)
         else:
-            data["picture"] = None
-
+            data["provider_image"] = None
 
         return data
 
@@ -649,7 +660,7 @@ class GetPatientUpcomingAppointmentSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
 
         #rename keys
-        data["user_id"] = str(data.pop('user'))
+        data["patient_id"] = str(data.pop('user'))
         data["appointment_id"] = data.pop('id')
         data["status"] = str(data.pop('status')).lower()
 
@@ -669,30 +680,31 @@ class GetPatientUpcomingAppointmentSerializer(serializers.ModelSerializer):
 
         #get the assigned provider to the related appointment of the patient upcoming appointment
         try:
-            assigned_provider_upcoming_appointment = AssignedProvider.objects.filter(
+            assigned_provider = AssignedProvider.objects.filter(
                 assigned_patient_appointment=data.get('appointment_id', None)
             ).first()
         except AssignedProvider.DoesNotExist:
             pass
         
-        #safe access to provider data
-        if assigned_provider_upcoming_appointment and assigned_provider_upcoming_appointment.assigned_provider:
-            provider = assigned_provider_upcoming_appointment.assigned_provider
-            data["assigned_provider_name"] = f'{str(provider.role.lower())} {str(provider.first_name).lower()}'
+        #check if assigned provider exist
+        if assigned_provider and assigned_provider.assigned_provider:
+            provider = assigned_provider.assigned_provider
+            data["provider_name"] = str(provider.first_name).lower()
+            data["nurse_id"] = provider.id
         else:
-            data["assigned_provider_name"] = None
+            data["provider_name"] = None
+            data["nurse_id"] = None
 
         if provider:
-            #get the provider's profile safely
             try:
                 provider_profile = Profile.objects.filter(user=provider.id).first()
             except Profile.DoesNotExist:
                 pass
 
         if provider_profile and provider_profile.picture:
-            data["user_image"] = request.build_absolute_uri(provider_profile.picture.url)
+            data["provider_image"] = request.build_absolute_uri(provider_profile.picture.url)
         else:
-            data["user_image"] = None  
+            data["provider_image"] = None  
 
 
         return data
@@ -832,7 +844,8 @@ class GetUpcomingAppointmentDetailsInPatientSerializer(serializers.ModelSerializ
         data = super().to_representation(instance)
 
         #rename key
-        data["user_id"] = str(data.pop("user"))
+        data["patient_id"] = str(data.pop("user"))
+        data["appointment_id"] = data.pop('id')
         data["status"] = str(data.pop('status')).lower()
 
         try:
@@ -841,26 +854,30 @@ class GetUpcomingAppointmentDetailsInPatientSerializer(serializers.ModelSerializ
         except AssignedAppointment.DoesNotExist:
             assigned_appointment = None
 
-        if assigned_appointment and assigned_appointment.assigned_provider:
-            data["assigned_provider_name"] = f"{str(assigned_appointment.assigned_provider.assigned_provider.role).lower()} {str(assigned_appointment.assigned_provider.assigned_provider.first_name).lower()}"
-        else:
-            data["assigned_provider_name"] = None
 
         if assigned_appointment and assigned_appointment.assigned_machine:
-            data["assigned_machine"] = f"machine #{assigned_appointment.assigned_machine.assigned_machine}"
+            data["machine"] = f"machine #{assigned_appointment.assigned_machine.assigned_machine}"
         else:
-            data["assigned_machine"] = None
+            data["machine"] = None
+
+        if assigned_appointment and assigned_appointment.assigned_provider:
+            provider = assigned_appointment.assigned_provider.assigned_provider
+            data["provider_name"] = f"{str(provider.first_name).lower()}"
+            data["nurse_id"] = str(provider.id)
+        else:
+            data["provider_name"] = None
+            data["nurse_id"] = None
 
         if assigned_appointment:
             try:
-                user_profile = Profile.objects.get(user=assigned_appointment.assigned_provider.assigned_provider)
+                provider_profile = Profile.objects.get(user=assigned_appointment.assigned_provider.assigned_provider)
             except Profile.DoesNotExist:
-                user_profile = None
+                provider_profile = None
         
-        if assigned_appointment and user_profile:
-            data["user_image"] = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+        if assigned_appointment and provider_profile:
+            data["prvoider_image"] = request.build_absolute_uri(provider_profile.picture.url) if provider_profile.picture else None
         else:
-            data["user_image"] = None
+            data["prvoider_image"] = None
 
         return data
     

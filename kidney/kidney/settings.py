@@ -4,10 +4,17 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 from django.core.files.storage import default_storage
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+
 import dj_database_url
 import urllib.parse
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+env_mode = os.environ.get('DJANGO_ENV', 'development')
+load_dotenv(os.path.join(BASE_DIR, f".env.{env_mode}"))
+
+print(f"RUNNING AT ENV: .env.{env_mode}")
 
 
 
@@ -29,19 +36,24 @@ cloudinary.config(
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG')    
+DEBUG = os.environ.get('DEBUG')
+# DEBUG = os.environ.get('DEBUG', 'False') == 'True' 
+
 
 ALLOWED_HOSTS = ["*"]
+# ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
 
-# ALLOWED_HOSTS = ["kidneycare-api.onrender.com", "localhost", "127.0.0.1"]
+CSRF_TRUSTED_ORIGINS = [
+    'https://kidneycare-api-dev.onrender.com',
+]
 
-# CSRF_TRUSTED_ORIGINS = [
-#     'https://kidneycare-api.onrender.com',
-# ]
+CORS_ALLOWED_ORIGINS = [
+    'https://kidneycare-api-dev.onrender.com',
+    'http://localhost:8000',
+    'http://192.168.100.11:8000'
+]
 
-# CORS_ALLOWED_ORIGINS = [
-#     'https://kidneycare-api.onrender.com',
-# ]
+CORS_ALLOW_CREDENTIALS = True
 
 redis_url = os.environ.get('REDIS_URL')
 
@@ -55,7 +67,7 @@ INSTALLED_APPS = [
     'cloudinary',
     'cloudinary_storage',
     'storages',
-    # 'corsheaders',
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -77,7 +89,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    # 'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -111,22 +123,21 @@ WSGI_APPLICATION = 'kidney.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=True,
+    )
 }
-
-
-# DATABASES = {
-#     'default': dj_database_url.config(
-#         default=os.environ.get('DATABASE_URL'),
-#         conn_max_age=600,
-#         ssl_require=True,
-#     )
-# }
 
 
 # Password validation
@@ -171,6 +182,8 @@ REST_FRAMEWORK = {
         # 'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'EXCEPTION_HANDLER': 'kidney.utils.custom_exception_handler',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10
 }
 
 SIMPLE_JWT = {
