@@ -35,14 +35,23 @@ class GetScheduleView(generics.ListAPIView):
 
     serializer_class = GetScheduleSerializer
 
+    def get_queryset(self):
+        return Schedule.objects.get(id=3)
+
     def get(self, request, *args, **kwargs):
 
         try:
-            queryset = Schedule.objects.all()
-            serializer = self.get_serializer(queryset, many=True)
-            return ResponseMessageUtils(message="List of Schedules", data=serializer.data, status_code=status.HTTP_200_OK)
+
+            serializer = self.get_serializer(self.get_queryset(), many=False)
+
+            return ResponseMessageUtils(
+                message="Schedule",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
+        
         except Exception as e:
             return ResponseMessageUtils(
-                message="Something went wrong while processing your request.",
+                message=f"Something went wrong while processing your request {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
