@@ -49,17 +49,12 @@ class GetScheduleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Schedule
-        fields = '__all__'
+        fields = ['id', 'start_time', 'end_time', 'available_days']
 
 
     def to_representation(self, instance):
-        data = super().to_representation(instance)
 
-        #removed from the response
-        data.pop('created_at')
-        data.pop('updated_at')
-        data.pop('date_created')
-        data.pop('id')
+        data = super().to_representation(instance)
 
         #convert to datetime objects
         schedule_start_time = datetime.strptime(data.pop('start_time'), '%I:%M %p')
@@ -78,9 +73,6 @@ class GetScheduleSerializer(serializers.ModelSerializer):
             time_slots.append(current_time)
             #adding 1hr interval to the current_time
             current_time += interval
-
-        #sort by datetime before formatting
-        time_slots.sort()
 
         #format the time to 12-hour strings
         formatted_slots = [slot.strftime("%I:%M %p") for slot in time_slots]
