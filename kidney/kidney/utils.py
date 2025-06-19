@@ -7,10 +7,13 @@ from django.core.mail import EmailMultiAlternatives
 import random
 import re
 import secrets
+import base64
 import string
 from rest_framework_simplejwt.tokens import AccessToken, TokenError
 from rest_framework import status
 from asgiref.sync import sync_to_async
+from django.db import OperationalError
+from django.contrib.auth import get_user_model
 
 def ResponseMessageUtils(
     message:str=None,
@@ -165,10 +168,11 @@ def generate_otp():
     return f"{random.randint(100000, 999999)}"
 
 #password generator
-def generate_password(password_length=32):
+def generate_password(password_length=8):
 
     #define the possible characters for the password
-    alphabet = string.ascii_letters + string.digits + string.punctuation.replace('/', '').replace('\\', '').replace('"', '')
+    alphabet = string.digits
+    # alphabet = string.ascii_letters + string.digits + string.punctuation.replace('/', '').replace('\\', '').replace('"', '')
 
     #generate a random password by joining randomly chosen characters
     password = ''.join(secrets.choice(alphabet) for _ in range(password_length))
@@ -249,9 +253,31 @@ def get_token_user_id(request):
     
 @sync_to_async
 def get_user_by_id(user_id):
-    from django.contrib.auth import get_user_model
     try:
         User = get_user_model()
         return User.objects.get(id=user_id)
     except User.DoesNotExist:
         return None
+    except OperationalError as e:
+        print(f"[DB ERROR] OperationalError while fetching user {user_id}: {e}")
+        return None
+    except Exception as e:
+        print(f"[UNEXPECTED ERROR] Failed to fetch user {user_id}: {e}")
+        return None
+    
+def get_base64_file_size(base64_data: str) -> int:
+    """
+    Returns the size in bytes of the base64-encoded image.
+    """
+    if ";base64," in base64_data:
+        base64_data = base64_data.split(";base64,")[1]
+    return len(base64.b64decode(base64_data))
+
+
+def get_absolute_image_url(scope, image_url):
+
+    scheme = "http"
+
+    host_header = dict(scope["headers"]).get(b"host", b"").decode()
+
+    return f"{scheme}://{host_header}{image_url}"
