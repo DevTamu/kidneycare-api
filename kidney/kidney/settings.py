@@ -5,15 +5,10 @@ from dotenv import load_dotenv
 import os
 from django.core.files.storage import default_storage
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv()
 import dj_database_url
 import urllib.parse
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-env_mode = os.environ.get('DJANGO_ENV', 'production')
-load_dotenv(os.path.join(BASE_DIR, f".env.{env_mode}"))
-
-print(f"RUNNING AT ENV: .env.{env_mode}")
-
 
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
@@ -121,11 +116,14 @@ WSGI_APPLICATION = 'kidney.wsgi.application'
 
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': os.environ.get('DATABASE_NAME'),
+#         'USER': os.environ.get('DATABASE_USER'),
+#         'PASSWORD': os.environ.get('DATABASE_PASSWORD'),
+#         'HOST': os.environ.get('DATABASE_HOST'),
+#         'OPTIONS': {'sslmode': 'require'},
 #     }
 # }
-
 
 DATABASES = {
     'default': dj_database_url.config(
