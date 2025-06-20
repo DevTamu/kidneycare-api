@@ -6,5 +6,5 @@ from .views import (
 
 urlpatterns = [
     path('create/schedule/', CreateScheduleView.as_view(), name='create-schedule'),
-    path('schedules/', GetScheduleView.as_view(), name='get-schedule'),
+    path('get/schedules/', GetScheduleView.as_view(), name='get-schedule'),
 ]
