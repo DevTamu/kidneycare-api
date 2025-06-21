@@ -7,7 +7,7 @@ from .serializers import (
     GetNewsEventSerializer,
     GetNewsEventWithIDSerializer
 )
-
+from kidney.pagination.appointment_pagination import Pagination
 from .models import NewsEvent
 import logging
 
@@ -43,14 +43,27 @@ class AddNewsEventView(generics.CreateAPIView):
 class GetNewsEventView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GetNewsEventSerializer
-    
+    pagination_class = Pagination
+
+    def get_queryset(self):
+        return NewsEvent.objects.all()
+
     def get(self, request, *args, **kwargs):
         try:     
-            events = NewsEvent.objects.all()       
-            serializer = self.get_serializer(events, many=True, context={'request': request})
+
+            queryset = self.get_queryset()
+
+            paginator = self.pagination_class()
+
+            paginated_data = paginator.paginate_queryset(queryset, request)
+
+            serializer = self.get_serializer(paginated_data, many=True, context={'request': request})
+
+            paginated_response = paginator.get_paginated_response(serializer.data)
+
             return ResponseMessageUtils(
                 message="List of News Event Data",
-                data=serializer.data,
+                data=paginated_response.data,
                 status_code=status.HTTP_200_OK
             )
         except NewsEvent.DoesNotExist:
