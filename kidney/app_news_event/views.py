@@ -46,7 +46,7 @@ class GetNewsEventView(generics.RetrieveAPIView):
     pagination_class = Pagination
 
     def get_queryset(self):
-        return NewsEvent.objects.all()
+        return NewsEvent.objects.all().order_by("-created_at")
 
     def get(self, request, *args, **kwargs):
         try:     
