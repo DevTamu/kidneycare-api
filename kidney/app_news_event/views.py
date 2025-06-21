@@ -53,12 +53,16 @@ class GetNewsEventView(generics.RetrieveAPIView):
 
             queryset = self.get_queryset()
 
+            #create an instance of the pagination class
             paginator = self.pagination_class()
 
+            #use the paginator to paginate the queryset based on the request's parameters
             paginated_data = paginator.paginate_queryset(queryset, request)
 
+            #serialize the paginated data, passing the request in context
             serializer = self.get_serializer(paginated_data, many=True, context={'request': request})
 
+            #generate a paginated response (includes count, next, previous)
             paginated_response = paginator.get_paginated_response(serializer.data)
 
             return ResponseMessageUtils(
