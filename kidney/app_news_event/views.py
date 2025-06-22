@@ -82,7 +82,7 @@ class GetNewsEventsView(generics.RetrieveAPIView):
     serializer_class = GetNewsEventSerializer
 
     def get_queryset(self):
-        return NewsEvent.objects.all().order_by("-created_at")
+        return NewsEvent.objects.all()
 
     def get(self, request, *args, **kwargs):
         try:     
