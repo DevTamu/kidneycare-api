@@ -42,6 +42,19 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://kidneycare-api-dev.onrender.com',
+]
+
+CORS_ALLOWED_ORIGINS = [
+    'https://kidneycare-api-dev.onrender.com',
+    'http://localhost:3000',
+    'http://localhost:8000',
+    'https://kidneycare-web.vercel.app',
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
 redis_url = os.environ.get('REDIS_URL')
 
 parsed_url = urllib.parse.urlparse(redis_url)
