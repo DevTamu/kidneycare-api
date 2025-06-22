@@ -101,7 +101,7 @@ class GetProvidersChatView(generics.ListAPIView):
             providers = User.objects.filter(role__in=['nurse', 'head nurse'])
 
             providers_who_messaged_patient = providers.filter(
-                sender_messages__receiver=patient
+                Q(sender_messages__receiver=patient) | Q(receiver_messages__sender=patient)
             ).distinct()
 
             if not providers_who_messaged_patient.exists():
@@ -113,8 +113,8 @@ class GetProvidersChatView(generics.ListAPIView):
             latest_messages = []
             for provider in providers_who_messaged_patient:
                 message = Message.objects.filter(
-                    Q(sender=provider, receiver=patient) |
-                    Q(sender=patient, receiver=provider)
+                    Q(sender=patient, receiver=provider) |
+                    Q(sender=provider, receiver=patient)
                 ).order_by('-created_at').first()
                 if message:
                     latest_messages.append(message)
