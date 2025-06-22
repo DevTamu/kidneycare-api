@@ -11,13 +11,6 @@ import urllib.parse
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-env_mode = os.environ.get('DJANGO_ENV', 'development')
-load_dotenv(os.path.join(BASE_DIR, f".env.{env_mode}"))
-
-print(f"RUNNING AT ENV: .env.{env_mode}")
-
-
-
 load_dotenv()
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
@@ -36,24 +29,9 @@ cloudinary.config(
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = os.environ.get('DEBUG')
-DEBUG = os.environ.get('DEBUG', 'False') == 'True' 
+DEBUG = os.environ.get('DEBUG')
 
-
-# ALLOWED_HOSTS = ["*"]
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
-
-CSRF_TRUSTED_ORIGINS = [
-    'https://kidneycare-api-dev.onrender.com',
-]
-
-CORS_ALLOWED_ORIGINS = [
-    'https://kidneycare-api-dev.onrender.com',
-    'http://localhost:8000',
-    'http://192.168.100.11:8000'
-]
-
-CORS_ALLOW_CREDENTIALS = True
+ALLOWED_HOSTS = ["*"]
 
 redis_url = os.environ.get('REDIS_URL')
 
@@ -123,22 +101,12 @@ WSGI_APPLICATION = 'kidney.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True,
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
-
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
