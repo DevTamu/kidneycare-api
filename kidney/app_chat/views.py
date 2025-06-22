@@ -93,6 +93,7 @@ class GetProvidersChatView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
         
         try:
+            
             #get the current authenticated user_id from the token
             user_id = get_token_user_id(request)
 
@@ -115,7 +116,7 @@ class GetProvidersChatView(generics.ListAPIView):
                 message = Message.objects.filter(
                     Q(sender=patient, receiver=provider) |
                     Q(sender=provider, receiver=patient)
-                ).order_by('-created_at').first()
+                ).order_by('created_at').first()
                 if message:
                     latest_messages.append(message)
        
