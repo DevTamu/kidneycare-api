@@ -210,7 +210,7 @@ class GetPatientChatInformationSerializer(serializers.ModelSerializer):
                         Q(sender=admin, receiver=patient)
                     )
                 ).values('content', 'status', 'sender', 'receiver', 'created_at', 'read', 'id', 'image')
-            )
+            ).order_by('created_at')
 
             messages_list = [{
                 "id": int(message["id"]),
