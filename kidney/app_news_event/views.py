@@ -75,6 +75,32 @@ class GetNewsEventView(generics.RetrieveAPIView):
                 message=f"Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+
+class GetNewsEventsView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetNewsEventSerializer
+
+    def get_queryset(self):
+        return NewsEvent.objects.all().order_by("-created_at")
+
+    def get(self, request, *args, **kwargs):
+        try:     
+
+            queryset = self.get_queryset()
+            
+            serializer = self.get_serializer(queryset, many=True, context={'request': request})
+
+            return ResponseMessageUtils(
+                message="List of News Event Data",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
+        except NewsEvent.DoesNotExist:
+            return ResponseMessageUtils(
+                message=f"Something went wrong while processing your request.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class GetNewsEventWithIDView(generics.RetrieveAPIView):
