@@ -17,8 +17,6 @@ load_dotenv(os.path.join(BASE_DIR, f".env.{env_mode}"))
 print(f"RUNNING AT ENV: .env.{env_mode}")
 
 
-
-load_dotenv()
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
 #cloudinary configurations
