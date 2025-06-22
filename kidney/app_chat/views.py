@@ -182,7 +182,7 @@ class GetPatientsChatView(generics.ListAPIView):
             patient = User.objects.filter(role='patient')
 
             patient_who_messaged_admin = patient.filter(
-                sender_messages__receiver=admin
+                Q(sender_messages__receiver=admin) | Q(receiver_messages__sender=admin)
             ).distinct()
 
             if not patient_who_messaged_admin.exists():
@@ -195,9 +195,8 @@ class GetPatientsChatView(generics.ListAPIView):
             latest_messages = []
             for patient in patient_who_messaged_admin:
                 message = Message.objects.filter(
-                    sender=patient, receiver=admin
-                    # Q(sender=patient, receiver=admin) |
-                    # Q(sender=admin, receiver=patient)
+                    Q(sender=patient, receiver=admin) |
+                    Q(sender=admin, receiver=patient)
                 ).order_by('-created_at').first()
                 if message:
                     latest_messages.append(message)
@@ -219,7 +218,7 @@ class GetPatientsChatView(generics.ListAPIView):
             )
         
 
-class UpdateChatStatusInView(generics.UpdateAPIView):
+class UpdateChatStatusInView(generics.UpdateAPIView): 
 
     serializer_class = UpdateChatStatusInAdminSerializer
     permission_classes = [IsAuthenticated]
