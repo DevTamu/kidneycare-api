@@ -13,6 +13,8 @@ from .serializers import (
     GetPatientAppointmentDetailsInAdminSerializer,
     GetUpcomingAppointmentDetailsInPatientSerializer,
 )
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 from django.db.models import F, DateTimeField, ExpressionWrapper, Q
 from django.utils import timezone
 from app_authentication.models import User
@@ -37,13 +39,53 @@ class CreateAppointmentView(generics.CreateAPIView):
         try:
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
-                serializer.save()
+                
+                created_appointment = serializer.save()
+                
+                appointment = Appointment.objects.get(id=created_appointment.id)
+                user = appointment.user
+
+                #create an instance of channel layer
+                channel_layer = get_channel_layer()
+
+                #get the machine that linked to the created appointment
+                assigned_machine_obj = created_appointment.assigned_machine_appointment.first()
+
+                assigned_machine = assigned_machine_obj.assigned_machine if assigned_machine_obj else None
+
+                assigned_provider_obj = appointment.assigned_patient_appointment.first()
+
+                assigned_provider = assigned_provider_obj.assigned_provider if assigned_provider_obj else None
+
+                get_provider_profile = (
+                    request.build_absolute_uri(getattr(getattr(assigned_provider, 'user_profile', None), 'picture', None).url)
+                    if getattr(getattr(assigned_provider, 'user_profile', None), 'picture', None)
+                    else None
+                )
+
+                async_to_sync(channel_layer.group_send)(
+                    f"appointment_user_{user.id}",
+                    {
+                        "type": "upcoming_appointments",
+                        "date": appointment.date.strftime("%m/%d/%Y"),
+                        "time": appointment.time.strftime("%I:%M %p"),
+                        "patient_id": str(user.id),
+                        "appointment_id": appointment.id,
+                        "nurse_id": str(assigned_provider.id) if assigned_provider else None,
+                        "status": str(appointment.status).lower(),
+                        "machine": f"machine #{assigned_machine}",
+                        "provider_name": str(assigned_provider.first_name).lower() if assigned_provider else None,
+                        "provider_image": get_provider_profile
+                    }
+                ) 
+            
+
                 return ResponseMessageUtils(message="Successfully created an appointment", status_code=status.HTTP_201_CREATED)
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
             
         except Exception as e:
             return ResponseMessageUtils(
-                message="Something went wrong while processing your request.",
+                message=f"Something went wrong while processing your request {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -66,6 +108,7 @@ class UpdateAppointmentInPatientView(generics.UpdateAPIView):
 
             if serializer.is_valid():
                 serializer.save()
+
                 return ResponseMessageUtils(
                     message="Your Appointment has been successfully updated",
                     status_code=status.HTTP_200_OK
@@ -88,16 +131,55 @@ class AddAppointmentDetailsInAdminView(generics.CreateAPIView):
     def post(self, request, *args, **kwargs):
 
         try:
+
             appointment = Appointment.objects.get(id=self.kwargs.get('pk'))
 
-            serializer = self.get_serializer(data=request.data, context={'appointment_pk': appointment})
+            serializer = self.get_serializer(data=request.data, many=False, context={'appointment_pk': appointment})
 
             if serializer.is_valid():
-                serializer.save()
+                
+                updated_appointment = serializer.save()
+                #get the user linked to the updated appointment
+                user = updated_appointment.appointment.user
+                #create an instance of channel layer
+                channel_layer = get_channel_layer()
+
+                assigned_machine_obj = appointment.assigned_machine_appointment.first()
+
+                assigned_machine = assigned_machine_obj.assigned_machine if assigned_machine_obj else None
+
+                assigned_provider_obj = appointment.assigned_patient_appointment.first()
+
+                assigned_provider = assigned_provider_obj.assigned_provider if assigned_provider_obj else None
+
+                get_provider_profile = (
+                    request.build_absolute_uri(getattr(getattr(assigned_provider, 'user_profile', None), 'picture', None).url)
+                    if getattr(getattr(assigned_provider, 'user_profile', None), 'picture', None)
+                    else None
+                )
+
+                if updated_appointment.appointment.status == "approved":
+                    async_to_sync(channel_layer.group_send)(
+                        f"appointment_user_{user.id}",
+                        {
+                            "type": "upcoming_appointments",
+                            "date": updated_appointment.appointment.date.strftime("%m/%d/%Y"),
+                            "time": updated_appointment.appointment.time.strftime("%I:%M %p"),
+                            "patient_id": str(user.id),
+                            "appointment_id": updated_appointment.appointment.id,
+                            "nurse_id": str(assigned_provider.id) if assigned_provider else None,
+                            "status": str(updated_appointment.appointment.status).lower(),
+                            "machine": f"machine #{assigned_machine}",
+                            "provider_name": str(assigned_provider.first_name).lower(),
+                            "provider_image": get_provider_profile
+                        }
+                    )   
+
                 return ResponseMessageUtils(message="Successfully added Appointment details", status_code=status.HTTP_201_CREATED)
             return ResponseMessageUtils(message=extract_first_error_message(serializer.errors), status_code=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
+            print(f"WHAT WENT WRONG? {e}")
             return ResponseMessageUtils(
                 message=f"Something went wrong while processing your request. {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR

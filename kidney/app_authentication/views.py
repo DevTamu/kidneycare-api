@@ -33,6 +33,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth import logout
 from .models import OTP, User, Profile, UserInformation, Caregiver
 from django.http import JsonResponse
+from kidney.pagination.appointment_pagination import Pagination
 
 def ping(request):
     return JsonResponse({"status": "ok"})
@@ -409,8 +410,10 @@ class GetUserRoleView(generics.ListAPIView):
 
 
 class GetHealthCareProvidersView(generics.ListAPIView):
+
     permission_classes = [IsAuthenticated]
     serializer_class = GetHealthCareProvidersSerializer
+    pagination_class = Pagination
 
     def get_queryset(self):
         return User.objects.filter(role__in=['nurse', 'head nurse'])
@@ -419,10 +422,18 @@ class GetHealthCareProvidersView(generics.ListAPIView):
 
         try:
             user = self.get_queryset()  
-            serializer = self.get_serializer(user, many=True)
+
+            paginator = self.pagination_class()
+
+            paginated_data = paginator.paginate_queryset(user, request)
+
+            serializer = self.get_serializer(paginated_data, many=True)
+
+            paginated_response = paginator.get_paginated_response(serializer.data)
+
             return ResponseMessageUtils(
                 message="List of Providers",
-                data=serializer.data,
+                data=paginated_response.data,
                 status_code=status.HTTP_200_OK
             )
         except Exception as e:
