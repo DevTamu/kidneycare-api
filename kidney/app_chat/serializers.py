@@ -161,13 +161,14 @@ class UpdateChatStatusInAdminSerializer(serializers.ModelSerializer):
         receiver_id = self.context.get('receiver_id')
 
         Message.objects.filter(
-           sender=sender_id, receiver=receiver_id
+           Q(sender=sender_id, receiver=receiver_id) |
+           Q(sender=receiver_id, receiver=sender_id)
         ).update(read=True, status='read')
 
         return instance
 
 
-class GetPatientChatInformationSerializer(serializers.ModelSerializer):
+class GetPatientChatInformationSerializer(serializers.ModelSerializer): 
 
     user_image = serializers.SerializerMethodField()
 

@@ -195,8 +195,8 @@ class GetPatientsChatView(generics.ListAPIView):
             latest_messages = []
             for patient in patient_who_messaged_admin:
                 message = Message.objects.filter(
-                    Q(sender=patient, receiver=admin) |
-                    Q(sender=admin, receiver=patient)
+                    Q(sender=admin, receiver=patient) |
+                    Q(sender=patient, receiver=admin)
                 ).order_by('-created_at').first()
                 if message:
                     latest_messages.append(message)
@@ -213,7 +213,7 @@ class GetPatientsChatView(generics.ListAPIView):
 
         except Exception as e:
             return ResponseMessageUtils(
-                message="Something went wrong while processing your request",
+                message=f"Something went wrong while processing your request {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
