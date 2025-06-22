@@ -76,7 +76,6 @@ class GetProvidersChatSerializer(serializers.ModelSerializer):
         provider_information = {
             "provider_id": provider.id,
             "chat_id": int(data.pop('id'))
-            
         }
 
         #removed from the response
@@ -87,8 +86,6 @@ class GetProvidersChatSerializer(serializers.ModelSerializer):
         data.pop('date_sent')
         data.pop('content')
         data.pop('image')
-
-        local_time = timezone.localtime(instance.date_sent)
 
         data.update(provider_information)
         data["last_message"] = {
