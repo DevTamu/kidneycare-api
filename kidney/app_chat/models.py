@@ -7,9 +7,9 @@ from cloudinary_storage.storage import MediaCloudinaryStorage
 class Message(TimestampModel):
 
     status_choices = [
-        ('Sent', 'sent'),
-        ('Delivered', 'delivered'),
-        ('Read', 'read')
+        ('sent', 'Sent'),
+        ('delivered', 'Delivered'),
+        ('read', 'Read')
     ]
 
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sender_messages')
