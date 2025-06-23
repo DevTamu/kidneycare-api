@@ -10,11 +10,11 @@ import urllib.parse
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 env_mode = os.environ.get('DJANGO_ENV', 'development')
 load_dotenv(os.path.join(BASE_DIR, f".env.{env_mode}"))
 
 print(f"RUNNING AT ENV: .env.{env_mode}")
+
 
 
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
@@ -123,6 +123,7 @@ WSGI_APPLICATION = 'kidney.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.sqlite3',
@@ -137,6 +138,7 @@ DATABASES = {
         ssl_require=True,
     )
 }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
