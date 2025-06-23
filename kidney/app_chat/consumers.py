@@ -29,7 +29,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 await self.close(code=4003)
                 return
             
-            self.chat_type = str(self.scope["url_route"]["kwargs"]["chat_type"]) #(e.g, admin,nurse, head nurse, patient)
+            self.chat_type = str(self.scope["url_route"]["kwargs"]["chat_type"]) #(e.g, admin, nurse, head nurse)
             self.receiver_id = str(self.scope["url_route"]["kwargs"]["room_name"])
             self.sender_id = str(user.id)
 
@@ -145,8 +145,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def inbox_update(self, event):
         await self.send(text_data=json.dumps({
-            "id": event["id"],
-            "role": event["role"],
             "status": event["status"],
             "first_name": event["first_name"],
             "user_image": event["user_image"],
@@ -184,8 +182,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     f"user_{message.sender.id}",
                     {
                         "type": "inbox_update",
-                        "id": str(user.id),
-                        "role": str(user.role).lower(),
                         "status": str(user.status).lower(),
                         "first_name": user.first_name,
                         "user_image": user_profile,
@@ -205,8 +201,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     f"user_{message.receiver.id}",
                     {
                         "type": "inbox_update",
-                        "id": str(user.id),
-                        "role": str(user.role).lower(),
                         "status": str(user.status).lower(),
                         "first_name": user.first_name,
                         "user_image": user_profile,
