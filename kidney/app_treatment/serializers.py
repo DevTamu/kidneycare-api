@@ -290,9 +290,6 @@ class GetPatientAccessTypeSerializer(serializers.ModelSerializer):
 
 class GetPatientTreatmentDetailSerializer(serializers.ModelSerializer):
 
-    time_started = serializers.TimeField(format='%H:%M %p', input_formats=['%H:%M %p'])
-    time_ended = serializers.TimeField(format='%H:%M %p', input_formats=['%H:%M %p'])
-
     class Meta:
         model = TreatmentDetail
         fields = '__all__'
