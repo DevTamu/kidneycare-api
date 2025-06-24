@@ -62,6 +62,7 @@ def custom_exception_handler(exc, context):
         # Prioritize non_field_errors if present
         if "non_field_errors" in data and isinstance(data["non_field_errors"], list):
             response.data = {"message": data["non_field_errors"][0]} #flatten the error
+        
         else:
             for key, value in data.items():
                 if isinstance(value, list) and len(value) == 1:
