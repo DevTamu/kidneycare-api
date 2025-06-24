@@ -975,8 +975,12 @@ class GetUserInformationSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
 
-        #formatting the contact with hyphens
-        data["contact"] = '{}{}{}{}-{}{}{}-{}{}{}{}'.format(*data.pop('contact'))
+        contact = data.pop('contact', '')
+        if contact and len(contact) == 11 and contact.isdigit():
+            data["contact"] = '{}{}{}{}-{}{}{}-{}{}{}{}'.format(*contact)
+        else:
+            # fallback or just return the original contact
+            data["contact"] = contact
 
         return data
     
