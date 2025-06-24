@@ -28,4 +28,3 @@ class IsPatient(UserRolePermission):
 
 class IsCaregiver(UserRolePermission):
     allowed_roles = [Role.CAREGIVER]
-

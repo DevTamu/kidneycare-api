@@ -6,6 +6,7 @@ from kidney.utils import ResponseMessageUtils, get_token_user_id, extract_first_
 from django.db.models import Q
 from .serializers import (
     GetNotificationChatsToProviderSerializer,
+    GetPatientChatInformationInProviderSerializer,
     GetProvidersChatSerializer,
     GetProviderChatInformationSerializer,
     GetPatientsChatSerializer,
@@ -34,56 +35,51 @@ class GetNotificationChatsToProviderView(generics.ListAPIView):
         return Message.objects.filter(receiver=self.request.user)
 
     def get(self, request, *args, **kwargs):
-
+        
         try:
-            messages = self.get_queryset()
+            
+            #get the current authenticated user_id from the token
+            user_id = get_token_user_id(request)
 
-            serializer = self.get_serializer(messages, many=True)
+            provider = User.objects.get(id=user_id)
+
+            patients = User.objects.filter(role__in=['patient'])
+
+            patient_who_messaged_providers = patients.filter(
+                Q(sender_messages__receiver=provider, receiver_messages__sender=provider)
+            ).distinct()
+
+            if not patient_who_messaged_providers.exists():
+                return ResponseMessageUtils(
+                    message="No messages found",
+                    status_code=status.HTTP_404_NOT_FOUND
+                )
+
+            latest_messages = []
+            for patient in patient_who_messaged_providers:
+                message = Message.objects.filter(
+                    Q(sender=patient, receiver=provider) |
+                    Q(sender=provider, receiver=patient)
+                ).order_by('-created_at').first()
+                if message:
+                    latest_messages.append(message)
+       
+
+            serializer = self.get_serializer(latest_messages, many=True, context={'pk': user_id, 'request': request})
+
 
             return ResponseMessageUtils(
-                message="List of notification messages",
+                message="List of chat notifications",
                 data=serializer.data,
                 status_code=status.HTTP_200_OK
             )
+
         except Exception as e:
             return ResponseMessageUtils(
-                message="Something went wrong while processing your request.",
+                message=f"Something went wrong while processing your request {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
-
-class UpdateNotificationChatInProviderView(generics.UpdateAPIView):
-
-    permission_classes = [IsAuthenticated]
-    serializer_class     = UpdateNotificationChatInProviderSerializer
-    lookup_field = 'pk'
-    queryset = Message.objects.all()
-
-    def patch(self, request, *args, **kwargs):
-
-        try:
-
-            instance = self.get_object()
-
-            serializer = self.get_serializer(instance=instance, data=request.data, partial=True)
-            
-            if serializer.is_valid():
-                serializer.save()
-                return ResponseMessageUtils(
-                    message="Successfully update the notification status",
-                    status_code=status.HTTP_200_OK
-                )
-            
-            return ResponseMessageUtils(
-                message=extract_first_error_message(serializer.errors),
-                status_code=status.HTTP_400_BAD_REQUEST
-            )
-
-        except Exception as e:
-            return ResponseMessageUtils(
-                message=f"Something went wrong while processing your request. {e}",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
 
 class GetProvidersChatView(generics.ListAPIView):
 
@@ -93,6 +89,7 @@ class GetProvidersChatView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
         
         try:
+            
             #get the current authenticated user_id from the token
             user_id = get_token_user_id(request)
 
@@ -101,7 +98,7 @@ class GetProvidersChatView(generics.ListAPIView):
             providers = User.objects.filter(role__in=['nurse', 'head nurse'])
 
             providers_who_messaged_patient = providers.filter(
-                sender_messages__receiver=patient
+                Q(sender_messages__receiver=patient) | Q(receiver_messages__sender=patient)
             ).distinct()
 
             if not providers_who_messaged_patient.exists():
@@ -113,8 +110,8 @@ class GetProvidersChatView(generics.ListAPIView):
             latest_messages = []
             for provider in providers_who_messaged_patient:
                 message = Message.objects.filter(
-                    Q(sender=provider, receiver=patient) |
-                    Q(sender=patient, receiver=provider)
+                    Q(sender=patient, receiver=provider) |
+                    Q(sender=provider, receiver=patient)
                 ).order_by('-created_at').first()
                 if message:
                     latest_messages.append(message)
@@ -182,7 +179,7 @@ class GetPatientsChatView(generics.ListAPIView):
             patient = User.objects.filter(role='patient')
 
             patient_who_messaged_admin = patient.filter(
-                sender_messages__receiver=admin
+                Q(sender_messages__receiver=admin) | Q(receiver_messages__sender=admin)
             ).distinct()
 
             if not patient_who_messaged_admin.exists():
@@ -195,9 +192,8 @@ class GetPatientsChatView(generics.ListAPIView):
             latest_messages = []
             for patient in patient_who_messaged_admin:
                 message = Message.objects.filter(
-                    sender=patient, receiver=admin
-                    # Q(sender=patient, receiver=admin) |
-                    # Q(sender=admin, receiver=patient)
+                    Q(sender=admin, receiver=patient) |
+                    Q(sender=patient, receiver=admin)
                 ).order_by('-created_at').first()
                 if message:
                     latest_messages.append(message)
@@ -214,12 +210,12 @@ class GetPatientsChatView(generics.ListAPIView):
 
         except Exception as e:
             return ResponseMessageUtils(
-                message="Something went wrong while processing your request",
+                message=f"Something went wrong while processing your request {e}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
 
-class UpdateChatStatusInView(generics.UpdateAPIView):
+class UpdateChatStatusInView(generics.UpdateAPIView): 
 
     serializer_class = UpdateChatStatusInAdminSerializer
     permission_classes = [IsAuthenticated]
@@ -253,7 +249,6 @@ class UpdateChatStatusInView(generics.UpdateAPIView):
             )
             
         except Exception as e:
-            print(f"WHAT WENT WRORNG? {e}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -264,6 +259,38 @@ class GetPatientChatInformationView(generics.RetrieveAPIView):
 
     permission_classes = [IsAuthenticated]
     serializer_class = GetPatientChatInformationSerializer
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        return User.objects.get(id=self.kwargs.get('pk'))
+        
+    def get(self, request, *args, **kwargs):
+
+        try:
+
+            user_id = get_token_user_id(request)
+
+            queryset = self.get_queryset()
+
+            serializer = self.get_serializer(queryset, context={"user_id": user_id, "request": request})
+
+            return ResponseMessageUtils(
+                message="Chat messages",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            print(f"WHAT WENT WRONG? {e}")
+            return ResponseMessageUtils(
+                message="Something went wrong while processing your request",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+class GetPatientChatInformationInProviderView(generics.RetrieveAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = GetPatientChatInformationInProviderSerializer
     lookup_field = 'pk'
 
     def get_queryset(self):
