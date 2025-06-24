@@ -7,7 +7,6 @@ from .models import (
     PreDialysis,
     PostDialysis
 )
-from django.utils import timezone
 from kidney.utils import is_field_empty
 from app_authentication.models import User
 
@@ -75,14 +74,19 @@ class AccessTypeSerializer(serializers.ModelSerializer):
 class TreatmentDetailsSerializer(serializers.ModelSerializer):
 
     treatment = serializers.CharField(read_only=True)
-    time_started = serializers.TimeField(input_formats=['%H:%M'])
-    time_ended = serializers.TimeField(input_formats=['%H:%M'])
+    time_started = serializers.TimeField(format='%H:%M %p', input_formats=['%H:%M %p'], error_messages={
+        "invalid": "Time Started should use of these formats: hh:mm [AM|PM]"
+    })
+    time_ended = serializers.TimeField(format='%H:%M %p', input_formats=['%H:%M %p'], error_messages={
+        "invalid": "Time Ended should use of these formats: hh:mm [AM|PM]"
+    })
     dialysis_number = serializers.IntegerField(allow_null=False, error_messages={
         "null": "Dialysis number post cannot be empty"
     })
     machine_number = serializers.IntegerField(allow_null=False, error_messages={
         "null": "Machine number post cannot be empty"
     })
+
     class Meta:
         model = TreatmentDetail
         fields = '__all__'
@@ -285,6 +289,9 @@ class GetPatientAccessTypeSerializer(serializers.ModelSerializer):
         return data
 
 class GetPatientTreatmentDetailSerializer(serializers.ModelSerializer):
+
+    time_started = serializers.TimeField(format='%H:%M %p', input_formats=['%H:%M %p'])
+    time_ended = serializers.TimeField(format='%H:%M %p', input_formats=['%H:%M %p'])
 
     class Meta:
         model = TreatmentDetail
