@@ -74,11 +74,11 @@ class AccessTypeSerializer(serializers.ModelSerializer):
 class TreatmentDetailsSerializer(serializers.ModelSerializer):
 
     treatment = serializers.CharField(read_only=True)
-    time_started = serializers.TimeField(format='%H:%M %p', input_formats=['%H:%M %p'], error_messages={
-        "invalid": "Time Started should use of these formats: hh:mm [AM|PM]"
+    time_started = serializers.TimeField(format='%H:%M', input_formats=['%H:%M'], error_messages={
+        "invalid": "Time Started should use of these formats: hh:mm"
     })
-    time_ended = serializers.TimeField(format='%H:%M %p', input_formats=['%H:%M %p'], error_messages={
-        "invalid": "Time Ended should use of these formats: hh:mm [AM|PM]"
+    time_ended = serializers.TimeField(format='%H:%M', input_formats=['%H:%M'], error_messages={
+        "invalid": "Time Ended should use of these formats: hh:mm"
     })
     dialysis_number = serializers.IntegerField(allow_null=False, error_messages={
         "null": "Dialysis number post cannot be empty"
@@ -289,9 +289,6 @@ class GetPatientAccessTypeSerializer(serializers.ModelSerializer):
         return data
 
 class GetPatientTreatmentDetailSerializer(serializers.ModelSerializer):
-
-    time_started = serializers.TimeField(format='%H:%M %p', input_formats=['%H:%M %p'])
-    time_ended = serializers.TimeField(format='%H:%M %p', input_formats=['%H:%M %p'])
 
     class Meta:
         model = TreatmentDetail
