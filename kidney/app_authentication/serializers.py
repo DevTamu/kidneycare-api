@@ -13,6 +13,8 @@ from django.utils import timezone
 from datetime import timedelta
 from django.core.cache import cache
 from django.contrib.auth.hashers import make_password
+from kidney.constants import Role
+from rest_framework.exceptions import PermissionDenied
 
 OTP_VALIDITY_SECONDS = 600  # 3 minutes otp validity
 MAX_ATTEMPT = 5 #max attempt to send code
@@ -473,6 +475,7 @@ class RegisterSerializer(serializers.Serializer):
 class LoginObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
+
         user_information = None
         #set the is_verified default to None
         self.is_verified = None
@@ -489,7 +492,12 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
         
         if not user:
             raise serializers.ValidationError({"message": "Username does not exist"})
+        
+        allowed_roles = [Role.PATIENT, Role.CAREGIVER]
 
+        if user.role not in allowed_roles:
+            raise PermissionDenied({"message": "you are not allowed to log in to this app"})
+        
         #OTP Verification (applicable only for PATIENT role)
         if user.role == 'patient':
             otp = OTP.objects.filter(user__username=username).first()
@@ -563,19 +571,106 @@ class LoginObtainPairSerializer(TokenObtainPairSerializer):
 
         if user.role == 'patient':
             user_data["data"]["is_verified"] = self.is_verified
-        elif user.role ==  'caregiver':
+        elif user.role == 'caregiver':
             user_data["data"].pop('user_image')
             user_data["data"].pop('birth_date')
             user_data["data"].pop('gender')
             user_data["data"].pop('contact_number')
             user_data["data"].pop('middle_name')
-        else:
-            #removed this response from the admin user
-            user_data["data"].pop('birth_date')
-            user_data["data"].pop('gender')
-            user_data["data"].pop('contact_number')
-            user_data["data"].pop('middle_name')
 
+        return user_data
+    
+    @classmethod
+    def get_token(self, user):
+        token = super().get_token(user)
+        #custom claims
+        token["username"] = user.username
+
+        return token
+    
+
+class WebLoginObtainPairSerializer(TokenObtainPairSerializer):
+
+    def validate(self, attrs):
+        user_information = None
+        #set the is_verified default to None
+        self.is_verified = None
+        #get the request object from the serializer context
+        request = self.context.get("request")
+        #login fields
+        username = attrs.get("username")
+        password = attrs.get("password")
+
+        if is_field_empty(username) or is_field_empty(password):
+            raise serializers.ValidationError({"message": "Both username and password are required"})
+
+        user = User.objects.filter(username=username).first()
+        
+        if not user:
+            raise serializers.ValidationError({"message": "Username does not exist"})
+        
+        allowed_roles = [Role.ADMIN, Role.NURSE, Role.HEAD_NURSE]
+
+        if user.role not in allowed_roles:
+            raise PermissionDenied({"message": "you are not allowed to log in to this app"})
+            
+        user = authenticate(request, username=username, password=password)
+
+        #if no user found
+        if user is None:
+            raise serializers.ValidationError({"message": "Invalid credentials"})
+        
+
+        login(request, user)
+
+        #generate token
+        refresh = self.get_token(user)
+
+        try:
+            user_profile = Profile.objects.get(user=user)
+            picture = request.build_absolute_uri(user_profile.picture.url) if user_profile.picture else None
+        except Profile.DoesNotExist:
+            picture = None
+
+
+        try:
+            user_information = UserInformation.objects.get(user=user)
+        except UserInformation.DoesNotExist:
+            pass
+
+        user.status = 'online'
+        user.save()
+
+        default_data = {
+            "message": "Successfully Logged in",
+            "data": {
+                "first_name": None,
+                "last_name": None,
+                "user_image": None,
+                "contact_number": None
+            }
+        }
+
+        data =  {
+            "message": "Successfully Logged in",
+            "data": {
+                "access_token": str(refresh.access_token),
+                "refresh_token": str(refresh),
+                "user_id": str(user.id),
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "user_email": user.username,
+                "user_image": picture,  
+                "user_role": str(user.role).lower(),
+                "contact_number": user_information.contact if user_information and user_information.contact else None,
+                "is_online": user.status.lower()
+            },
+        }
+
+        user_data = {**default_data, **data}
+
+        if user.role == 'admin':
+            user_data["data"].pop('contact_number')
         return user_data
     
     @classmethod
