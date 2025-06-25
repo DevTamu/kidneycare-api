@@ -112,9 +112,9 @@ class GetPatientDietPlanLimitOneView(generics.RetrieveAPIView):
     def get(self, request, *args, **kwargs):
         #define meal time ranges
         MEAL_TIME_MAPPING = {
-            "Breakfast": (time(6, 0), time(11, 0)), #6:00AM - 9:00AM
-            "Lunch": (time(12, 0), time(17, 0)), #12:00PM - 5:00PM
-            "Dinner": (time(18, 0), time(21, 0)), #6:00PM - 9:00PM
+            "Breakfast": (time(4, 0), time(10, 59)), #6:00AM - 10:59AM
+            "Lunch": (time(11, 0), time(16, 59)), #11:00PM - 4:59PM
+            "Dinner": (time(17, 0), time(23, 0)), #5:00PM - 11:00PM
         }
         try:
             #get the user id of the current authenticated user
