@@ -13,138 +13,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class ChatConsumer(AsyncWebsocketConsumer):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.room_group_name = None
-        self.inbox_group_name = None
-
-    async def connect(self):
-        """Handles the WebSocket connection."""
-        try:
-            #user is already authenticated by middleware
-            user = self.scope["user"]
-            if not user:
-                await self.close(code=4003)
-                return
-            
-            self.chat_type = str(self.scope["url_route"]["kwargs"]["chat_type"]) #(e.g, admin, nurse, head nurse)
-            self.receiver_id = str(self.scope["url_route"]["kwargs"]["room_name"])
-            self.sender_id = str(user.id)
-
-            #create chat room and join the chat room
-            self.room_group_name = f"chat_{self.chat_type}_{min(self.receiver_id, self.sender_id)}_{max(self.receiver_id, self.sender_id)}"
-            await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-
-            self.user_inbox_group_name = f"user_{user.id}"
-            await self.channel_layer.group_add(self.user_inbox_group_name, self.channel_name)
-
-            #accept the connection
-            await self.accept()
-
-
-            user_receiver = await get_user_by_id(self.receiver_id)
-            await self.get_user_status(user, user_receiver)
-
-            # await self.send_message_introduction(user, user_receiver)
-            
-        except Exception as e:
-            await self.close(code=4003)
-        
-    async def disconnect(self, close_code):
-        """Handles the WebSocket disconnection."""
-        try:
-            if hasattr(self, 'room_group_name') and self.room_group_name:
-                await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
-            if hasattr(self, 'user_inbox_group_name') and self.user_inbox_group_name:
-                await self.channel_layer.group_discard(self.user_inbox_group_name, self.channel_name)
-        except Exception as e:
-            print(f"[ERROR] Disconnect failed")
-
-    async def receive(self, text_data):
-        
-        """Handles incoming messages from the WebSocket."""
-        try:
-            data = json.loads(text_data)
-        except json.JSONDecodeError:
-            await self.send(text_data=json.dumps({"error": "Invalid JSON data."}))
-            return
-        
-        # update the database when the client reads the message by calling mark_message_as_read
-        # if data.get('type') == "message_read":
-        #     message_id = data.get("message_id")
-        #     if message_id:
-        #         await self.mark_message_as_read(message_id)
-        #     return
-        
-        image_data = data.get("image_data", None)
-        
-        message_content = data.get('message', None)
-        #if message not provided
-        # if not message_content:
-        #     await self.send(text_data=json.dumps({"error": "Message is required."}))
-        #     return
-        
-        #get the returned message from the save_message
-        message_obj = await self.save_message(
-            message_content=message_content,
-            image_data=image_data
-        )
-
-        if message_obj:
-            await self.send_message(message_obj)
-            await self.send_message_to_inbox(message_obj)
-
-
-    async def send_message(self, message):
-        #send to chat room
-        await self.channel_layer.group_send(
-            self.room_group_name, #send to the receiver websocket
-            {
-                "type": "chat_message", 
-                "message": message.content if message.content else None,
-                "sender_id": str(message.sender.id),
-                "receiver_id": str(message.receiver.id),
-                "chat_id": int(message.id),
-                "created_at": str(message.created_at),
-                "message_status": str(message.status).lower(),
-                "image": message.image.url if message.image else None
-            }
-        )
-
-
-    #receive message from room group
-    async def chat_message(self, event): 
-        """Handles broadcasting of the chat message to the WebSocket."""
-        # Send message to WebSocket
-        await self.send(text_data=json.dumps({
-            "message": event["message"], #message content
-            "sender_id": str(event["sender_id"]),
-            "receiver_id": str(event["receiver_id"]),
-            "chat_id": event["chat_id"],
-            "created_at": event["created_at"],
-            "message_status": event["message_status"],
-            "image": event["image"]
-        }))
-
-    async def get_status(self, event):
-        await self.send(text_data=json.dumps({
-            "status": event["is_online"],   
-        }))
-
-    async def get_user_status(self, sender, receiver):
-
-        await self.channel_layer.group_send(
-            f"user_{sender.id}",
-            {
-                "type": "get_status",
-                "is_online": str(receiver.status).lower(),
-            }
-        )
+class BaseChatConsumer(AsyncWebsocketConsumer):
+    async def send_json(self, data: dict):
+        await self.send(text_data=json.dumps(data))
 
     async def inbox_update(self, event):
-        await self.send(text_data=json.dumps({
+        print(f"[INBOX_CONSUMER] Sent to user inbox: {event['receiver_id']} or {event['sender_id']}")
+        await self.send_json({
             "status": event["status"],
             "first_name": event["first_name"],
             "user_image": event["user_image"],
@@ -156,71 +31,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "receiver_id": str(event["receiver_id"]),
             "created_at": event["created_at"],
             "image": event["image"]
-        }))
-
-    async def send_message_to_inbox(self, message):
-
-        user = None
-
-        sender = message.sender
-        receiver = message.receiver
-        
-        if sender.role == "patient" and receiver.role in ['nurse', 'head nurse']:
-            user = receiver
-        elif sender.role == "patient" and receiver.role == "admin":
-            user = sender
-        # else:
-        #     user = message.sender if str(message.sender.id) != str(self.sender_id) else message.receiver
-
-
-        user_profile = await self.get_profile(user)
-
-        try:    
-            
-            if sender.role == "patient" and receiver.role in ['nurse', 'head nurse']:
-                await self.channel_layer.group_send(
-                    f"user_{message.sender.id}",
-                    {
-                        "type": "inbox_update",
-                        "status": str(user.status).lower(),
-                        "first_name": user.first_name,
-                        "user_image": user_profile,
-                        "message": message.content if message.content else None,
-                        "message_status": message.status,
-                        "read": message.read,
-                        "chat_id": int(message.id),
-                        "sender_id": str(message.sender.id),
-                        "receiver_id": str(message.receiver.id),
-                        "created_at": str(message.created_at),
-                        "image": message.image.url if message.image else None
-                    }
-                )
-                await self.send_notification(sender, receiver, message)
-            else:
-                await self.channel_layer.group_send(
-                    f"user_{message.receiver.id}",
-                    {
-                        "type": "inbox_update",
-                        "status": str(user.status).lower(),
-                        "first_name": user.first_name,
-                        "user_image": user_profile,
-                        "message": message.content if message.content else None,
-                        "message_status": message.status,
-                        "read": message.read,
-                        "chat_id": int(message.id),
-                        "sender_id": str(message.sender.id),
-                        "receiver_id": str(message.receiver.id),
-                        "created_at": str(message.created_at),
-                        "image": message.image.url if message.image else None
-                    }
-                )  
-            print("[DEBUG] Successfully sent to inbox group")
-        except Exception as e:
-            print(f"[ERROR] Failed to send to inbox group: {e}")
-
+        })
 
     async def notification(self, event):
-        await self.send(text_data=json.dumps({
+        await self.send_json({
             "first_name": event["first_name"],
             "last_name": event["last_name"],
             "status": event["status"],
@@ -228,90 +42,204 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "created_at": event["created_at"],
             "picture": event["picture"],
             "message_status": event["message_status"]
-        }))
+        })
+
+    async def get_status(self, event):
+        await self.send_json({
+            "status": event["is_online"],
+        })
+
+
+
+class ChatConsumer(BaseChatConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.room_group_name = None
+
+    async def connect(self):
+        user = self.scope["user"]
+        if not user:
+            await self.close(code=4003)
+            return
+
+        self.chat_type = self.scope["url_route"]["kwargs"]["chat_type"]
+        self.receiver_id = self.scope["url_route"]["kwargs"]["room_name"]
+        self.sender_id = str(user.id)
+
+        self.room_group_name = f"chat_{self.chat_type}_{min(self.receiver_id, self.sender_id)}_{max(self.receiver_id, self.sender_id)}"
+
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        await self.accept()
+
+        receiver = await self.get_user(self.receiver_id)
+        await self.get_user_status(user, receiver)
+
+    async def disconnect(self, close_code):
+        if hasattr(self, 'room_group_name'):
+            await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+    async def receive(self, text_data):
+        try:
+            data = json.loads(text_data)
+        except json.JSONDecodeError:
+            return await self.send_json({"error": "Invalid JSON"})
+
+        message = await self.save_message(data.get("message"), data.get("image_data"))
+        if message:
+            await self.send_to_room(message)
+            await self.send_to_inbox(message)
+
+    async def send_to_room(self, message):
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "chat_message",
+                "message": message.content,
+                "sender_id": str(message.sender.id),
+                "receiver_id": str(message.receiver.id),
+                "chat_id": message.id,
+                "created_at": str(message.created_at),
+                "message_status": message.status,
+                "image": message.image.url if message.image else None
+            }
+        )
+
+    async def chat_message(self, event):
+        await self.send_json(event)
+
+    async def get_user_status(self, sender, receiver):
+        await self.channel_layer.group_send(
+            f"user_{sender.id}",
+            {
+                "type": "get_status",
+                "is_online": str(receiver.status).lower(),
+            }
+        )
+
+    async def send_to_inbox(self, message):
+        sender = message.sender
+        receiver = message.receiver
+
+        async def send_to(user, other_user):
+            profile_url = await self.get_profile(other_user)
+            await self.channel_layer.group_send(
+                f"user_{user.id}",
+                {
+                    "type": "inbox_update",
+                    "status": str(other_user.status).lower(),
+                    "first_name": other_user.first_name,
+                    "user_image": profile_url,
+                    "message": message.content,
+                    "message_status": message.status,
+                    "read": message.read,
+                    "chat_id": message.id,
+                    "sender_id": str(message.sender.id),
+                    "receiver_id": str(message.receiver.id),
+                    "created_at": str(message.created_at),
+                    "image": message.image.url if message.image else None
+                }
+            )
+
+        # Logic for roles
+        if sender.role == "patient" and receiver.role == "admin":
+            # inbox should go to BOTH
+            await send_to(sender, receiver)
+            await send_to(receiver, sender)
+
+        elif sender.role == "admin" and receiver.role == "patient":
+            # inbox should go to BOTH
+            await send_to(sender, receiver)
+            await send_to(receiver, sender)
+
+        elif (
+            sender.role == "patient" and receiver.role in ["nurse", "head_nurse"]
+        ) or (
+            sender.role in ["nurse", "head_nurse"] and receiver.role == "patient"
+        ):
+            # always send to patient only
+            patient = sender if sender.role == "patient" else receiver
+            nurse_or_sender = receiver if sender.role == "patient" else sender
+            await send_to(patient, nurse_or_sender)
+
+
+        if sender.role == "patient" and receiver.role in ["nurse", "head_nurse"]:
+            await self.send_notification(sender, receiver, message)
 
     async def send_notification(self, sender, receiver, message):
-
-        user_profile = await self.get_profile(sender)
-
+        profile = await self.get_profile(sender)
         await self.channel_layer.group_send(
             f"user_{receiver.id}",
             {
                 "type": "notification",
-                "first_name": str(sender.first_name).lower(),
-                "last_name": str(sender.last_name).lower(),
-                "status": str(sender.status).lower(),
-                "message": str(message.content).lower(),
+                "first_name": sender.first_name,
+                "last_name": sender.last_name,
+                "status": str(sender.status).lower(),   
+                "message": message.content,
                 "created_at": str(message.created_at),
-                "picture": user_profile,
-                "message_status": str(message.status).lower()
+                "picture": profile,
+                "message_status": message.status
             }
         )
 
     async def save_message(self, message_content=None, image_data=None):
+        receiver = await self.get_user(self.receiver_id)
+        sender = await self.get_user(self.sender_id)
 
-
-        """Saves a new message to the database."""
-        receiver_user = await self.get_user(self.receiver_id)
-        sender_user = await self.get_user(self.sender_id)
-
-        if not receiver_user or not sender_user:
-            await self.send_error_to_websocket("Could not fetch user. Please try again.")
-            logger.warning(f"[WS] Failed to fetch users: sender_id={self.sender_id}, receiver_id={self.receiver_id}")
+        if not receiver or not sender:
+            await self.send_json({"error": "Could not fetch users."})
             return
 
         message = Message(
-            sender=sender_user,
-            receiver=receiver_user,
-            content=message_content,    
-            status='sent', #initially set status to 'sent',
+            sender=sender,
+            receiver=receiver,
+            content=message_content,
+            status='sent',
             date_sent=timezone.now()
         )
 
         if image_data:
             try:
-
-                size_in_bytes = get_base64_file_size(image_data)
-
-                size_in_mb = size_in_bytes / (1024 * 1024)
-
-                if size_in_mb >= 20:
-                    await self.send(text_data=json.dumps({"error": "The image upload is too big."}))
+                if get_base64_file_size(image_data) / (1024 * 1024) >= 20:
+                    await self.send_json({"error": "Image too large."})
                     return
-
                 format, img_str = image_data.split(';base64,')
-                ext = format.split('/')[-1] 
+                ext = format.split('/')[-1]
                 message.image = ContentFile(base64.b64decode(img_str), name=f"{uuid.uuid4()}.{ext}")
-            except Exception as e:
-                logger.exception(f"[WS] Failed to decode image: {e}")
-                print(f"[ERROR] Failed to decode image: {e}")
-        else:
-            message.image = None
+            except Exception:
+                await self.send_json({"error": "Failed to decode image."})
+                return
 
-        
-        await database_sync_to_async(message.save)()
+        await sync_to_async(message.save)()
         return message
-     
-    #helper function to get user from the database
+
     async def get_user(self, user_id) -> User:
         return await get_user_by_id(user_id)
-    
-
-    async def send_error_to_websocket(self, error_message):
-        await self.send(text_data=json.dumps({
-            "error": error_message
-        }))
 
     @sync_to_async
     def get_profile(self, user):
         from app_authentication.models import Profile
         try:
-            user_profile = Profile.objects.get(user=user)
-            return user_profile.picture.url if user_profile and user_profile.picture else None
+            profile = Profile.objects.get(user=user)
+            return profile.picture.url if profile.picture else None
         except Profile.DoesNotExist:
             return None
 
 
 
 
+class InboxConsumer(BaseChatConsumer):
+    async def connect(self):
+        user = self.scope["user"]
+        self.inbox_group_name = f"user_{user.id}"
+        print(f"[InboxConsumer CONNECTED] user={user.id} inbox_group={self.inbox_group_name}")
+        await self.channel_layer.group_add(self.inbox_group_name, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        if hasattr(self, 'inbox_group_name'):
+            await self.channel_layer.group_discard(self.inbox_group_name, self.channel_name)
+
+
+class NotificationConsumer(BaseChatConsumer):
+    pass
 
