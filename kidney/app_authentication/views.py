@@ -2,6 +2,7 @@ from .serializers import (
     RegisterSerializer,
     RegisterAdminSerializer,
     LoginObtainPairSerializer,
+    WebLoginObtainPairSerializer,
     RefreshTokenSerializer,
     ChangePasswordSerializer,
     LogoutSerializer,
@@ -20,6 +21,7 @@ from .serializers import (
     RegisterCaregiverSerializer,
     CaregiverListSerializer,
 )
+from kidney.pagination.appointment_pagination import Pagination
 from rest_framework import serializers
 from django.core.cache import cache
 from rest_framework.exceptions import AuthenticationFailed
@@ -32,6 +34,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth import logout
 from .models import OTP, User, Profile, UserInformation, Caregiver
 from django.http import JsonResponse
+from kidney.pagination.appointment_pagination import Pagination
+from kidney.permissions import IsAdmin, IsProvider, IsPatient, IsCaregiver
 
 def ping(request):
     return JsonResponse({"status": "ok"})
@@ -232,6 +236,10 @@ class AddAccountHealthCareProviderView(generics.CreateAPIView):
 class LoginView(TokenObtainPairView):
     serializer_class = LoginObtainPairSerializer
 
+class LoginWebView(TokenObtainPairView):
+    serializer_class = WebLoginObtainPairSerializer
+
+
 class RefreshTokenView(TokenRefreshView):
 
     serializer_class = RefreshTokenSerializer
@@ -353,16 +361,19 @@ class ChangePasswordHealthCareProviderView(generics.UpdateAPIView):
 class GetUsersView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = GetUsersSeriaizer
-    
+    pagination_class = Pagination
     
     def get(self, request, *args, **kwargs):
 
         try:
             user = User.objects.filter(role='patient')
-            serializer = self.get_serializer(user, many=True, context={'request': request})
+            paginator = self.pagination_class()
+            paginated_data = paginator.paginate_queryset(user, request)
+            serializer = self.get_serializer(paginated_data, many=True, context={'request': request})
+            paginated_response = paginator.get_paginated_response(serializer.data)
             return ResponseMessageUtils(
                 message="List of Patients",
-                data=serializer.data,
+                data=paginated_response.data,
                 status_code=status.HTTP_200_OK
             )
         except Exception as e:
@@ -403,10 +414,12 @@ class GetUserRoleView(generics.ListAPIView):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-
+# import traceback
 class GetHealthCareProvidersView(generics.ListAPIView):
+    
     permission_classes = [IsAuthenticated]
     serializer_class = GetHealthCareProvidersSerializer
+    pagination_class = Pagination
 
     def get_queryset(self):
         return User.objects.filter(role__in=['nurse', 'head nurse'])
@@ -415,13 +428,22 @@ class GetHealthCareProvidersView(generics.ListAPIView):
 
         try:
             user = self.get_queryset()  
-            serializer = self.get_serializer(user, many=True)
+
+            paginator = self.pagination_class()
+
+            paginated_data = paginator.paginate_queryset(user, request)
+
+            serializer = self.get_serializer(paginated_data, many=True)
+
+            paginated_response = paginator.get_paginated_response(serializer.data)
+
             return ResponseMessageUtils(
                 message="List of Providers",
-                data=serializer.data,
+                data=paginated_response.data,
                 status_code=status.HTTP_200_OK
             )
         except Exception as e:
+            # traceback.print_exc()
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -598,6 +620,7 @@ class RegisterCaregiverSerializer(generics.RetrieveUpdateDestroyAPIView):
             )
 
         except Exception as e:
+            print(f"WHAT WENT WRONG? {e}")
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR

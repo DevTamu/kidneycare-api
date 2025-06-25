@@ -74,14 +74,19 @@ class AccessTypeSerializer(serializers.ModelSerializer):
 class TreatmentDetailsSerializer(serializers.ModelSerializer):
 
     treatment = serializers.CharField(read_only=True)
-    time_started = serializers.TimeField(input_formats=['%H:%M'])
-    time_ended = serializers.TimeField(input_formats=['%H:%M'])
+    time_started = serializers.TimeField(format='%H:%M', input_formats=['%H:%M'], error_messages={
+        "invalid": "Time Started should use of these formats: hh:mm"
+    })
+    time_ended = serializers.TimeField(format='%H:%M', input_formats=['%H:%M'], error_messages={
+        "invalid": "Time Ended should use of these formats: hh:mm"
+    })
     dialysis_number = serializers.IntegerField(allow_null=False, error_messages={
         "null": "Dialysis number post cannot be empty"
     })
     machine_number = serializers.IntegerField(allow_null=False, error_messages={
         "null": "Machine number post cannot be empty"
     })
+
     class Meta:
         model = TreatmentDetail
         fields = '__all__'
@@ -232,3 +237,130 @@ class GetPatientHealthMonitoringSerializer(serializers.ModelSerializer):
         data["heart_rate_post_dialysis"] = prescription.pulse_post
 
         return data
+    
+class GetPatientsTreatmentHistorySerializer(serializers.ModelSerializer):
+
+    treatment_date = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Treatment
+        fields = ['user', 'treatment_date', 'id']
+
+
+    def get_treatment_date(self, obj):
+        return getattr(obj, 'last_treatment_date', None).strftime('%b %d, %Y')
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        #rename keys
+        data["user_id"] = data.pop('user')
+        data["treatment_id"] = data.pop('id')
+
+        return data
+
+
+class GetPatientPrescriptionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Prescription
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        #removed from the response
+        data.pop('treatment')
+
+        return data
+
+class GetPatientAccessTypeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = AccessType
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        #removed from the response
+        data.pop('treatment')
+
+        return data
+
+class GetPatientTreatmentDetailSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = TreatmentDetail
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        #removed from the response
+        data.pop('treatment')
+
+        return data
+
+class GetPatientPreDialysisSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PreDialysis
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        #removed from the response
+        data.pop('treatment')
+
+        return data
+
+
+class GetPatientPostDialysisSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PostDialysis
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        #removed from the response
+        data.pop('treatment')
+
+        return data
+
+
+class GetPatientTreatmentSerializer(serializers.ModelSerializer):
+
+    treatment_prescription = GetPatientPrescriptionSerializer()
+    treatment_access_type = GetPatientAccessTypeSerializer()
+    treatment_details = GetPatientTreatmentDetailSerializer()
+    treatment_pre_dialysis = GetPatientPreDialysisSerializer()
+    treatment_post_dialysis = GetPatientPostDialysisSerializer()
+
+    class Meta:
+        model = Treatment
+        fields = ['user', 'id', 'diagnosis', 'last_treatment_date', 'treatment_prescription', 'treatment_access_type', 'treatment_details', 'treatment_pre_dialysis', 'treatment_post_dialysis']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        #renamed keys
+        data["treatment_id"] = data.pop('id')
+        data["user_id"] = data.pop('user')
+        data["treatment_prescription"] = data.pop('treatment_prescription')
+        data["treatment_access_type"] = data.pop('treatment_access_type')
+        data["treatment_details"] = data.pop('treatment_details')
+        data["treatment_pre_dialysis"] = data.pop('treatment_pre_dialysis')
+        data["treatment_post_dialysis"] = data.pop('treatment_post_dialysis')
+
+        return data
+
+class DeletePatientsTreatmentHistorySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Treatment
+        fields = ['id']
+    

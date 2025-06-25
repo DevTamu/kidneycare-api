@@ -7,15 +7,15 @@ from cloudinary_storage.storage import MediaCloudinaryStorage
 class Message(TimestampModel):
 
     status_choices = [
-        ('Sent', 'sent'),
-        ('Delivered', 'delivered'),
-        ('Read', 'read')
+        ('sent', 'Sent'),
+        ('delivered', 'Delivered'),
+        ('read', 'Read')
     ]
 
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sender_messages')
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='receiver_messages')
     content = models.TextField(max_length=255, null=True)
-    image = models.ImageField(storage=MediaCloudinaryStorage(), upload_to='chat_images/', null=True, blank=True)  # <-- Add this
+    image = models.ImageField(storage=MediaCloudinaryStorage(), upload_to='chat_images/', null=True, blank=True)
     read = models.BooleanField(default=False)
     status = models.CharField(max_length=20, choices=status_choices, default='Sent')
     date_sent = models.DateTimeField(default=timezone.now)
