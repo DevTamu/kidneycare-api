@@ -414,9 +414,9 @@ class GetUserRoleView(generics.ListAPIView):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-
+# import traceback
 class GetHealthCareProvidersView(generics.ListAPIView):
-
+    
     permission_classes = [IsAuthenticated]
     serializer_class = GetHealthCareProvidersSerializer
     pagination_class = Pagination
@@ -443,6 +443,7 @@ class GetHealthCareProvidersView(generics.ListAPIView):
                 status_code=status.HTTP_200_OK
             )
         except Exception as e:
+            # traceback.print_exc()
             return ResponseMessageUtils(
                 message="Something went wrong while processing your request.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
