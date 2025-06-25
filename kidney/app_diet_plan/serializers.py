@@ -129,9 +129,9 @@ class CreateDietPlanSerializer(serializers.Serializer):
 
         # Assign time ranges based on meal type
         meal_times_mapping = {
-            "Breakfast": (time(4, 0), time(10, 59)), #6:00AM - 10:59AM
-            "Lunch": (time(11, 0), time(16, 59)), #11:00PM - 4:59PM
-            "Dinner": (time(17, 0), time(23, 0)), #5:00PM - 11:00PM
+            "breakfast": (time(4, 0), time(10, 59)), #6:00AM - 10:59AM
+            "lunch": (time(11, 0), time(16, 59)), #11:00PM - 4:59PM
+            "dinner": (time(17, 0), time(23, 0)), #5:00PM - 11:00PM
         }
 
         start_time, end_time = meal_times_mapping[meal_type]
